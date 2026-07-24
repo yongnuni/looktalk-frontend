@@ -1,0 +1,19 @@
+.keyboard-key {
+  min-width: 64px;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.keyboard-key:hover {
+  background: #f2f4f7;
+}
+
+.keyboard-key:active {
+  transform: scale(0.98);
+}
