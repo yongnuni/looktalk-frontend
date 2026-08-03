@@ -8,7 +8,7 @@ export interface ChatMessage {
   direction: ChatMessageDirection;
 }
 
-export interface HospitalChatRoom {
+export interface ChatRoom {
   id: string;
   name: string;
   icon: ChatRoomIcon;

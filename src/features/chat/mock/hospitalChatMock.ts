@@ -1,6 +1,6 @@
-import type { HospitalChatRoom } from '../types/chat';
+import type { ChatRoom } from '../types/chat';
 
-export const hospitalChatRooms: HospitalChatRoom[] = [
+export const hospitalChatRooms: ChatRoom[] = [
   {
     id: 'request',
     name: '요청',
