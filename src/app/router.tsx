@@ -14,6 +14,7 @@ import FriendChatPage from '../pages/chat/FriendChatPage';
 import CalibrationPage from '../pages/calibration/CalibrationPage';
 import AnalysisPage from '../pages/analysis/AnalysisPage';
 import StaffDashboardPage from '../pages/staff/StaffDashboardPage';
+import ModalPreviewPage from '../pages/dev/ModalPreviewPage';
 
 export const router = createBrowserRouter([
   { path: '/', element: <SplashPage /> },
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
   { path: '/analysis', element: <AnalysisPage /> },
 
   { path: '/staff', element: <StaffDashboardPage /> },
+  { path: '/dev/modal-preview', element: <ModalPreviewPage /> },
 
   { path: '*', element: <Navigate to="/" replace /> },
 ]);
