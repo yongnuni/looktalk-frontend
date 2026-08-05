@@ -1,0 +1,120 @@
+.analysis-selection-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.analysis-selection-modal {
+  width: min(100%, 860px);
+  border: 1px solid #d0d5dd;
+  background: #ffffff;
+  color: #101828;
+  box-shadow: 0 24px 72px rgba(15, 23, 42, 0.3);
+}
+
+.analysis-selection-modal__body {
+  padding: 42px 48px 48px;
+  text-align: center;
+}
+
+.analysis-selection-modal__eyebrow {
+  margin: 0 0 26px;
+  color: #344054;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.analysis-selection-modal__description {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.55;
+}
+
+.analysis-selection-modal__options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 38px;
+}
+
+.analysis-selection-option,
+.analysis-selection-retest {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #d0d5dd;
+  background: #ffffff;
+  color: #344054;
+  cursor: pointer;
+  font-size: 25px;
+  font-weight: 800;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.analysis-selection-option {
+  min-height: 120px;
+  padding: 18px 12px;
+}
+
+.analysis-selection-option--recommended {
+  border-color: #1769e0;
+  background: #f2f8ff;
+  color: #1769e0;
+}
+
+.analysis-selection-option__badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.analysis-selection-retest {
+  min-height: 110px;
+  margin-top: 18px;
+  padding: 18px;
+  color: #667085;
+}
+
+.analysis-selection-option:hover,
+.analysis-selection-retest:hover {
+  border-color: #2563eb;
+  background: #eef4ff;
+}
+
+.analysis-selection-option:focus-visible,
+.analysis-selection-retest:focus-visible {
+  outline: 4px solid #2563eb;
+  outline-offset: 3px;
+}
+
+@media (max-width: 680px) {
+  .analysis-selection-backdrop {
+    padding: 16px;
+  }
+
+  .analysis-selection-modal__body {
+    padding: 32px 24px 24px;
+  }
+
+  .analysis-selection-modal__eyebrow {
+    font-size: 26px;
+  }
+
+  .analysis-selection-modal__description {
+    font-size: 22px;
+  }
+
+  .analysis-selection-modal__options {
+    grid-template-columns: 1fr;
+  }
+}
