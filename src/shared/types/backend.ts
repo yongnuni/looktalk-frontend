@@ -1,0 +1,107 @@
+// users
+export interface UserDto {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  user_phone: string | null;
+  profile_image: string | null;
+  is_email_verified: boolean | null;
+  is_sms_verified: boolean | null;
+  login_id: string | null;
+  role: 'PATIENT' | 'STAFF' | null;
+  created_at: string | null;
+}
+
+// user_setting
+export interface UserSettingDto {
+  user_id: string;
+  keyboard_layout: string | null;
+  is_key_enlarged: boolean | null;
+  current_input_method: string | null;
+  updated_at: string | null;
+}
+
+// phrase
+export interface PhraseDto {
+  phrase_id: number;
+  user_id: string | null;
+  phrase_text: string;
+  category: string | null;
+  created_at: string | null;
+}
+
+// friendship
+export interface FriendshipDto {
+  friendship_id: number;
+  user_id: string | null;
+  friend_user_id: string | null;
+  status: string | null;
+  friend_name: string | null;
+  friend_phone: string | null;
+  created_at: string | null;
+}
+
+// memo
+export interface MemoDto {
+  memo_id: number;
+  user_id: string | null;
+  content: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+// chat_room
+export interface ChatRoomDto {
+  room_id: number;
+  room_type: string | null;
+  created_at: string | null;
+}
+
+// chat_participant
+export interface ChatParticipantDto {
+  participant_id: number;
+  room_id: number;
+  user_id: string | null;
+  external_name: string | null;
+  external_phone: string | null;
+  joined_at: string | null;
+}
+
+// message
+export interface MessageDto {
+  message_id: number;
+  room_id: number;
+  sender_participant_id: number;
+  content: string;
+  message_type: string | null;
+  created_at: string | null;
+}
+
+// input_session_log
+export interface InputSessionLogDto {
+  log_id: string;
+  user_id: string | null;
+  calibration_id: string | null;
+  input_method: string;
+  keyboard_layout: string;
+  typo_rate: number | null;
+  input_speed: number | null;
+  recognition_accuracy: number | null;
+  input_stability: number | null;
+  session_at: string | null;
+}
+
+// hospital
+export interface HospitalDto {
+  hospital_id: number;
+  hospital_name: string;
+  created_at: string | null;
+}
+
+// staff
+export interface StaffDto {
+  staff_id: number;
+  user_id: string;
+  hospital_id: number;
+  created_at: string | null;
+}

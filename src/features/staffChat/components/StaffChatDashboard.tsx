@@ -11,12 +11,12 @@ export default function StaffChatDashboard() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [patients, setPatients] = useState<StaffPatientChat[]>(staffPatientChats);
-  const [selectedPatientId, setSelectedPatientId] = useState(staffPatientChats[0].patientId);
+  const [selectedPatientUserId, setSelectedPatientUserId] = useState(staffPatientChats[0].patientUserId);
   const [searchQuery, setSearchQuery] = useState('');
   const [draft, setDraft] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const selectedPatient = patients.find((patient) => patient.patientId === selectedPatientId);
+  const selectedPatient = patients.find((patient) => patient.patientUserId === selectedPatientUserId);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredPatients = patients.filter((patient) => {
     if (!normalizedSearchQuery) return true;
@@ -28,16 +28,16 @@ export default function StaffChatDashboard() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedPatientId, selectedPatient?.messages.length]);
+  }, [selectedPatientUserId, selectedPatient?.messages.length]);
 
   if (!selectedPatient) return null;
 
-  const selectPatient = (patientId: string) => {
-    setSelectedPatientId(patientId);
+  const selectPatient = (patientUserId: string) => {
+    setSelectedPatientUserId(patientUserId);
     setDraft('');
     setPatients((currentPatients) =>
       currentPatients.map((patient) =>
-        patient.patientId === patientId ? { ...patient, hasUnread: false } : patient,
+        patient.patientUserId === patientUserId ? { ...patient, hasUnread: false } : patient,
       ),
     );
   };
@@ -59,7 +59,7 @@ export default function StaffChatDashboard() {
 
     setPatients((currentPatients) =>
       currentPatients.map((patient) =>
-        patient.patientId === selectedPatientId
+        patient.patientUserId === selectedPatientUserId
           ? { ...patient, messages: [...patient.messages, newMessage] }
           : patient,
       ),
@@ -116,10 +116,10 @@ export default function StaffChatDashboard() {
               filteredPatients.map((patient) => (
                 <button
                   aria-label={`${patient.roomLabel} ${patient.patientName} 환자${patient.hasUnread ? ' 읽지 않은 메시지 있음' : ''}`}
-                  aria-pressed={patient.patientId === selectedPatientId}
-                  className={`staff-chat-patient-row${patient.patientId === selectedPatientId ? ' staff-chat-patient-row--selected' : ''}`}
-                  key={patient.patientId}
-                  onClick={() => selectPatient(patient.patientId)}
+                  aria-pressed={patient.patientUserId === selectedPatientUserId}
+                  className={`staff-chat-patient-row${patient.patientUserId === selectedPatientUserId ? ' staff-chat-patient-row--selected' : ''}`}
+                  key={patient.patientUserId}
+                  onClick={() => selectPatient(patient.patientUserId)}
                   type="button"
                 >
                   <span>{patient.roomLabel} - {patient.patientName} 환자</span>

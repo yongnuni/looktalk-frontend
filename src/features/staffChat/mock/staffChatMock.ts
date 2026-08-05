@@ -20,8 +20,8 @@ function message(
 
 export const staffPatientChats: StaffPatientChat[] = [
   {
-    patientId: 'patient-101-kim',
-    roomId: 101,
+    patientUserId: 'patient-user-101-kim',
+    chatRoomId: 101,
     roomLabel: '101호',
     patientName: '김민준',
     hasUnread: true,
@@ -31,8 +31,8 @@ export const staffPatientChats: StaffPatientChat[] = [
     ],
   },
   {
-    patientId: 'patient-101-kang',
-    roomId: 102,
+    patientUserId: 'patient-user-101-kang',
+    chatRoomId: 102,
     roomLabel: '101호',
     patientName: '강민재',
     hasUnread: false,
@@ -42,8 +42,8 @@ export const staffPatientChats: StaffPatientChat[] = [
     ],
   },
   {
-    patientId: 'patient-102-yoon',
-    roomId: 103,
+    patientUserId: 'patient-user-102-yoon',
+    chatRoomId: 103,
     roomLabel: '102호',
     patientName: '윤하리',
     hasUnread: false,
@@ -53,16 +53,16 @@ export const staffPatientChats: StaffPatientChat[] = [
     ],
   },
   {
-    patientId: 'patient-102-choi',
-    roomId: 104,
+    patientUserId: 'patient-user-102-choi',
+    chatRoomId: 104,
     roomLabel: '102호',
     patientName: '최예린',
     hasUnread: false,
     messages: [message('102-choi-1', '보호자에게 연락 부탁드려요', 'received', '08:20')],
   },
   {
-    patientId: 'patient-102-kim',
-    roomId: 105,
+    patientUserId: 'patient-user-102-kim',
+    chatRoomId: 105,
     roomLabel: '102호',
     patientName: '김하늘',
     hasUnread: false,
@@ -72,8 +72,8 @@ export const staffPatientChats: StaffPatientChat[] = [
     ],
   },
   {
-    patientId: 'patient-201-lee',
-    roomId: 106,
+    patientUserId: 'patient-user-201-lee',
+    chatRoomId: 106,
     roomLabel: '201호',
     patientName: '이도현',
     hasUnread: false,

@@ -1,15 +1,21 @@
 import { create } from 'zustand';
 
-type UserRole = 'PATIENT' | 'STAFF' | 'ADMIN';
+type UserRole = 'PATIENT' | 'STAFF' | null;
 
-interface AuthUser {
-  id: number;
-  name: string;
+export interface AuthenticatedUser {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string | null;
+  profileImage: string | null;
+  isEmailVerified: boolean | null;
+  isSmsVerified: boolean | null;
+  loginId: string | null;
   role: UserRole;
 }
 
 interface AuthState {
-  user: AuthUser | null;
+  user: AuthenticatedUser | null;
   accessToken: string | null;
   isLoggedIn: boolean;
   loginAsPatient: () => void;
@@ -28,8 +34,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     set({
       user: {
-        id: 1,
-        name: '환자 테스트',
+        userId: 'patient-test-user',
+        userName: '환자 테스트',
+        userEmail: 'patient@example.com',
+        userPhone: null,
+        profileImage: null,
+        isEmailVerified: true,
+        isSmsVerified: true,
+        loginId: 'patient-test',
         role: 'PATIENT',
       },
       accessToken: mockToken,
@@ -43,8 +55,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     set({
       user: {
-        id: 2,
-        name: '의료진 테스트',
+        userId: 'staff-test-user',
+        userName: '의료진 테스트',
+        userEmail: 'staff@example.com',
+        userPhone: null,
+        profileImage: null,
+        isEmailVerified: true,
+        isSmsVerified: true,
+        loginId: 'staff-test',
         role: 'STAFF',
       },
       accessToken: mockToken,

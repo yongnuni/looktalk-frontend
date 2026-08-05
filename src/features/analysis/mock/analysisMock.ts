@@ -1,39 +1,75 @@
-import type { AnalysisItem } from '../types/analysis';
+import type { InputSessionLogDto } from '../../../shared/types/backend';
+import { mapInputSessionLogToAnalysisItem } from '../utils/analysisMappers';
+import type { AnalysisItem, InputMethodId } from '../types/analysis';
 
-export const analysisItems: AnalysisItem[] = [
+interface AnalysisMockSeed {
+  inputMethodId: InputMethodId;
+  inputMethod: string;
+  recommendedMethod: string;
+  log: InputSessionLogDto;
+}
+
+const analysisMockSeeds: AnalysisMockSeed[] = [
   {
-    id: 'blink',
+    inputMethodId: 'blink',
     inputMethod: '눈 깜빡 키보드',
     recommendedMethod: '입 뻥긋 키보드',
-    metrics: [
-      { id: 'typo-rate', label: '오타율', value: 25 },
-      { id: 'input-speed', label: '입력 속도', value: 62 },
-      { id: 'recognition-accuracy', label: '인식 정확도', value: 55 },
-      { id: 'input-stability', label: '입력 안정성', value: 43 },
-    ],
+    log: {
+      log_id: 'session-blink-001',
+      user_id: 'patient-test-user',
+      calibration_id: null,
+      input_method: 'BLINK',
+      keyboard_layout: 'QWERTY',
+      typo_rate: 25,
+      input_speed: 62,
+      recognition_accuracy: 55,
+      input_stability: 43,
+      session_at: null,
+    },
   },
   {
-    id: 'mouth',
+    inputMethodId: 'mouth',
     inputMethod: '입 뻥긋 키보드',
     recommendedMethod: '입 뻥긋 키보드',
-    metrics: [
-      { id: 'typo-rate', label: '오타율', value: 18 },
-      { id: 'input-speed', label: '입력 속도', value: 71 },
-      { id: 'recognition-accuracy', label: '인식 정확도', value: 68 },
-      { id: 'input-stability', label: '입력 안정성', value: 64 },
-    ],
+    log: {
+      log_id: 'session-mouth-001',
+      user_id: 'patient-test-user',
+      calibration_id: null,
+      input_method: 'MOUTH',
+      keyboard_layout: 'QWERTY',
+      typo_rate: 18,
+      input_speed: 71,
+      recognition_accuracy: 68,
+      input_stability: 64,
+      session_at: null,
+    },
   },
   {
-    id: 'gaze',
+    inputMethodId: 'gaze',
     inputMethod: '시선 키보드',
     recommendedMethod: '입 뻥긋 키보드',
-    metrics: [
-      { id: 'typo-rate', label: '오타율', value: 32 },
-      { id: 'input-speed', label: '입력 속도', value: 49 },
-      { id: 'recognition-accuracy', label: '인식 정확도', value: 59 },
-      { id: 'input-stability', label: '입력 안정성', value: 38 },
-    ],
+    log: {
+      log_id: 'session-gaze-001',
+      user_id: 'patient-test-user',
+      calibration_id: null,
+      input_method: 'GAZE',
+      keyboard_layout: 'QWERTY',
+      typo_rate: 32,
+      input_speed: 49,
+      recognition_accuracy: 59,
+      input_stability: 38,
+      session_at: null,
+    },
   },
 ];
+
+export const analysisItems: AnalysisItem[] = analysisMockSeeds.map((seed) =>
+  mapInputSessionLogToAnalysisItem(
+    seed.log,
+    seed.inputMethodId,
+    seed.inputMethod,
+    seed.recommendedMethod,
+  ),
+);
 
 export const initialAnalysis = analysisItems[0];

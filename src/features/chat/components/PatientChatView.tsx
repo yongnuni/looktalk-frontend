@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BaseModal } from '../../../shared/components/modal';
 import type { ChatMessage, ChatRoom } from '../types/chat';
+import { formatChatTime } from '../utils/formatChatTime';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -259,15 +260,30 @@ export default function PatientChatView({
               aria-label={`${selectedRoom?.name ?? ''} 메시지`}
             >
               {selectedRoom?.messages.map((message) => (
-                <button
-                  key={message.id}
-                  className={`patient-chat-message patient-chat-message--${message.direction}`}
-                  type="button"
-                  onDoubleClick={() => handleMessageActivate(message)}
-                  onKeyDown={(event) => handleMessageKeyDown(event, message)}
-                >
-                  {message.text}
-                </button>
+                (() => {
+                  const formattedTime = formatChatTime(message.createdAt);
+
+                  return (
+                    <button
+                      aria-label={`${message.text}${formattedTime ? `, ${formattedTime}` : ''}`}
+                      key={message.id}
+                      className={`patient-chat-message patient-chat-message--${message.direction}`}
+                      type="button"
+                      onDoubleClick={() => handleMessageActivate(message)}
+                      onKeyDown={(event) => handleMessageKeyDown(event, message)}
+                    >
+                      <span className="patient-chat-message-text">{message.text}</span>
+                      {formattedTime && (
+                        <time
+                          className="patient-chat-message-time"
+                          dateTime={message.createdAt ?? undefined}
+                        >
+                          {formattedTime}
+                        </time>
+                      )}
+                    </button>
+                  );
+                })()
               ))}
             </div>
 

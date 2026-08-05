@@ -8,7 +8,14 @@ export interface AnalysisMetric {
 
 export interface AnalysisItem {
   id: InputMethodId;
+  sessionLogId: string;
   inputMethod: string;
   recommendedMethod: string;
+  keyboardLayout: string;
+  typoRate: number;
+  inputSpeed: number;
+  recognitionAccuracy: number;
+  inputStability: number;
+  sessionAt: string | null;
   metrics: AnalysisMetric[];
 }
