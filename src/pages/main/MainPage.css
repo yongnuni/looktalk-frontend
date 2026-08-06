@@ -1,0 +1,191 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+.main-page {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  background: #ffffff;
+
+  overflow: hidden;
+
+  padding: clamp(20px, 2vw, 40px);
+}
+
+/* ---------- 로고 ---------- */
+
+.main-logo {
+  margin-bottom: clamp(70px, 6vw, 120px);
+}
+
+.main-logo-image {
+  width: clamp(300px, 20vw, 420px);
+
+  height: auto;
+
+  display: block;
+
+  margin-bottom: clamp(-30px, -3vw, -50px);
+}
+
+/* ---------- 메뉴 ---------- */
+
+.main-menu {
+  width: min(1900px, 96vw);
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  gap: clamp(90px, 7vw, 150px);
+
+  transform: translateY(clamp(-40px, -3vw, -70px));
+}
+
+/* ---------- 카드 ---------- */
+
+.main-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ---------- 버튼 ---------- */
+
+.main-button {
+  width: clamp(210px, 15vw, 260px);
+  height: clamp(180px, 13vw, 230px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  text-align: center;
+  line-height: 1.4;
+
+  padding: 0 18px;
+
+  background: #ffffff;
+
+  border: 1px solid #d8d8d8;
+  border-radius: 28px;
+
+  color: #222;
+  text-decoration: none;
+
+  font-size: clamp(24px, 1.5vw, 28px);
+  font-weight: 600;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* ---------- Hover ---------- */
+
+.main-card:hover .main-button {
+  background: #d9d9d9;
+
+  border-color: #bcbcbc;
+
+  color: #111;
+
+  transform: translateY(-5px);
+
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+}
+
+/* ---------- 설명 ---------- */
+
+.main-description {
+  margin-top: 24px;
+
+  color: #8a8a8a;
+
+  text-align: center;
+
+  line-height: 1.6;
+
+  font-size: clamp(16px, 1vw, 18px);
+}
+
+/* ---------- 1600px ---------- */
+
+@media (max-width: 1600px) {
+  .main-menu {
+    gap: 50px;
+  }
+
+  .main-button {
+    width: 210px;
+    height: 190px;
+
+    font-size: 24px;
+  }
+}
+
+/* ---------- 1400px ---------- */
+
+@media (max-width: 1400px) {
+  .main-logo {
+    margin-bottom: 90px;
+  }
+
+  .main-menu {
+    gap: 42px;
+  }
+
+  .main-button {
+    width: 195px;
+    height: 180px;
+
+    font-size: 22px;
+  }
+
+  .main-description {
+    font-size: 15px;
+  }
+}
+
+/* ---------- 1200px ---------- */
+
+@media (max-width: 1200px) {
+  .main-logo {
+    margin-bottom: 75px;
+  }
+
+  .main-menu {
+    gap: 30px;
+  }
+
+  .main-button {
+    width: 175px;
+    height: 165px;
+
+    font-size: 20px;
+  }
+
+  .main-description {
+    margin-top: 20px;
+
+    font-size: 14px;
+  }
+}

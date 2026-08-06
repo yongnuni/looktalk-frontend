@@ -8,6 +8,8 @@ import StaffLoginPage from '../pages/auth/StaffLoginPage';
 import StaffPasswordResetPage from '../pages/auth/StaffPasswordResetPage';
 import StaffSignupPage from '../pages/auth/StaffSignupPage';
 
+import MainPage from '../pages/main/MainPage';
+
 import PatientHomePage from '../pages/patient/PatientHomePage';
 import MemoPage from '../pages/patient/MemoPage';
 import MyPage from '../pages/patient/MyPage';
@@ -27,6 +29,8 @@ export const router = createBrowserRouter([
   { path: '/staff-login', element: <StaffLoginPage /> },
   { path: '/staff-reset-password', element: <StaffPasswordResetPage /> },
   { path: '/staff-signup', element: <StaffSignupPage /> },
+
+  { path: '/main', element: <MainPage /> },
 
   { path: '/patient', element: <PatientHomePage /> },
   { path: '/memo', element: <MemoPage /> },
