@@ -1,0 +1,244 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+.login-page {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: #ffffff;
+
+  position: relative;
+
+  overflow: hidden;
+
+  padding: clamp(20px, 2vw, 40px);
+}
+
+/* ---------- 전체 ---------- */
+
+.login-content {
+  width: min(1800px, 95vw);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: clamp(90px, 10vw, 180px);
+}
+
+/* ---------- 로고 ---------- */
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex-shrink: 0;
+
+  transform: translateX(clamp(-100px, -10vw, -190px));
+}
+
+.login-logo-image {
+  width: clamp(340px, 27vw, 520px);
+
+  height: auto;
+
+  display: block;
+}
+
+/* ---------- 오른쪽 ---------- */
+
+.login-container {
+  width: min(480px, 30vw);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  transform: translateX(clamp(10px, 1vw, -30px))
+    translateY(clamp(20px, 2vw, 35px));
+}
+
+/* ---------- 입력 ---------- */
+
+.login-input {
+  width: 100%;
+
+  height: clamp(56px, 4vw, 64px);
+
+  padding: 0 20px;
+
+  margin-bottom: 20px;
+
+  border: 1px solid #c8c8c8;
+  border-radius: 8px;
+
+  outline: none;
+
+  font-size: clamp(16px, 1vw, 18px);
+
+  transition: 0.2s;
+}
+
+.login-input::placeholder {
+  color: #999;
+}
+
+.login-input:focus {
+  border-color: #444;
+}
+
+/* ---------- 완료 버튼 ---------- */
+
+.login-button {
+  margin-top: 10px;
+
+  width: clamp(110px, 8vw, 140px);
+  height: clamp(44px, 3.5vw, 52px);
+
+  border: none;
+  border-radius: 8px;
+
+  background: #2d2d2d;
+
+  color: white;
+
+  cursor: pointer;
+
+  font-size: clamp(15px, 1vw, 17px);
+  font-weight: 500;
+
+  transition: 0.2s;
+}
+
+.login-button:hover {
+  background: #444;
+}
+
+/* ---------- 링크 ---------- */
+
+.login-links {
+  margin-top: clamp(35px, 3vw, 50px);
+
+  display: flex;
+  justify-content: center;
+
+  gap: 16px;
+}
+
+.login-link-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  min-width: clamp(140px, 9vw, 170px);
+  height: clamp(40px, 3vw, 46px);
+
+  padding: 0 18px;
+
+  background: #f2f2f2;
+
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+
+  color: #555;
+
+  text-decoration: none;
+
+  font-size: clamp(15px, 1vw, 17px);
+  font-weight: 500;
+
+  transition: 0.2s;
+}
+
+.login-link-button:hover {
+  background: #e7e7e7;
+}
+
+/* ---------- 의료진 ---------- */
+
+.staff-button {
+  position: fixed;
+
+  left: clamp(20px, 2vw, 30px);
+  bottom: clamp(20px, 2vw, 30px);
+
+  width: clamp(130px, 10vw, 150px);
+  height: clamp(48px, 4vw, 55px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: #d9d9d9;
+  color: #000;
+
+  text-decoration: none;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-size: clamp(18px, 1vw, 22px);
+  font-weight: 600;
+
+  transition: 0.2s;
+}
+
+.staff-button:hover {
+  background: #c7c7c7;
+}
+
+/* ---------- 1600px ---------- */
+
+@media (max-width: 1600px) {
+  .login-content {
+    gap: 90px;
+  }
+}
+
+/* ---------- 1400px ---------- */
+
+@media (max-width: 1400px) {
+  .login-content {
+    gap: 60px;
+  }
+
+  .login-logo-image {
+    width: 320px;
+  }
+
+  .login-container {
+    transform: translateX(10px) translateY(15px) scale(1.2);
+  }
+}
+
+/* ---------- 1200px ---------- */
+
+@media (max-width: 1200px) {
+  .login-content {
+    gap: 40px;
+  }
+
+  .login-logo-image {
+    width: 300px;
+  }
+
+  .login-container {
+    transform: translateX(10px) scale(1);
+  }
+}

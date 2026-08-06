@@ -1,12 +1,11 @@
-import './SignupPage.css';
+import './PasswordResetPage.css';
 import Logo from '../../assets/Logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
-export default function SignupPage() {
+export default function PasswordResetPage() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [authCode, setAuthCode] = useState('');
   const [inputCode, setInputCode] = useState('');
@@ -40,8 +39,8 @@ export default function SignupPage() {
     }
   };
 
+  // 완료 버튼 활성화 조건
   const isComplete =
-    name.trim() !== '' &&
     email.trim() !== '' &&
     inputCode.trim() !== '' &&
     password.trim() !== '' &&
@@ -52,38 +51,21 @@ export default function SignupPage() {
   const handleComplete = () => {
     if (!isComplete) return;
 
-    // TODO : 회원가입 API 호출
+    // TODO : 비밀번호 변경 API 호출
 
     navigate('/login');
   };
 
   return (
-    <div className="signup-page">
-      <Link to="/login" className="signup-logo">
-        <img src={Logo} alt="Look Talk Logo" className="signup-logo-image" />
+    <div className="password-page">
+      <Link to="/login" className="password-logo">
+        <img src={Logo} alt="Look Talk Logo" className="password-logo-image" />
       </Link>
 
-      <div className="signup-container">
-        {/* ================= 왼쪽 ================= */}
-        <div className="signup-column">
-          {/* 이름 */}
-          <div className="input-group">
-            <label>이름</label>
-
-            <div className="input-with-button">
-              <input
-                type="text"
-                placeholder="이름을 입력하세요."
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-
-              <div className="button-space"></div>
-            </div>
-          </div>
-
+      <div className="password-container">
+        <div className="password-form">
           {/* 이메일 */}
-          <div className="input-group email-group">
+          <div className="input-group">
             <label>이메일</label>
 
             <div className="input-with-button">
@@ -133,13 +115,10 @@ export default function SignupPage() {
               </p>
             )}
           </div>
-        </div>
 
-        {/* ================= 오른쪽 ================= */}
-        <div className="signup-column">
-          {/* 비밀번호 */}
-          <div className="input-group">
-            <label>비밀번호</label>
+          {/* 새 비밀번호 */}
+          <div className="input-group password-group password-new">
+            <label>새 비밀번호</label>
 
             <div className="input-with-button">
               <input
@@ -153,9 +132,9 @@ export default function SignupPage() {
             </div>
           </div>
 
-          {/* 비밀번호 확인 */}
-          <div className="input-group">
-            <label>비밀번호 확인</label>
+          {/* 새 비밀번호 확인 */}
+          <div className="input-group password-group">
+            <label>새 비밀번호 확인</label>
 
             <div className="input-with-button">
               <input
@@ -183,11 +162,10 @@ export default function SignupPage() {
             )}
           </div>
 
-          {/* 완료 */}
-          <div className="signup-submit">
+          <div className="password-submit">
             <button
               type="button"
-              className="signup-button"
+              className="password-button"
               disabled={!isComplete}
               onClick={handleComplete}
             >

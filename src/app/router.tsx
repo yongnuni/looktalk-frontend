@@ -1,8 +1,12 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
-import SplashPage from '../pages/auth/SplashPage';
 import LoginPage from '../pages/auth/LoginPage';
 import SignupPage from '../pages/auth/SignupPage';
+import PasswordResetPage from '../pages/auth/PasswordResetPage';
+
+import StaffLoginPage from '../pages/auth/StaffLoginPage';
+import StaffPasswordResetPage from '../pages/auth/StaffPasswordResetPage';
+import StaffSignupPage from '../pages/auth/StaffSignupPage';
 
 import PatientHomePage from '../pages/patient/PatientHomePage';
 import MemoPage from '../pages/patient/MemoPage';
@@ -16,9 +20,13 @@ import AnalysisPage from '../pages/analysis/AnalysisPage';
 import StaffDashboardPage from '../pages/staff/StaffDashboardPage';
 
 export const router = createBrowserRouter([
-  { path: '/', element: <SplashPage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/signup', element: <SignupPage /> },
+  { path: '/reset-password', element: <PasswordResetPage /> },
+
+  { path: '/staff-login', element: <StaffLoginPage /> },
+  { path: '/staff-reset-password', element: <StaffPasswordResetPage /> },
+  { path: '/staff-signup', element: <StaffSignupPage /> },
 
   { path: '/patient', element: <PatientHomePage /> },
   { path: '/memo', element: <MemoPage /> },
@@ -32,5 +40,5 @@ export const router = createBrowserRouter([
 
   { path: '/staff', element: <StaffDashboardPage /> },
 
-  { path: '*', element: <Navigate to="/" replace /> },
+  { path: '*', element: <Navigate to="/login" replace /> },
 ]);

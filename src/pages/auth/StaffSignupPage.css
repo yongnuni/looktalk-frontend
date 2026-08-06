@@ -1,0 +1,510 @@
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ===========================
+   PAGE
+=========================== */
+
+.staff-signup-page {
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  overflow: hidden;
+
+  background: #fff;
+
+  padding: clamp(20px, 2vw, 40px);
+
+  margin-top: clamp(-20px, -1vh, -50px);
+}
+
+/* ===========================
+   LOGO
+=========================== */
+
+.staff-signup-logo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  text-decoration: none;
+
+  margin-bottom: clamp(12px, 1vw, 20px);
+
+  transition: 0.2s;
+}
+
+.staff-signup-logo:hover {
+  opacity: 0.85;
+}
+
+.staff-signup-logo-image {
+  width: clamp(240px, 18vw, 340px);
+
+  height: auto;
+
+  display: block;
+}
+
+.staff-signup-logo-subtitle {
+  margin-top: 10px;
+
+  color: #333;
+
+  font-size: clamp(20px, 1.2vw, 24px);
+  font-weight: 600;
+
+  letter-spacing: 0.08em;
+
+  transform: translateX(5px) translateY(-45px);
+}
+
+/* ===========================
+   CONTAINER
+=========================== */
+
+.staff-signup-container {
+  width: min(2000px, 98vw);
+
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(500px, 1fr));
+
+  gap: clamp(70px, 7vw, 140px);
+
+  align-items: start;
+
+  margin-left: clamp(60px, 9vw, 140px);
+}
+
+.staff-signup-column:first-child {
+  transform: translateX(clamp(-40px, -4vw, -70px));
+}
+
+.staff-signup-column:last-child {
+  transform: translateX(clamp(40px, 4vw, 70px));
+}
+
+.staff-signup-wrapper {
+  zoom: 90%;
+}
+
+/* ===========================
+   COLUMN
+=========================== */
+
+.staff-signup-column {
+  width: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+}
+
+/* ===========================
+   INPUT GROUP
+=========================== */
+
+.staff-input-group {
+  width: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+
+  margin-bottom: clamp(4px, 0.2vw, 8px);
+
+  position: relative;
+}
+
+.staff-input-group label {
+  margin-bottom: clamp(8px, 1vw, 12px);
+
+  color: #555;
+
+  font-size: clamp(17px, 1vw, 20px);
+
+  font-weight: 600;
+}
+
+/* ===========================
+   INPUT
+=========================== */
+
+.staff-input-with-button {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    clamp(120px, 8vw, 150px);
+
+  gap: clamp(10px, 1vw, 14px);
+}
+
+.staff-input-with-button input {
+  width: 100%;
+
+  height: clamp(68px, 4.8vw, 80px);
+
+  padding: 0 clamp(16px, 1vw, 22px);
+
+  border: 1px solid #d1d1d1;
+
+  border-radius: 8px;
+
+  outline: none;
+
+  font-size: clamp(18px, 1vw, 20px);
+
+  transition: 0.2s;
+}
+
+.staff-input-with-button input:focus {
+  border-color: #444;
+}
+
+.staff-input-with-button input::placeholder {
+  color: #a8a8a8;
+}
+
+.staff-button-space {
+  width: clamp(120px, 8vw, 150px);
+}
+
+/* ===========================
+   BUTTON
+=========================== */
+
+.staff-sub-button {
+  width: 100%;
+
+  height: clamp(64px, 4.5vw, 76px);
+
+  border: 1px solid #d5d5d5;
+  border-radius: 8px;
+
+  background: #f5f5f5;
+
+  cursor: pointer;
+
+  font-size: clamp(18px, 1vw, 19px);
+  font-weight: 600;
+
+  transition: 0.2s;
+}
+
+.staff-sub-button:hover {
+  background: #ebebeb;
+}
+
+/* ===========================
+   AUTH
+=========================== */
+
+.staff-auth-group {
+  margin-top: clamp(18px, 1.5vw, 28px);
+}
+
+/* ===========================
+   REQUEST MESSAGE
+=========================== */
+
+.staff-request-message {
+  margin: 4px 0 2px 4px;
+
+  left: 2px !important;
+
+  min-height: 18px;
+
+  font-size: clamp(12px, 0.8vw, 14px);
+
+  color: #666;
+}
+
+.staff-auth-group {
+  margin-top: 0;
+}
+
+.staff-email-group {
+  margin-bottom: 8px;
+}
+
+/* ===========================
+   VERIFY
+=========================== */
+
+.staff-verify-success,
+.staff-verify-fail {
+  position: absolute;
+
+  left: 6px;
+
+  top: calc(100% + 6px);
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.staff-verify-success {
+  color: #28a745;
+}
+
+.staff-verify-fail {
+  color: #dc3545;
+}
+
+/* ===========================
+   PASSWORD MESSAGE
+=========================== */
+
+.staff-password-success,
+.staff-password-fail {
+  position: absolute;
+
+  left: 4px;
+
+  top: calc(100% + 6px);
+
+  font-size: clamp(12px, 0.8vw, 14px);
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.staff-password-success {
+  color: #28a745;
+}
+
+.staff-password-fail {
+  color: #dc3545;
+}
+
+/* ===========================
+   SUBMIT
+=========================== */
+
+.staff-signup-submit {
+  width: 100%;
+
+  display: flex;
+
+  justify-content: center;
+
+  margin-top: clamp(20px, 2vw, 34px);
+
+  transform: translateX(clamp(-60px, -4vw, -100px));
+}
+
+.staff-signup-button {
+  width: clamp(140px, 9vw, 180px);
+
+  height: clamp(52px, 4vw, 64px);
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: #2d2d2d;
+
+  color: #fff;
+
+  cursor: pointer;
+
+  font-size: clamp(18px, 1vw, 20px);
+
+  font-weight: 500;
+
+  transition: 0.2s;
+}
+
+.staff-signup-button:hover {
+  background: #444;
+}
+
+/* ===========================
+   1600px
+=========================== */
+
+@media (max-width: 1600px) {
+  .staff-signup-container {
+    width: min(1800px, 98vw);
+
+    gap: clamp(40px, 4vw, 90px);
+  }
+
+  .staff-signup-logo-image {
+    width: clamp(240px, 16vw, 320px);
+  }
+
+  .staff-signup-wrapper {
+    zoom: 85%;
+  }
+}
+
+/* ===========================
+   1400px
+=========================== */
+
+@media (max-width: 1400px) {
+  .staff-signup-page {
+    padding: 24px;
+  }
+
+  .staff-signup-container {
+    width: 98vw;
+
+    gap: 50px;
+  }
+
+  .staff-input-group {
+    margin-bottom: 26px;
+  }
+
+  .staff-input-group label {
+    font-size: 18px;
+  }
+
+  .staff-input-with-button {
+    grid-template-columns:
+      minmax(0, 1fr)
+      120px;
+  }
+
+  .staff-button-space {
+    width: 120px;
+  }
+
+  .staff-signup-wrapper {
+    zoom: 80%;
+  }
+}
+
+/* ===========================
+   1200px
+=========================== */
+
+@media (max-width: 1200px) {
+  .staff-signup-logo-image {
+    width: 230px;
+  }
+
+  .staff-signup-container {
+    width: 100vw;
+
+    gap: 36px;
+  }
+
+  .staff-input-with-button input {
+    height: 60px;
+  }
+
+  .staff-sub-button {
+    height: 56px;
+  }
+
+  .staff-signup-wrapper {
+    zoom: 75%;
+  }
+}
+
+/* ===========================
+   1024px
+=========================== */
+
+@media (max-width: 1024px) {
+  .staff-signup-page {
+    padding: 18px;
+  }
+
+  .staff-signup-container {
+    width: 102vw;
+
+    gap: 24px;
+  }
+
+  .staff-input-group label {
+    font-size: 17px;
+  }
+
+  .staff-signup-button {
+    width: 150px;
+  }
+}
+
+/* ===========================
+   Ultra Wide
+=========================== */
+
+@media (min-width: 2200px) {
+  .staff-signup-container {
+    width: min(2000px, 92vw);
+
+    gap: 160px;
+  }
+
+  .staff-signup-logo-image {
+    width: 360px;
+  }
+
+  .staff-signup-logo-subtitle {
+    font-size: 26px;
+  }
+
+  .staff-input-group label {
+    font-size: 22px;
+  }
+
+  .staff-input-with-button {
+    grid-template-columns:
+      minmax(0, 1fr)
+      170px;
+  }
+
+  .staff-button-space {
+    width: 170px;
+  }
+
+  .staff-input-with-button input {
+    height: 80px;
+
+    font-size: 20px;
+  }
+
+  .staff-sub-button {
+    height: 76px;
+
+    font-size: 18px;
+  }
+
+  .staff-signup-button {
+    width: 190px;
+
+    height: 70px;
+
+    font-size: 20px;
+  }
+}
