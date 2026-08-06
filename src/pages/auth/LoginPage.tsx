@@ -1,41 +1,45 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../shared/stores/authStore';
+import './LoginPage.css';
+import { Link } from 'react-router-dom';
+import Logo from '../../assets/Logo.png';
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const loginAsPatient = useAuthStore((state) => state.loginAsPatient);
-  const loginAsStaff = useAuthStore((state) => state.loginAsStaff);
-
-  const handlePatientLogin = () => {
-    loginAsPatient();
-    navigate('/patient');
-  };
-
-  const handleStaffLogin = () => {
-    loginAsStaff();
-    navigate('/staff');
-  };
-
   return (
-    <main className="page">
-      <section className="card">
-        <h1>로그인</h1>
-        <p>테스트용 로그인 화면입니다.</p>
-
-        <div className="button-group">
-          <button type="button" onClick={handlePatientLogin}>
-            환자 테스트 로그인
-          </button>
-
-          <button type="button" onClick={handleStaffLogin}>
-            의료진 테스트 로그인
-          </button>
+    <div className="login-page">
+      <div className="login-content">
+        <div className="login-logo">
+          <img src={Logo} alt="Look Talk Logo" className="login-logo-image" />
         </div>
 
-        <p>
-          <Link to="/signup">회원가입</Link>
-        </p>
-      </section>
-    </main>
+        <div className="login-container">
+          <input
+            type="text"
+            placeholder="아이디를 입력하세요."
+            className="login-input"
+          />
+
+          <input
+            type="password"
+            placeholder="비밀번호를 입력하세요."
+            className="login-input"
+          />
+
+          <button className="login-button">완료</button>
+
+          <div className="login-links">
+            <Link to="/reset-password" className="login-link-button">
+              비밀번호 재설정
+            </Link>
+
+            <Link to="/signup" className="login-link-button">
+              회원가입
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <Link to="/staff-login" className="staff-button">
+        의료진 전용
+      </Link>
+    </div>
   );
 }

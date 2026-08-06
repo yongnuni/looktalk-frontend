@@ -1,0 +1,463 @@
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ===========================
+   PAGE
+=========================== */
+
+.signup-page {
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  overflow: hidden;
+
+  background: #fff;
+
+  padding: clamp(20px, 2vw, 40px);
+
+  margin-top: clamp(-20px, -1vh, -50px);
+}
+
+/* ===========================
+   LOGO
+=========================== */
+
+.signup-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  text-decoration: none;
+
+  margin-bottom: clamp(12px, 1vw, 20px);
+
+  transition: 0.2s;
+}
+
+.signup-logo:hover {
+  opacity: 0.85;
+}
+
+.signup-logo-image {
+  width: clamp(240px, 18vw, 340px);
+
+  height: auto;
+
+  display: block;
+}
+
+/* ===========================
+   CONTAINER
+=========================== */
+
+.signup-container {
+  width: min(1700px, 92vw);
+
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(420px, 1fr));
+
+  gap: clamp(50px, 5vw, 120px);
+
+  align-items: start;
+
+  margin-left: clamp(60px, 9vw, 140px);
+}
+
+/* ===========================
+   COLUMN
+=========================== */
+
+.signup-column {
+  width: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+}
+
+/* ===========================
+   INPUT GROUP
+=========================== */
+
+.input-group {
+  width: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+
+  margin-bottom: clamp(4px, 0.2vw, 8px);
+
+  position: relative;
+}
+
+.input-group label {
+  margin-bottom: clamp(8px, 1vw, 12px);
+
+  color: #555;
+
+  font-size: clamp(17px, 1vw, 20px);
+
+  font-weight: 600;
+}
+
+/* ===========================
+   INPUT
+=========================== */
+
+.input-with-button {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    clamp(120px, 8vw, 150px);
+
+  gap: clamp(10px, 1vw, 14px);
+}
+
+.input-with-button input {
+  width: 100%;
+
+  height: clamp(58px, 4vw, 70px);
+
+  padding: 0 clamp(16px, 1vw, 22px);
+
+  border: 1px solid #d1d1d1;
+
+  border-radius: 8px;
+
+  outline: none;
+
+  font-size: clamp(16px, 1vw, 18px);
+
+  transition: 0.2s;
+}
+
+.input-with-button input:focus {
+  border-color: #444;
+}
+
+.input-with-button input::placeholder {
+  color: #a8a8a8;
+}
+
+.button-space {
+  width: clamp(120px, 8vw, 150px);
+}
+
+/* ===========================
+   BUTTON
+=========================== */
+
+.sub-button {
+  width: 100%;
+  height: clamp(58px, 4vw, 70px);
+
+  border: 1px solid #d5d5d5;
+  border-radius: 8px;
+
+  background: #f5f5f5;
+
+  cursor: pointer;
+
+  font-size: clamp(15px, 1vw, 17px);
+  font-weight: 600;
+
+  transition: 0.2s;
+}
+
+.sub-button:hover {
+  background: #ebebeb;
+}
+
+/* ===========================
+   AUTH
+=========================== */
+
+.auth-group {
+  margin-top: clamp(10px, 1vw, 15px);
+}
+
+/* ===========================
+   REQUEST MESSAGE
+=========================== */
+
+.request-message {
+  margin: 4px 0 2px 4px;
+
+  left: -2px !important;
+
+  min-height: 18px;
+
+  font-size: clamp(10px, 0.6vw, 12px);
+
+  color: #666;
+}
+
+.auth-group {
+  margin-top: 0;
+}
+
+.email-group {
+  margin-bottom: 8px !important;
+}
+
+/* ===========================
+   VERIFY
+=========================== */
+
+.verify-success,
+.verify-fail {
+  position: absolute;
+
+  left: 6px;
+
+  top: calc(100% + 6px);
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.verify-success {
+  color: #28a745;
+}
+
+.verify-fail {
+  color: #dc3545;
+}
+
+.password-success,
+.password-fail {
+  position: absolute;
+
+  left: 4px;
+
+  top: calc(100% + 6px);
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.password-success {
+  color: #28a745;
+}
+
+.password-fail {
+  color: #dc3545;
+}
+
+/* ===========================
+   SUBMIT
+=========================== */
+
+.signup-submit {
+  width: 100%;
+
+  display: flex;
+
+  justify-content: center;
+
+  margin-top: clamp(20px, 2vw, 34px);
+
+  transform: translateX(clamp(-60px, -4vw, -100px));
+}
+
+.signup-button {
+  width: clamp(140px, 9vw, 180px);
+
+  height: clamp(52px, 4vw, 64px);
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: #2d2d2d;
+
+  color: #fff;
+
+  cursor: pointer;
+
+  font-size: clamp(18px, 1vw, 20px);
+
+  font-weight: 500;
+
+  transition: 0.2s;
+}
+
+.signup-button:hover {
+  background: #444;
+}
+
+/* ===========================
+   1600px
+=========================== */
+
+@media (max-width: 1600px) {
+  .signup-container {
+    width: min(1500px, 94vw);
+
+    gap: clamp(40px, 4vw, 90px);
+  }
+
+  .signup-logo-image {
+    width: clamp(240px, 16vw, 320px);
+  }
+}
+
+/* ===========================
+   1400px
+=========================== */
+
+@media (max-width: 1400px) {
+  .signup-page {
+    padding: 24px;
+  }
+
+  .signup-container {
+    width: 95vw;
+
+    gap: 50px;
+  }
+
+  .input-group {
+    margin-bottom: 26px;
+  }
+
+  .input-group label {
+    font-size: 18px;
+  }
+
+  .input-with-button {
+    grid-template-columns:
+      minmax(0, 1fr)
+      120px;
+  }
+
+  .button-space {
+    width: 120px;
+  }
+}
+
+/* ===========================
+   1200px
+=========================== */
+
+@media (max-width: 1200px) {
+  .signup-logo-image {
+    width: 230px;
+  }
+
+  .signup-container {
+    width: 96vw;
+
+    gap: 36px;
+  }
+
+  .input-with-button input {
+    height: 56px;
+  }
+
+  .sub-button {
+    height: 56px;
+  }
+}
+
+/* ===========================
+   1024px
+=========================== */
+
+@media (max-width: 1024px) {
+  .signup-page {
+    padding: 18px;
+  }
+
+  .signup-container {
+    width: 98vw;
+
+    gap: 24px;
+  }
+
+  .input-group label {
+    font-size: 17px;
+  }
+
+  .signup-button {
+    width: 150px;
+  }
+}
+
+/* ===========================
+   Ultra Wide
+=========================== */
+
+@media (min-width: 2200px) {
+  .signup-container {
+    width: min(1900px, 90vw);
+
+    gap: 160px;
+  }
+
+  .signup-logo-image {
+    width: 360px;
+  }
+
+  .input-group label {
+    font-size: 22px;
+  }
+
+  .input-with-button {
+    grid-template-columns:
+      minmax(0, 1fr)
+      170px;
+  }
+
+  .button-space {
+    width: 170px;
+  }
+
+  .input-with-button input {
+    height: 76px;
+
+    font-size: 20px;
+  }
+
+  .sub-button {
+    height: 76px;
+
+    font-size: 18px;
+  }
+
+  .signup-button {
+    width: 190px;
+
+    height: 70px;
+
+    font-size: 20px;
+  }
+}

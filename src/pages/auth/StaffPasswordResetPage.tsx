@@ -1,12 +1,11 @@
-import './SignupPage.css';
+import './StaffPasswordResetPage.css';
 import Logo from '../../assets/Logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
-export default function SignupPage() {
+export default function StaffPasswordResetPage() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [authCode, setAuthCode] = useState('');
   const [inputCode, setInputCode] = useState('');
@@ -41,7 +40,6 @@ export default function SignupPage() {
   };
 
   const isComplete =
-    name.trim() !== '' &&
     email.trim() !== '' &&
     inputCode.trim() !== '' &&
     password.trim() !== '' &&
@@ -52,41 +50,30 @@ export default function SignupPage() {
   const handleComplete = () => {
     if (!isComplete) return;
 
-    // TODO : 회원가입 API 호출
+    // TODO : 의료진 비밀번호 변경 API 호출
 
-    navigate('/login');
+    navigate('/staff-login');
   };
 
   return (
-    <div className="signup-page">
-      <Link to="/login" className="signup-logo">
-        <img src={Logo} alt="Look Talk Logo" className="signup-logo-image" />
-      </Link>
+    <div className="staff-password-page">
+      <div className="staff-password-container">
+        <Link to="/staff-login" className="staff-password-logo">
+          <img
+            src={Logo}
+            alt="Look Talk Logo"
+            className="staff-password-logo-image"
+          />
 
-      <div className="signup-container">
-        {/* ================= 왼쪽 ================= */}
-        <div className="signup-column">
-          {/* 이름 */}
-          <div className="input-group">
-            <label>이름</label>
+          <p className="staff-password-logo-subtitle">의료진 전용</p>
+        </Link>
 
-            <div className="input-with-button">
-              <input
-                type="text"
-                placeholder="이름을 입력하세요."
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-
-              <div className="button-space"></div>
-            </div>
-          </div>
-
+        <div className="staff-password-form">
           {/* 이메일 */}
-          <div className="input-group email-group">
+          <div className="staff-input-group">
             <label>이메일</label>
 
-            <div className="input-with-button">
+            <div className="staff-input-with-button">
               <input
                 type="email"
                 placeholder="이메일을 입력하세요."
@@ -96,21 +83,21 @@ export default function SignupPage() {
 
               <button
                 type="button"
-                className="sub-button"
+                className="staff-sub-button"
                 onClick={handleRequestCode}
               >
                 인증요청
               </button>
             </div>
 
-            <p className="request-message">{requestMessage}</p>
+            <p className="staff-request-message">{requestMessage}</p>
           </div>
 
           {/* 인증번호 */}
-          <div className="input-group auth-group">
+          <div className="staff-input-group staff-auth-group">
             <label>인증번호</label>
 
-            <div className="input-with-button">
+            <div className="staff-input-with-button">
               <input
                 type="text"
                 placeholder="인증번호를 입력하세요."
@@ -120,7 +107,7 @@ export default function SignupPage() {
 
               <button
                 type="button"
-                className="sub-button"
+                className="staff-sub-button"
                 onClick={handleVerifyCode}
               >
                 인증확인
@@ -128,20 +115,21 @@ export default function SignupPage() {
             </div>
 
             {verifyMessage && (
-              <p className={verifySuccess ? 'verify-success' : 'verify-fail'}>
+              <p
+                className={
+                  verifySuccess ? 'staff-verify-success' : 'staff-verify-fail'
+                }
+              >
                 {verifyMessage}
               </p>
             )}
           </div>
-        </div>
 
-        {/* ================= 오른쪽 ================= */}
-        <div className="signup-column">
-          {/* 비밀번호 */}
-          <div className="input-group">
-            <label>비밀번호</label>
+          {/* 새 비밀번호 */}
+          <div className="staff-input-group staff-password-group staff-password-new">
+            <label>새 비밀번호</label>
 
-            <div className="input-with-button">
+            <div className="staff-input-with-button">
               <input
                 type="password"
                 placeholder="비밀번호를 입력하세요."
@@ -149,15 +137,15 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
 
-              <div className="button-space"></div>
+              <div className="staff-button-space"></div>
             </div>
           </div>
 
-          {/* 비밀번호 확인 */}
-          <div className="input-group">
-            <label>비밀번호 확인</label>
+          {/* 새 비밀번호 확인 */}
+          <div className="staff-input-group">
+            <label>새 비밀번호 확인</label>
 
-            <div className="input-with-button">
+            <div className="staff-input-with-button">
               <input
                 type="password"
                 placeholder="비밀번호를 입력하세요."
@@ -165,15 +153,15 @@ export default function SignupPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
 
-              <div className="button-space"></div>
+              <div className="staff-button-space"></div>
             </div>
 
             {confirmPassword !== '' && (
               <p
                 className={
                   password === confirmPassword
-                    ? 'password-success'
-                    : 'password-fail'
+                    ? 'staff-password-success'
+                    : 'staff-password-fail'
                 }
               >
                 {password === confirmPassword
@@ -184,10 +172,10 @@ export default function SignupPage() {
           </div>
 
           {/* 완료 */}
-          <div className="signup-submit">
+          <div className="staff-password-submit">
             <button
               type="button"
-              className="signup-button"
+              className="staff-password-button"
               disabled={!isComplete}
               onClick={handleComplete}
             >
