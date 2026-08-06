@@ -1,8 +1,16 @@
 import './LoginPage.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../assets/Logo.png';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    // TODO : 로그인 API 호출
+
+    navigate('/main');
+  };
+
   return (
     <div className="login-page">
       <div className="login-content">
@@ -23,7 +31,9 @@ export default function LoginPage() {
             className="login-input"
           />
 
-          <button className="login-button">완료</button>
+          <button className="login-button" onClick={handleLogin}>
+            완료
+          </button>
 
           <div className="login-links">
             <Link to="/reset-password" className="login-link-button">
