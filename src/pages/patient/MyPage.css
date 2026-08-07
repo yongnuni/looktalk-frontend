@@ -1,0 +1,68 @@
+/* =========================================================
+   MyPage (Desktop - 75)
+========================================================= */
+
+.mypage {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #ffffff;
+
+  overflow-x: hidden;
+}
+
+.mypage-content {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: clamp(28px, 3vw, 56px);
+
+  padding: clamp(24px, 3vw, 56px) clamp(20px, 2vw, 40px) clamp(32px, 3vw, 60px);
+}
+
+.mypage-row {
+  width: min(1400px, 96vw);
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+
+  gap: clamp(24px, 3vw, 52px);
+}
+
+.mypage-row-wide {
+  gap: clamp(20px, 2.4vw, 44px);
+}
+
+/* ---------- 1400px ---------- */
+
+@media (max-width: 1400px) {
+  .mypage-content {
+    gap: 32px;
+  }
+
+  .mypage-row {
+    gap: 26px;
+  }
+}
+
+/* ---------- 1200px ---------- */
+
+@media (max-width: 1200px) {
+  .mypage-content {
+    gap: 26px;
+
+    padding: 22px 20px 32px;
+  }
+
+  .mypage-row {
+    gap: 20px;
+  }
+}

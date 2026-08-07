@@ -1,0 +1,231 @@
+/* =========================================================
+   PageHeader
+   MemoPage.css 의 memo-header 수치를 그대로 따라가 통일성 유지
+========================================================= */
+
+.page-header-bar {
+  height: clamp(80px, 7vw, 95px);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 clamp(14px, 1vw, 30px);
+
+  flex-shrink: 0;
+}
+
+.page-header-left {
+  display: flex;
+  align-items: center;
+
+  gap: clamp(12px, 1.5vw, 24px);
+
+  transform: translateX(-10px);
+}
+
+.page-header-logo-link {
+  display: flex;
+  align-items: center;
+
+  text-decoration: none;
+
+  cursor: pointer;
+}
+
+.page-header-logo {
+  width: clamp(100px, 4vw, 200px);
+
+  height: auto;
+}
+
+.page-header-title {
+  margin: 0;
+
+  color: #222;
+
+  white-space: nowrap;
+
+  font-size: clamp(28px, 2vw, 38px);
+  font-weight: 550;
+
+  transform: translateX(-10px);
+}
+
+.page-header-title-actions {
+  display: flex;
+  align-items: center;
+
+  gap: clamp(10px, 1vw, 18px);
+}
+
+.page-header-right {
+  display: flex;
+  align-items: center;
+
+  gap: clamp(10px, 1vw, 20px);
+
+  margin-right: clamp(8px, 1vw, 22px);
+}
+
+.page-header-divider {
+  width: 100%;
+  height: 1px;
+
+  background: #d9d9d9;
+
+  flex-shrink: 0;
+}
+
+/* ---------- 헤더용 알약 버튼 (뒤로가기 / 새 친구 등록하기 / 채팅) ---------- */
+
+.header-pill-button {
+  min-width: clamp(140px, 13vw, 200px);
+  height: clamp(52px, 4.5vw, 66px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 0 clamp(14px, 1.2vw, 22px);
+
+  border: 1px solid transparent;
+  border-radius: 10px;
+
+  background: #d9d9d9;
+  color: #222;
+
+  text-align: center;
+  text-decoration: none;
+
+  line-height: 1.25;
+
+  cursor: pointer;
+
+  font-size: clamp(18px, 1.3vw, 24px);
+  font-weight: 600;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.header-pill-button:hover {
+  background: #c7c7c7;
+}
+
+.header-pill-button:active {
+  background: #b8b8b8;
+  transform: scale(0.97);
+}
+
+/* variant: 강조 (새 친구 등록하기) */
+.header-pill-button.accent {
+  background: #99e0ff;
+}
+
+.header-pill-button.accent:hover {
+  background: #6fd0f8;
+}
+
+.header-pill-button.accent:active {
+  background: #4ec1f0;
+}
+
+/* variant: 아웃라인 (의료진 채팅 버튼) */
+.header-pill-button.outline {
+  background: #ffffff;
+  border-color: #c9c9c9;
+}
+
+.header-pill-button.outline:hover {
+  background: #f2f2f2;
+}
+
+.header-pill-button.outline:active {
+  background: #e7e7e7;
+}
+
+/* ---------- 헤더용 아이콘 버튼 (설정 등) ---------- */
+
+.header-icon-button {
+  width: clamp(56px, 4.2vw, 76px);
+  height: clamp(56px, 4.2vw, 76px);
+
+  padding: 0;
+
+  border: none;
+  border-radius: 14px;
+
+  background: transparent;
+
+  cursor: pointer;
+
+  transition: transform 0.2s ease;
+}
+
+.header-icon-button:hover {
+  transform: scale(1.08);
+}
+
+.header-icon-button:active {
+  transform: scale(0.96);
+}
+
+.header-icon-button img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: contain;
+}
+
+/* ---------- 1200px ---------- */
+
+@media (max-width: 1200px) {
+  .page-header-bar {
+    height: 76px;
+  }
+
+  .page-header-logo {
+    width: 100px;
+  }
+
+  .page-header-title {
+    font-size: 28px;
+  }
+}
+
+/* ---------- 1024px ---------- */
+
+@media (max-width: 1024px) {
+  .page-header-bar {
+    height: 72px;
+  }
+
+  .page-header-title {
+    font-size: 24px;
+  }
+
+  .header-pill-button {
+    min-width: 120px;
+    font-size: 17px;
+  }
+}
+
+/* ---------- Ultra Wide ---------- */
+
+@media (min-width: 2200px) {
+  .page-header-bar {
+    height: 110px;
+  }
+
+  .page-header-logo {
+    width: 210px;
+  }
+
+  .page-header-title {
+    font-size: 46px;
+  }
+}

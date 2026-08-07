@@ -6,6 +6,7 @@ import UpArrow from '../../assets/up_arrow.png';
 import DownArrow from '../../assets/down_arrow.png';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { ROUTES } from '../../shared/constants/routes';
 
 export default function MemoPage() {
   const [memos, setMemos] = useState<string[]>([]);
@@ -99,9 +100,13 @@ export default function MemoPage() {
           가상 키보드로 입력하기
         </button>
 
-        <button className="setting-button">
+        <Link
+          to={ROUTES.MYPAGE}
+          className="setting-button"
+          aria-label="마이페이지"
+        >
           <img src={SettingIcon} alt="설정" className="setting-icon" />
-        </button>
+        </Link>
       </div>
     </div>
   );

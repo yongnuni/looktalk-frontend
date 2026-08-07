@@ -1,0 +1,67 @@
+/* =========================================================
+   StaffMyPage (Desktop - 102)
+========================================================= */
+
+.staff-mypage {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #ffffff;
+}
+
+.staff-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  gap: clamp(28px, 3.2vw, 56px);
+
+  padding: clamp(40px, 4vw, 78px) clamp(24px, 3vw, 44px);
+}
+
+.staff-menu-item {
+  padding: 0;
+
+  border: none;
+  background: transparent;
+
+  color: #1a1a1a;
+  text-align: left;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  font-size: clamp(22px, 1.7vw, 32px);
+  font-weight: 500;
+
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.staff-menu-item:hover {
+  color: #1773f5;
+
+  transform: translateX(6px);
+}
+
+.staff-menu-item:active {
+  color: #0d4fae;
+
+  transform: translateX(3px);
+}
+
+.staff-menu-item:focus-visible {
+  outline: 3px solid #1773f5;
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-menu-item:hover,
+  .staff-menu-item:active {
+    transform: none;
+  }
+}
