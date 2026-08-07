@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BaseModal from '../../../shared/components/modal/BaseModal';
+import Logo from '../../../assets/Logo.png';
+import SendImage from '../../../assets/send.png';
+import SettingImage from '../../../assets/setting.png';
+import { ROUTES } from '../../../shared/constants/routes';
+import { useEmergencyStore } from '../../../shared/stores/emergencyStore';
 import { staffPatientChats, staffProfile } from '../mock/staffChatMock';
 import type { StaffChatMessage, StaffPatientChat } from '../types/staffChat';
-import { SendIcon, SettingsIcon } from './StaffChatIcons';
 import './StaffChatDashboard.css';
 
 export default function StaffChatDashboard() {
@@ -14,9 +17,14 @@ export default function StaffChatDashboard() {
   const [selectedPatientUserId, setSelectedPatientUserId] = useState(staffPatientChats[0].patientUserId);
   const [searchQuery, setSearchQuery] = useState('');
   const [draft, setDraft] = useState('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const emergencyHistory = useEmergencyStore((state) => state.history);
 
   const selectedPatient = patients.find((patient) => patient.patientUserId === selectedPatientUserId);
+  const selectedEmergencyCall = emergencyHistory.find(
+    (call) =>
+      call.room === selectedPatient?.roomLabel &&
+      call.patientName === selectedPatient?.patientName,
+  );
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredPatients = patients.filter((patient) => {
     if (!normalizedSearchQuery) return true;
@@ -85,8 +93,7 @@ export default function StaffChatDashboard() {
         <aside className="staff-chat-sidebar" aria-label="환자 목록">
           <header className="staff-chat-sidebar-header">
             <div className="staff-chat-brand" aria-label="Look Talk">
-              <span>Look</span>
-              <span>Talk</span>
+              <img src={Logo} alt="Look Talk 로고" />
             </div>
             <div className="staff-chat-profile">
               <p>{staffProfile.teamName}_{staffProfile.userName}</p>
@@ -136,21 +143,26 @@ export default function StaffChatDashboard() {
 
         <section className="staff-chat-conversation" aria-label="환자 채팅">
           <header className="staff-chat-conversation-header">
-            <div>
-              <p className="staff-chat-room-label">{selectedPatient.roomLabel}</p>
-              <p className="staff-chat-patient-name">{selectedPatient.patientName} 환자</p>
-            </div>
+            <p className="staff-chat-room-label">{selectedPatient.roomLabel}</p>
             <button
-              aria-label="의료진 채팅 설정 열기"
+              aria-label="의료진 마이페이지로 이동"
               className="staff-chat-settings-button"
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={() => navigate(ROUTES.STAFF_MYPAGE)}
               type="button"
             >
-              <SettingsIcon />
+              <img src={SettingImage} alt="" />
             </button>
           </header>
 
           <div className="staff-chat-messages" aria-live="polite">
+            {selectedEmergencyCall && (
+              <div className="staff-chat-emergency-notice" role="status">
+                <strong>비상호출</strong>
+                <time dateTime={selectedEmergencyCall.calledAt}>
+                  {selectedEmergencyCall.calledAt}
+                </time>
+              </div>
+            )}
             {selectedPatient.messages.length > 0 ? (
               selectedPatient.messages.map((message) => (
                 <div
@@ -190,19 +202,12 @@ export default function StaffChatDashboard() {
               value={draft}
             />
             <button aria-label="메시지 전송" className="staff-chat-send-button" type="submit">
-              <SendIcon />
+              <img alt="" src={SendImage} />
             </button>
           </form>
         </section>
       </div>
 
-      <BaseModal
-        actions={[{ label: '확인', onClick: () => setIsSettingsOpen(false), tone: 'neutral' }]}
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      >
-        <p>의료진 채팅 설정 기능은 추후 연결될 예정입니다.</p>
-      </BaseModal>
     </main>
   );
 }
