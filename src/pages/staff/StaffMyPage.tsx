@@ -70,7 +70,7 @@ export default function StaffMyPage() {
         isOpen={account.modal === 'withdraw-confirm'}
         message="회원탈퇴를 하시겠습니까? 회원탈퇴 시 모든 개인정보 및 이용 기록이 삭제되며 복구할 수 없습니다."
         confirmLabel="회원탈퇴"
-        confirmTone="danger"
+        confirmTone="negative"
         onConfirm={account.confirmWithdraw}
         onCancel={account.close}
       />

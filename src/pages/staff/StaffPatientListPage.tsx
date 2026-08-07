@@ -118,7 +118,7 @@ export default function StaffPatientListPage() {
         isOpen={modal === 'delete-confirm'}
         message="해당 환자를 삭제하시겠습니까?"
         confirmLabel="삭제하기"
-        confirmTone="danger"
+        confirmTone="negative"
         onConfirm={() => {
           // TODO : 담당 환자 삭제 API 호출
           if (selected) removePatient(selected.id);

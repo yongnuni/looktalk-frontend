@@ -1,9 +1,5 @@
 import SosIcon from '../../../assets/sos.png';
-import {
-  AlertModal,
-  BaseModal,
-  ModalAction,
-} from '../../../shared/components/modal';
+import { AlertModal, BaseModal } from '../../../shared/components/modal';
 import {
   EMERGENCY_COUNTDOWN_SECONDS,
   useEmergencyCall,
@@ -32,12 +28,10 @@ export default function EmergencyButton() {
       {/* Frame 125 : 카운트다운 */}
       <BaseModal
         isOpen={phase === 'counting'}
+        variant="emergency"
         onClose={cancel}
-        footer={
-          <ModalAction tone="muted" onClick={cancel}>
-            취소
-          </ModalAction>
-        }
+        closeOnEscape
+        actions={[{ label: '취소', tone: 'neutral', onClick: cancel }]}
       >
         <p>
           응답이 없을 경우 {EMERGENCY_COUNTDOWN_SECONDS}초 후 비상호출이

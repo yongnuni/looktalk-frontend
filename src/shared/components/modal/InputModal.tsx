@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import BaseModal, { ModalAction } from './BaseModal';
+import BaseModal from './BaseModal';
+import './InputModal.css';
 
 export interface InputModalField {
   /** 결과 객체의 key */
@@ -68,23 +69,23 @@ export default function InputModal({
       isOpen={isOpen}
       onClose={onCancel}
       closeOnBackdrop
-      footer={
-        <>
-          <ModalAction onClick={() => canConfirm && onConfirm(values)}>
-            {confirmLabel}
-          </ModalAction>
-          <ModalAction tone="muted" onClick={onCancel}>
-            {cancelLabel}
-          </ModalAction>
-        </>
-      }
+      closeOnEscape
+      actions={[
+        {
+          label: confirmLabel,
+          tone: 'positive',
+          disabled: !canConfirm,
+          onClick: () => onConfirm(values),
+        },
+        { label: cancelLabel, tone: 'neutral', onClick: onCancel },
+      ]}
     >
-      <p>{message}</p>
+      <p className="input-modal-message">{message}</p>
 
       {fields.map((field) => (
         <input
           key={field.name}
-          className="modal-input"
+          className="input-modal-field"
           type={field.type ?? 'text'}
           maxLength={field.maxLength}
           placeholder={field.placeholder}

@@ -126,13 +126,17 @@ export default function FriendListPage() {
         message={selected?.name ?? ''}
         onClose={closeModal}
         actions={[
-          { label: '수정하기', onClick: () => setModal('edit-input') },
+          {
+            label: '수정하기',
+            tone: 'positive',
+            onClick: () => setModal('edit-input'),
+          },
           {
             label: '삭제하기',
-            tone: 'danger',
+            tone: 'negative',
             onClick: () => setModal('delete-confirm'),
           },
-          { label: '취소', tone: 'muted', onClick: closeModal },
+          { label: '취소', tone: 'neutral', onClick: closeModal },
         ]}
       />
 
@@ -178,7 +182,7 @@ export default function FriendListPage() {
         isOpen={modal === 'delete-confirm'}
         message="해당 친구를 삭제하시겠습니까?"
         confirmLabel="삭제하기"
-        confirmTone="danger"
+        confirmTone="negative"
         onConfirm={() => {
           // TODO : 친구 삭제 API 호출
           if (selected) removeFriend(selected.id);

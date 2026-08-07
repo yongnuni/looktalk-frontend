@@ -1,4 +1,4 @@
-import BaseModal, { ModalAction } from './BaseModal';
+import BaseModal from './BaseModal';
 
 interface AlertModalProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ export default function AlertModal({
     <BaseModal
       isOpen={isOpen}
       onClose={onConfirm}
-      footer={<ModalAction onClick={onConfirm}>{confirmLabel}</ModalAction>}
+      actions={[{ label: confirmLabel, tone: 'positive', onClick: onConfirm }]}
     >
       <p>{message}</p>
     </BaseModal>

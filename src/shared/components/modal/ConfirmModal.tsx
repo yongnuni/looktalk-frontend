@@ -1,12 +1,12 @@
-import BaseModal, { ModalAction } from './BaseModal';
+import BaseModal from './BaseModal';
 
 interface ConfirmModalProps {
   isOpen: boolean;
   message: string;
   confirmLabel: string;
   cancelLabel?: string;
-  /** 확정 버튼 색. 삭제/탈퇴 등 파괴적 동작은 'danger' */
-  confirmTone?: 'primary' | 'danger';
+  /** 삭제/탈퇴 등 되돌릴 수 없는 동작은 'negative' */
+  confirmTone?: 'positive' | 'negative';
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -20,7 +20,7 @@ export default function ConfirmModal({
   message,
   confirmLabel,
   cancelLabel = '취소',
-  confirmTone = 'primary',
+  confirmTone = 'positive',
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -29,16 +29,11 @@ export default function ConfirmModal({
       isOpen={isOpen}
       onClose={onCancel}
       closeOnBackdrop
-      footer={
-        <>
-          <ModalAction tone={confirmTone} onClick={onConfirm}>
-            {confirmLabel}
-          </ModalAction>
-          <ModalAction tone="muted" onClick={onCancel}>
-            {cancelLabel}
-          </ModalAction>
-        </>
-      }
+      closeOnEscape
+      actions={[
+        { label: confirmLabel, tone: confirmTone, onClick: onConfirm },
+        { label: cancelLabel, tone: 'neutral', onClick: onCancel },
+      ]}
     >
       <p>{message}</p>
     </BaseModal>
