@@ -1,0 +1,96 @@
+/* =========================================================
+   ArrowPagination
+   Figma: 화면 좌/우 하단 끝에 배치된 파란 삼각 화살표
+========================================================= */
+
+.arrow-pagination {
+  width: 100%;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 clamp(18px, 2vw, 34px);
+
+  flex-shrink: 0;
+}
+
+.arrow-pagination-counter {
+  color: #8a8a8a;
+
+  font-size: clamp(16px, 1.1vw, 20px);
+  font-weight: 600;
+}
+
+.arrow-pagination-button {
+  width: clamp(64px, 5vw, 90px);
+  height: clamp(64px, 5vw, 90px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 0;
+
+  border: none;
+  background: transparent;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.arrow-pagination-button:hover:not(:disabled) {
+  transform: scale(1.12);
+}
+
+.arrow-pagination-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.arrow-pagination-button:disabled {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.arrow-pagination-icon {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: contain;
+}
+
+/* ---------- CSS 삼각형 (에셋 미전달 시) ---------- */
+
+.arrow-pagination-triangle {
+  width: 0;
+  height: 0;
+
+  display: block;
+
+  border-top: clamp(26px, 2.2vw, 38px) solid transparent;
+  border-bottom: clamp(26px, 2.2vw, 38px) solid transparent;
+}
+
+.arrow-pagination-triangle.prev {
+  border-right: clamp(30px, 2.5vw, 44px) solid #4ea9e0;
+}
+
+.arrow-pagination-triangle.next {
+  border-left: clamp(30px, 2.5vw, 44px) solid #4ea9e0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow-pagination-button {
+    transition: opacity 0.2s ease;
+  }
+
+  .arrow-pagination-button:hover:not(:disabled),
+  .arrow-pagination-button:active:not(:disabled) {
+    transform: none;
+  }
+}

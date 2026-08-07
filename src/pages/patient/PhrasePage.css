@@ -1,0 +1,143 @@
+/* =========================================================
+   PhrasePage (Desktop - 89)
+========================================================= */
+
+.phrase-page {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #ffffff;
+
+  overflow-x: hidden;
+}
+
+/* ---------- 툴바 ---------- */
+
+.phrase-toolbar {
+  display: flex;
+  align-items: center;
+
+  gap: clamp(20px, 2.5vw, 48px);
+
+  padding: clamp(8px, 1vw, 18px) clamp(20px, 2vw, 44px) clamp(16px, 2vw, 28px);
+}
+
+.phrase-register-button {
+  min-width: clamp(200px, 18vw, 317px);
+  height: clamp(56px, 4.5vw, 75px);
+
+  border: none;
+  border-radius: 10px;
+
+  background: #93e59a;
+  color: #1a1a1a;
+
+  cursor: pointer;
+
+  font-size: clamp(18px, 1.3vw, 24px);
+  font-weight: 600;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.phrase-register-button:hover {
+  background: #79d982;
+}
+
+.phrase-register-button:active {
+  background: #5fcb6b;
+  transform: scale(0.97);
+}
+
+.phrase-guide {
+  margin: 0;
+
+  color: #333;
+
+  font-size: clamp(16px, 1.2vw, 24px);
+  font-weight: 500;
+}
+
+/* ---------- 목록 ---------- */
+
+.phrase-list {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.phrase-item {
+  min-height: clamp(120px, 12vw, 200px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: relative;
+
+  padding: clamp(18px, 2vw, 30px) clamp(90px, 9vw, 150px);
+
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.phrase-text {
+  color: #222;
+
+  text-align: center;
+
+  word-break: break-word;
+
+  font-size: clamp(24px, 2vw, 40px);
+  font-weight: 500;
+}
+
+.phrase-remove-button {
+  position: absolute;
+
+  right: clamp(20px, 2.5vw, 48px);
+
+  min-width: clamp(70px, 6vw, 89px);
+  height: clamp(42px, 3.4vw, 55px);
+
+  border: none;
+  border-radius: 10px;
+
+  background: #e7e7e7;
+  color: #555;
+
+  cursor: pointer;
+
+  font-size: clamp(14px, 1vw, 18px);
+  font-weight: 600;
+
+  transition: background-color 0.2s ease;
+}
+
+.phrase-remove-button:hover {
+  background: #dadada;
+}
+
+.phrase-remove-button:active {
+  background: #c9c9c9;
+}
+
+/* ---------- 1024px ---------- */
+
+@media (max-width: 1024px) {
+  .phrase-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 12px;
+  }
+
+  .phrase-item {
+    padding: 18px 80px;
+  }
+}
