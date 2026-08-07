@@ -1,13 +1,25 @@
-import { Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import PatientChatView from '../../features/chat/components/PatientChatView';
+import { friendChatRooms, mockCurrentPatientUser } from '../../features/chat/mock/friendChatMock';
 
 export default function FriendChatPage() {
+  const [searchParams] = useSearchParams();
+  const phoneVerified =
+    searchParams.get('verified') === 'false'
+      ? false
+      : mockCurrentPatientUser.is_sms_verified === true;
+
   return (
-    <main className="page">
-      <section className="card wide">
-        <h1>친구 채팅</h1>
-        <p>보호자/친구 채팅이 들어갈 화면입니다.</p>
-        <Link to="/patient">메인으로 돌아가기</Link>
-      </section>
-    </main>
+    <PatientChatView
+      initialRoomId="friendship-1"
+      messagePath="/patient?source=friend-message"
+      mode="friend"
+      phoneVerified={phoneVerified}
+      rooms={phoneVerified ? friendChatRooms : []}
+      searchPath="/patient?source=friend-search"
+      switchLabel="병원 채팅으로 이동"
+      switchPath="/chat/hospital"
+      title="친구 채팅"
+    />
   );
 }

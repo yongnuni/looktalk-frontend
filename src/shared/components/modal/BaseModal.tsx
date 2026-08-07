@@ -1,90 +1,129 @@
-import type { PropsWithChildren, ReactNode } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import './BaseModal.css';
 
-interface BaseModalProps extends PropsWithChildren {
+export interface ModalAction {
+  label: string;
+  onClick: () => void;
+  tone?: 'positive' | 'negative' | 'neutral';
+  disabled?: boolean;
+}
+
+export interface BaseModalProps {
   isOpen: boolean;
   /** 상단 제목. Figma 팝업 대부분은 제목 없이 본문만 사용 */
   title?: string;
-  /** 하단 액션 영역. ModalAction 들을 넣어 사용 */
-  footer?: ReactNode;
-  /** 우상단 닫기 버튼 노출 여부 (Figma 팝업엔 없음 → 기본 false) */
-  showCloseButton?: boolean;
-  /** 배경 클릭으로 닫히게 할지 (확인 강제 팝업은 false) */
+  children: ReactNode;
+  actions?: ModalAction[];
+  variant?: 'default' | 'emergency';
+  onClose?: () => void;
   closeOnBackdrop?: boolean;
-  /** 팝업 폭 프리셋. Figma 기준 871px 고정 = 'wide' */
-  size?: 'wide' | 'narrow';
-  className?: string;
-  onClose: () => void;
+  closeOnEscape?: boolean;
 }
 
 export default function BaseModal({
   isOpen,
   title,
-  footer,
   children,
-  showCloseButton = false,
-  closeOnBackdrop = false,
-  size = 'wide',
-  className = '',
+  actions = [],
+  variant = 'default',
   onClose,
+  closeOnBackdrop = false,
+  closeOnEscape = false,
 }: BaseModalProps) {
+  const firstActionRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const bodyId = useId();
+  const visibleActions = actions.slice(0, 3);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    firstActionRef.current?.focus();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !closeOnEscape || !onClose) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closeOnEscape, isOpen, onClose]);
+
   if (!isOpen) return null;
 
-  return (
+  const actionCountClass = `base-modal-actions--${visibleActions.length}`;
+  const modalStyle = {
+    '--base-modal-action-count': visibleActions.length,
+  } as CSSProperties;
+
+  return createPortal(
     <div
-      className="modal-backdrop"
-      onClick={closeOnBackdrop ? onClose : undefined}
-      role="presentation"
+      className="base-modal-backdrop"
+      onClick={(event) => {
+        if (closeOnBackdrop && event.target === event.currentTarget) {
+          onClose?.();
+        }
+      }}
     >
       <section
-        className={`modal modal-${size} ${className}`}
+        className={`base-modal base-modal--${variant}`}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
+        aria-label={title ?? '팝업'}
+        aria-labelledby={title ? titleId : undefined}
+        aria-describedby={bodyId}
       >
-        {(title || showCloseButton) && (
-          <header className="modal-header">
-            {title && <h2 className="modal-title">{title}</h2>}
-            {showCloseButton && (
-              <button type="button" className="modal-close" onClick={onClose}>
-                닫기
-              </button>
-            )}
+        {title && (
+          <header className="base-modal-header">
+            <h2 id={titleId}>{title}</h2>
           </header>
         )}
 
-        <div className="modal-body">{children}</div>
+        <div id={bodyId} className="base-modal-body">
+          {children}
+        </div>
 
-        {footer && <div className="modal-footer">{footer}</div>}
+        {visibleActions.length > 0 && (
+          <footer
+            className={`base-modal-actions ${actionCountClass}`}
+            style={modalStyle}
+          >
+            {visibleActions.map((action, index) => (
+              <button
+                key={`${action.label}-${index}`}
+                ref={index === 0 ? firstActionRef : undefined}
+                type="button"
+                className={`base-modal-action base-modal-action--${action.tone ?? 'neutral'}`}
+                onClick={action.onClick}
+                disabled={action.disabled}
+              >
+                {action.label}
+              </button>
+            ))}
+          </footer>
+        )}
       </section>
-    </div>
-  );
-}
-
-/* ---------------------------------------------
-   팝업 하단 액션 버튼
-   Figma: 세로 구분선으로 좌/우 분할된 텍스트 버튼
---------------------------------------------- */
-
-interface ModalActionProps extends PropsWithChildren {
-  /** primary = 확정 동작(설정하기/삭제하기/로그아웃 등), muted = 취소 */
-  tone?: 'primary' | 'muted' | 'danger';
-  onClick: () => void;
-}
-
-export function ModalAction({
-  children,
-  tone = 'primary',
-  onClick,
-}: ModalActionProps) {
-  return (
-    <button
-      type="button"
-      className={`modal-action modal-action-${tone}`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    </div>,
+    document.body,
   );
 }
