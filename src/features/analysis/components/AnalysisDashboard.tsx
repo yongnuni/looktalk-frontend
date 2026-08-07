@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import Logo from '../../../assets/Logo.png';
+import Setting from '../../../assets/setting.png';
+import Sos from '../../../assets/sos.png';
 import BaseModal from '../../../shared/components/modal/BaseModal';
+import { ROUTES } from '../../../shared/constants/routes';
 import { analysisItems, initialAnalysis } from '../mock/analysisMock';
 import type { AnalysisItem, InputMethodId } from '../types/analysis';
 import MetricDonut from './MetricDonut';
@@ -8,10 +12,8 @@ import InputMethodSelectionModal from './InputMethodSelectionModal';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  EmergencyIcon,
   KeyboardIcon,
   RecommendationIcon,
-  SettingsIcon,
 } from './AnalysisIcons';
 import './AnalysisDashboard.css';
 
@@ -67,10 +69,9 @@ export default function AnalysisDashboard() {
     <main className="analysis-page">
       <div className="analysis-shell">
         <header className="analysis-header">
-          <div className="analysis-header__brand" aria-label="Look Talk">
-            <span>Look</span>
-            <span>Talk</span>
-          </div>
+          <Link className="analysis-header__brand" to={ROUTES.MAIN} aria-label="Look Talk 메인 페이지로 이동">
+            <img className="analysis-header__brand-image" src={Logo} alt="Look Talk 로고" />
+          </Link>
 
           <div className="analysis-header__navigation">
             <button
@@ -79,7 +80,7 @@ export default function AnalysisDashboard() {
               onClick={() => navigate('/mypage')}
               type="button"
             >
-              <SettingsIcon />
+              <img src={Setting} alt="" />
             </button>
             <button className="analysis-header-button" onClick={() => navigate('/chat/hospital')} type="button">
               병원 채팅으로 이동
@@ -95,7 +96,7 @@ export default function AnalysisDashboard() {
             onClick={openEmergency}
             type="button"
           >
-            <EmergencyIcon />
+            <img src={Sos} alt="" />
           </button>
         </header>
 

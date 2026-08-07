@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import settingImage from '../../../assets/setting.png';
+import sosImage from '../../../assets/sos.png';
 
 interface AnalysisIconProps {
   size?: number;
@@ -21,22 +23,11 @@ function IconFrame({ size = 32, children }: AnalysisIconProps & { children: Reac
 }
 
 export function SettingsIcon({ size = 40 }: AnalysisIconProps) {
-  return (
-    <IconFrame size={size}>
-      <path d="m24 6 2.3 3.9 4.4 1.1 3.8-2.3 4.8 4.8-2.3 3.8 1.1 4.4L42 24l-3.9 2.3-1.1 4.4 2.3 3.8-4.8 4.8-3.8-2.3-4.4 1.1L24 42l-2.3-3.9-4.4-1.1-3.8 2.3-4.8-4.8 2.3-3.8-1.1-4.4L6 24l3.9-2.3 1.1-4.4-2.3-3.8 4.8-4.8 3.8 2.3 4.4-1.1L24 6Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="3" />
-      <circle cx="24" cy="24" fill="none" r="6" stroke="currentColor" strokeWidth="3" />
-    </IconFrame>
-  );
+  return <img alt="" aria-hidden="true" height={size} src={settingImage} width={size} />;
 }
 
 export function EmergencyIcon({ size = 42 }: AnalysisIconProps) {
-  return (
-    <IconFrame size={size}>
-      <path d="M24 6v6M10.6 11.6l4.2 4.2M6 25h6M37.4 11.6l-4.2 4.2M42 25h-6" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3.5" />
-      <path d="M13 37c.8-8.7 4.5-13 11-13s10.2 4.3 11 13H13Z" fill="currentColor" />
-      <path d="M9 41h30" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="4" />
-    </IconFrame>
-  );
+  return <img alt="" aria-hidden="true" height={size} src={sosImage} width={size} />;
 }
 
 export function ArrowLeftIcon({ size = 48 }: AnalysisIconProps) {

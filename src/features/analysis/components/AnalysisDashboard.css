@@ -19,14 +19,18 @@
 }
 
 .analysis-header__brand {
-  display: flex;
+  display: inline-flex;
   flex: 0 0 auto;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   color: #0d1b2a;
-  font-size: 35px;
-  font-weight: 800;
-  letter-spacing: -0.08em;
-  line-height: 0.83;
+  text-decoration: none;
+}
+
+.analysis-header__brand-image {
+  display: block;
+  width: clamp(180px, 12vw, 240px);
+  height: auto;
 }
 
 .analysis-header__navigation {
@@ -55,6 +59,14 @@
   min-width: 88px;
   min-height: 88px;
   padding: 16px;
+  border-radius: 50%;
+}
+
+.analysis-icon-button img {
+  display: block;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
 }
 
 .analysis-icon-button--settings {
@@ -69,6 +81,7 @@
 .analysis-header-button {
   min-height: 64px;
   padding: 14px 28px;
+  border-radius: 999px;
   font-size: clamp(20px, 1.75vw, 28px);
   font-weight: 700;
   white-space: nowrap;
@@ -200,6 +213,7 @@
   justify-content: center;
   min-height: 100px;
   padding: 16px;
+  border-radius: 999px;
 }
 
 .analysis-control-button--arrow {
@@ -228,11 +242,31 @@
   font-size: 0.78em;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1600px) {
   .analysis-shell {
-    padding: 32px 28px 36px;
+    padding: 40px 48px 38px;
   }
 
+  .analysis-metrics {
+    gap: clamp(20px, 2.8vw, 44px);
+  }
+}
+
+@media (max-width: 1400px) {
+  .analysis-shell {
+    padding: 36px 40px 34px;
+  }
+
+  .analysis-header {
+    gap: 16px;
+  }
+
+  .analysis-intro {
+    padding: 48px 16px 32px;
+  }
+}
+
+@media (max-width: 1200px) {
   .analysis-header {
     flex-wrap: wrap;
   }
@@ -253,17 +287,46 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1024px) {
   .analysis-shell {
-    padding: 24px 16px 32px;
+    padding: 32px 28px 36px;
   }
 
   .analysis-header {
     gap: 14px;
   }
 
-  .analysis-header__brand {
-    font-size: 29px;
+  .analysis-header__brand-image {
+    width: clamp(160px, 16vw, 200px);
+  }
+
+  .analysis-icon-button {
+    flex-basis: 76px;
+    min-width: 76px;
+    min-height: 76px;
+  }
+
+  .analysis-header-button {
+    min-height: 58px;
+    padding: 12px 20px;
+  }
+
+  .analysis-intro__recommendation {
+    font-size: clamp(24px, 4vw, 36px);
+  }
+
+  .analysis-intro__current {
+    font-size: clamp(20px, 3vw, 28px);
+  }
+}
+
+@media (max-width: 680px) {
+  .analysis-shell {
+    padding: 24px 16px 32px;
+  }
+
+  .analysis-header {
+    gap: 14px;
   }
 
   .analysis-icon-button {

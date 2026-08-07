@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Logo from '../../../assets/Logo.png';
+import DownArrow from '../../../assets/down_arrow.png';
+import Setting from '../../../assets/setting.png';
+import Sos from '../../../assets/sos.png';
+import UpArrow from '../../../assets/up_arrow.png';
 import { BaseModal } from '../../../shared/components/modal';
-import type { ChatMessage, ChatRoom } from '../types/chat';
+import { ROUTES } from '../../../shared/constants/routes';
+import type { ChatRoom } from '../types/chat';
 import { formatChatTime } from '../utils/formatChatTime';
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  EmergencyIcon,
-  PersonIcon,
   RequestIcon,
   SearchIcon,
-  SettingsIcon,
 } from './ChatIcons';
 import './PatientChatView.css';
 
@@ -49,11 +49,12 @@ export default function PatientChatView({
   const [listPage, setListPage] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(!phoneVerified);
-  const [quickSentence, setQuickSentence] = useState<string | null>(null);
-  const [frequentSentences, setFrequentSentences] = useState<string[]>([]);
   const [emergencyState, setEmergencyState] = useState<OpenEmergencyState>('closed');
   const [countdown, setCountdown] = useState(5);
 
+  const roomPageSize = 4;
+  const roomPageCount = Math.max(1, Math.ceil(rooms.length / roomPageSize));
+  const visibleRooms = rooms.slice(listPage * roomPageSize, (listPage + 1) * roomPageSize);
   const selectedRoom = rooms.find((room) => room.id === selectedRoomId) ?? rooms[0];
   const pageClassName = `patient-chat-page patient-chat-page--${mode}${
     phoneVerified ? '' : ' patient-chat-page--unverified'
@@ -131,45 +132,17 @@ export default function PatientChatView({
     });
   };
 
-  const handleMessageActivate = (message: ChatMessage) => {
-    if (!phoneVerified) {
-      requestPhoneVerification();
-      return;
-    }
-
-    setQuickSentence(message.text);
-  };
-
-  const handleMessageKeyDown = (
-    event: KeyboardEvent<HTMLButtonElement>,
-    message: ChatMessage,
-  ) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-
-    event.preventDefault();
-    handleMessageActivate(message);
-  };
-
-  const handleRegisterSentence = () => {
-    if (quickSentence) {
-      setFrequentSentences((sentences) =>
-        sentences.includes(quickSentence) ? sentences : [...sentences, quickSentence],
-      );
-    }
-
-    setQuickSentence(null);
-  };
-
   return (
     <main className={pageClassName}>
       <div className="patient-chat-shell">
         <aside className="patient-chat-sidebar" aria-label={`${title} 대상 목록`}>
           <header className="patient-chat-sidebar-header">
-            <div className="patient-chat-brand" aria-label="Look Talk">
-              <span>Look</span>
-              <span>Talk</span>
+            <div className="patient-chat-sidebar-heading">
+              <Link className="patient-chat-brand" to={ROUTES.MAIN} aria-label="Look Talk 메인 페이지로 이동">
+                <img className="patient-chat-brand-image" src={Logo} alt="Look Talk 로고" />
+              </Link>
+              <h1 className="patient-chat-sidebar-title">{title}</h1>
             </div>
-            <h1 className="patient-chat-sidebar-title">{title}</h1>
             <div className="patient-chat-sidebar-actions">
               <Link className="patient-chat-link-action" to={switchPath}>
                 {switchLabel}
@@ -193,7 +166,7 @@ export default function PatientChatView({
           </header>
 
           <div className="patient-chat-room-grid" aria-label="채팅 대상 선택">
-            {rooms.map((room) => (
+            {visibleRooms.map((room) => (
               <button
                 key={room.id}
                 aria-pressed={room.id === selectedRoom?.id}
@@ -201,9 +174,11 @@ export default function PatientChatView({
                 type="button"
                 onClick={() => setSelectedRoomId(room.id)}
               >
-                <span className="patient-chat-room-icon">
-                  {room.icon === 'request' ? <RequestIcon /> : <PersonIcon />}
-                </span>
+                {room.icon === 'request' ? (
+                  <span className="patient-chat-room-icon">
+                    <RequestIcon />
+                  </span>
+                ) : null}
                 <span>{room.name}</span>
               </button>
             ))}
@@ -212,7 +187,7 @@ export default function PatientChatView({
           <div className="patient-chat-pagination" aria-label="채팅 대상 목록 페이지 이동">
             <button
               className="patient-chat-pagination-button"
-              disabled={!phoneVerified || listPage === 0}
+              disabled={!phoneVerified}
               type="button"
               onClick={() => setListPage((page) => Math.max(0, page - 1))}
             >
@@ -220,9 +195,9 @@ export default function PatientChatView({
             </button>
             <button
               className="patient-chat-pagination-button"
-              disabled={!phoneVerified || listPage === 0}
+              disabled={!phoneVerified}
               type="button"
-              onClick={() => setListPage((page) => Math.min(0, page + 1))}
+              onClick={() => setListPage((page) => Math.min(roomPageCount - 1, page + 1))}
             >
               다음
             </button>
@@ -239,15 +214,7 @@ export default function PatientChatView({
                 type="button"
                 onClick={handleEmergencyOpen}
               >
-                <EmergencyIcon />
-              </button>
-              <button
-                aria-label="채팅 설정 열기"
-                className="patient-chat-settings-button"
-                type="button"
-                onClick={handleSettingsOpen}
-              >
-                <SettingsIcon />
+                <img src={Sos} alt="" />
               </button>
             </div>
           </header>
@@ -264,13 +231,10 @@ export default function PatientChatView({
                   const formattedTime = formatChatTime(message.createdAt);
 
                   return (
-                    <button
+                    <article
                       aria-label={`${message.text}${formattedTime ? `, ${formattedTime}` : ''}`}
                       key={message.id}
                       className={`patient-chat-message patient-chat-message--${message.direction}`}
-                      type="button"
-                      onDoubleClick={() => handleMessageActivate(message)}
-                      onKeyDown={(event) => handleMessageKeyDown(event, message)}
                     >
                       <span className="patient-chat-message-text">{message.text}</span>
                       {formattedTime && (
@@ -281,7 +245,7 @@ export default function PatientChatView({
                           {formattedTime}
                         </time>
                       )}
-                    </button>
+                    </article>
                   );
                 })()
               ))}
@@ -294,7 +258,7 @@ export default function PatientChatView({
                 type="button"
                 onClick={() => scrollMessages('up')}
               >
-                <ArrowUpIcon />
+                <img src={UpArrow} alt="" />
               </button>
               <button
                 aria-label="메시지 아래로 안내"
@@ -302,14 +266,14 @@ export default function PatientChatView({
                 type="button"
                 onClick={() => scrollMessages('down')}
               >
-                <ArrowDownIcon />
+                <img src={DownArrow} alt="" />
               </button>
             </div>
           </div>
 
           <footer className="patient-chat-composer">
             <button
-              aria-label={`메시지 보내기. 자주 쓰는 문장 ${frequentSentences.length}개`}
+              aria-label="메시지 보내기"
               className="patient-chat-message-entry"
               type="button"
               onClick={handleMessageSend}
@@ -322,7 +286,7 @@ export default function PatientChatView({
               type="button"
               onClick={handleSettingsOpen}
             >
-              <SettingsIcon />
+              <img src={Setting} alt="" />
             </button>
           </footer>
         </section>
@@ -344,17 +308,6 @@ export default function PatientChatView({
         ]}
       >
         이동할 화면을 선택해 주세요.
-      </BaseModal>
-
-      <BaseModal
-        isOpen={quickSentence !== null}
-        onClose={() => setQuickSentence(null)}
-        actions={[
-          { label: '등록', tone: 'positive', onClick: handleRegisterSentence },
-          { label: '취소', tone: 'neutral', onClick: () => setQuickSentence(null) },
-        ]}
-      >
-        해당 문장을 자주 쓰는 문장으로 등록하시겠습니까?
       </BaseModal>
 
       <BaseModal

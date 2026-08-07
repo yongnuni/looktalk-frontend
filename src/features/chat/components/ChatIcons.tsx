@@ -1,3 +1,8 @@
+import downArrowImage from '../../../assets/down_arrow.png';
+import settingImage from '../../../assets/setting.png';
+import sosImage from '../../../assets/sos.png';
+import upArrowImage from '../../../assets/up_arrow.png';
+
 export interface ChatIconProps {
   size?: number;
 }
@@ -36,13 +41,7 @@ export function RequestIcon({ size = 64 }: ChatIconProps) {
 }
 
 export function EmergencyIcon({ size = 38 }: ChatIconProps) {
-  return (
-    <IconFrame size={size}>
-      <path d="M24 8v5M10 16l4 4M38 16l-4 4M7 29h5M36 29h5" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
-      <path d="M15 34c0-7.2 3-11 9-11s9 3.8 9 11H15Z" fill="currentColor" />
-      <path d="M12 39h24" stroke="currentColor" strokeLinecap="round" strokeWidth="4" />
-    </IconFrame>
-  );
+  return <img alt="" aria-hidden="true" height={size} src={sosImage} width={size} />;
 }
 
 export function SearchIcon({ size = 34 }: ChatIconProps) {
@@ -55,26 +54,13 @@ export function SearchIcon({ size = 34 }: ChatIconProps) {
 }
 
 export function SettingsIcon({ size = 38 }: ChatIconProps) {
-  return (
-    <IconFrame size={size}>
-      <path d="m24 6 2.3 3.9 4.4 1.1 3.8-2.3 4.8 4.8-2.3 3.8 1.1 4.4L42 24l-3.9 2.3-1.1 4.4 2.3 3.8-4.8 4.8-3.8-2.3-4.4 1.1L24 42l-2.3-3.9-4.4-1.1-3.8 2.3-4.8-4.8 2.3-3.8-1.1-4.4L6 24l3.9-2.3 1.1-4.4-2.3-3.8 4.8-4.8 3.8 2.3 4.4-1.1L24 6Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="3" />
-      <circle cx="24" cy="24" fill="none" r="6" stroke="currentColor" strokeWidth="3" />
-    </IconFrame>
-  );
+  return <img alt="" aria-hidden="true" height={size} src={settingImage} width={size} />;
 }
 
 export function ArrowUpIcon({ size = 34 }: ChatIconProps) {
-  return (
-    <IconFrame size={size}>
-      <path d="m24 8 15 25H9L24 8Z" fill="currentColor" />
-    </IconFrame>
-  );
+  return <img alt="" aria-hidden="true" height={size} src={upArrowImage} width={size} />;
 }
 
 export function ArrowDownIcon({ size = 34 }: ChatIconProps) {
-  return (
-    <IconFrame size={size}>
-      <path d="m24 40-15-25h30L24 40Z" fill="currentColor" />
-    </IconFrame>
-  );
+  return <img alt="" aria-hidden="true" height={size} src={downArrowImage} width={size} />;
 }
