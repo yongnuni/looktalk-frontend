@@ -4,6 +4,7 @@ import { usePatientProfileStore } from '../../../shared/stores/patientProfileSto
 
 /** 카운트다운 시작 값 (초). Figma Frame 125 기준 5초 */
 export const EMERGENCY_COUNTDOWN_SECONDS = 5;
+
 /** "달려오고 있어요!" 안내가 떠 있는 시간 (ms) */
 const SENT_MESSAGE_DURATION_MS = 3000;
 
@@ -11,7 +12,12 @@ type EmergencyPhase = 'idle' | 'counting' | 'sent';
 
 /**
  * 비상호출 흐름 상태 관리
- * idle → (버튼 클릭) → counting(5초 카운트다운, 취소 가능) → sent(전송 완료 안내) → idle
+ *
+ * idle
+ *   → (버튼 클릭)
+ * counting (5초 카운트다운, 취소 가능)
+ *   → sent (전송 완료 안내)
+ *   → idle
  */
 export function useEmergencyCall() {
   const [phase, setPhase] = useState<EmergencyPhase>('idle');
@@ -20,6 +26,7 @@ export function useEmergencyCall() {
   const timerRef = useRef<number | null>(null);
 
   const pushCall = useEmergencyStore((state) => state.pushCall);
+
   const hospitalNickname = usePatientProfileStore(
     (state) => state.hospitalNickname,
   );
@@ -42,35 +49,39 @@ export function useEmergencyCall() {
     setRemaining(EMERGENCY_COUNTDOWN_SECONDS);
   }, []);
 
-  const closeSentMessage = useCallback(() => setPhase('idle'), []);
+  const closeSentMessage = useCallback(() => {
+    setPhase('idle');
+  }, []);
 
   // 카운트다운
   useEffect(() => {
     if (phase !== 'counting') return;
 
     timerRef.current = window.setInterval(() => {
-      setRemaining((prev) => prev - 1);
+      setRemaining((prev) => {
+        if (prev <= 1) {
+          clearTimer();
+
+          // TODO: 비상호출 전송 API 호출
+          // 호실/이름은 "202호 - 김민준 환자" 형태의 병원 내 이름에서 분리
+          const [room = '', patientName = ''] = hospitalNickname.split(' - ');
+
+          pushCall({
+            room: room.trim(),
+            patientName: patientName.replace('환자', '').trim(),
+          });
+
+          setPhase('sent');
+
+          return 0;
+        }
+
+        return prev - 1;
+      });
     }, 1000);
 
     return clearTimer;
-  }, [phase]);
-
-  // 0초 도달 → 전송
-  useEffect(() => {
-    if (phase !== 'counting' || remaining > 0) return;
-
-    clearTimer();
-
-    // TODO : 비상호출 전송 API 호출
-    // 호실/이름은 "202호 - 김민준 환자" 형태의 병원 내 이름에서 분리
-    const [room = '', patientName = ''] = hospitalNickname.split(' - ');
-    pushCall({
-      room: room.trim(),
-      patientName: patientName.replace('환자', '').trim(),
-    });
-
-    setPhase('sent');
-  }, [phase, remaining, hospitalNickname, pushCall]);
+  }, [phase, hospitalNickname, pushCall]);
 
   // 전송 안내 자동 닫기
   useEffect(() => {
