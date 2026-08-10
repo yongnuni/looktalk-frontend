@@ -1,0 +1,61 @@
+/* =========================================================
+   EmergencyButton
+   MemoPage.css 의 .emergency-button 수치를 그대로 사용
+========================================================= */
+
+.emergency-call-button {
+  width: clamp(70px, 5vw, 90px);
+  height: clamp(70px, 5vw, 90px);
+
+  padding: 0;
+
+  border: none;
+  border-radius: 20px;
+
+  overflow: hidden;
+
+  background: transparent;
+
+  cursor: pointer;
+
+  transition: transform 0.2s ease;
+}
+
+.emergency-call-button:hover {
+  transform: scale(1.05);
+}
+
+.emergency-call-button:active {
+  transform: scale(0.95);
+}
+
+.emergency-call-icon {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  border-radius: 18px;
+}
+
+/* 카운트다운 숫자 */
+
+.emergency-countdown {
+  margin-top: clamp(14px, 1.6vw, 24px);
+
+  color: #dc3545;
+
+  font-size: clamp(40px, 3.5vw, 62px);
+  font-weight: 700;
+
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emergency-call-button:hover,
+  .emergency-call-button:active {
+    transform: none;
+  }
+}

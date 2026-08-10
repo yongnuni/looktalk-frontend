@@ -1,0 +1,61 @@
+/* =========================================================
+   FriendListPage (Desktop - 88)
+========================================================= */
+
+.friend-page {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #ffffff;
+
+  overflow-x: hidden;
+}
+
+.friend-content {
+  flex: 1;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: clamp(24px, 3vw, 56px) clamp(20px, 2vw, 44px);
+}
+
+.friend-grid {
+  width: min(1400px, 96vw);
+
+  display: grid;
+
+  grid-template-columns: repeat(4, minmax(0, max-content));
+
+  justify-content: center;
+
+  gap: clamp(26px, 3vw, 56px) clamp(26px, 3.4vw, 60px);
+}
+
+.friend-empty {
+  color: #8a8a8a;
+
+  text-align: center;
+
+  font-size: clamp(18px, 1.3vw, 24px);
+}
+
+/* ---------- 1200px ---------- */
+
+@media (max-width: 1200px) {
+  .friend-grid {
+    gap: 22px 24px;
+  }
+}
+
+/* ---------- 900px : 2열 ---------- */
+
+@media (max-width: 900px) {
+  .friend-grid {
+    grid-template-columns: repeat(2, minmax(0, max-content));
+  }
+}

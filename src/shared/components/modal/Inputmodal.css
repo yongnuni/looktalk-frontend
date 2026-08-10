@@ -1,0 +1,46 @@
+/* =========================================================
+   InputModal
+   팝업 뼈대는 BaseModal.css 가 담당하고,
+   여기서는 입력 필드만 다룬다.
+========================================================= */
+
+.input-modal-message {
+  margin: 0;
+}
+
+.input-modal-field {
+  width: min(436px, 100%);
+
+  height: clamp(58px, 4.5vw, 71px);
+
+  margin: clamp(14px, 1.5vw, 22px) auto 0;
+
+  padding: 0 20px;
+
+  display: block;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #e7e7e7;
+
+  outline: none;
+
+  color: #222;
+
+  text-align: center;
+
+  font-size: clamp(18px, 1.2vw, 24px);
+}
+
+.input-modal-field::placeholder {
+  color: #8f8f8f;
+}
+
+.input-modal-field:focus {
+  box-shadow: inset 0 0 0 2px #b5b5b5;
+}
+
+.input-modal-field + .input-modal-field {
+  margin-top: clamp(14px, 1.4vw, 20px);
+}

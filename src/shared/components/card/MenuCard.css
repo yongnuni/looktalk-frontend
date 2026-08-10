@@ -1,0 +1,185 @@
+/* =========================================================
+   MenuCard
+   MainPage.css 의 .main-button 을 그대로 계승한 공용 카드 버튼
+========================================================= */
+
+.menu-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 0 18px;
+
+  background: #ffffff;
+
+  border: 1px solid #d8d8d8;
+  border-radius: 28px;
+
+  color: #222;
+  text-decoration: none;
+  text-align: center;
+
+  line-height: 1.4;
+
+  cursor: pointer;
+
+  font-size: clamp(24px, 1.5vw, 28px);
+  font-weight: 600;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* ---------- 기본형 (MainPage 와 동일) ---------- */
+
+.menu-card-square {
+  width: clamp(210px, 15vw, 260px);
+  height: clamp(180px, 13vw, 230px);
+}
+
+/* ---------- 상단 줄 : 같은 형식 + 세로만 축소 ---------- */
+
+.menu-card-wide {
+  width: clamp(300px, 30vw, 420px);
+  height: clamp(104px, 8vw, 145px);
+}
+
+/* ---------- Hover / Active ---------- */
+
+.menu-card:hover {
+  background: #d9d9d9;
+  border-color: #bcbcbc;
+  color: #111;
+
+  transform: translateY(-5px);
+
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+}
+
+.menu-card:active {
+  background: #c7c7c7;
+  border-color: #ababab;
+
+  transform: translateY(-1px) scale(0.985);
+
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+.menu-card:focus-visible {
+  outline: 3px solid #1773f5;
+  outline-offset: 3px;
+}
+
+/* ---------- 잠김 : 클릭은 되지만 안내 팝업만 뜨는 상태 ---------- */
+
+.menu-card.is-locked {
+  color: #9a9a9a;
+  border-color: #e2e2e2;
+}
+
+.menu-card.is-locked:hover {
+  background: #f0f0f0;
+  color: #8a8a8a;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+.menu-card:disabled {
+  cursor: not-allowed;
+
+  background: #f5f5f5;
+  color: #bdbdbd;
+  border-color: #e5e5e5;
+
+  transform: none;
+  box-shadow: none;
+}
+
+/* ---------- 1600px ---------- */
+
+@media (max-width: 1600px) {
+  .menu-card {
+    font-size: 24px;
+  }
+
+  .menu-card-square {
+    width: 210px;
+    height: 190px;
+  }
+
+  .menu-card-wide {
+    width: 320px;
+    height: 120px;
+  }
+}
+
+/* ---------- 1400px ---------- */
+
+@media (max-width: 1400px) {
+  .menu-card {
+    font-size: 22px;
+  }
+
+  .menu-card-square {
+    width: 195px;
+    height: 180px;
+  }
+
+  .menu-card-wide {
+    width: 290px;
+    height: 112px;
+  }
+}
+
+/* ---------- 1200px ---------- */
+
+@media (max-width: 1200px) {
+  .menu-card {
+    font-size: 20px;
+  }
+
+  .menu-card-square {
+    width: 175px;
+    height: 165px;
+  }
+
+  .menu-card-wide {
+    width: 250px;
+    height: 100px;
+  }
+}
+
+/* ---------- Ultra Wide ---------- */
+
+@media (min-width: 2200px) {
+  .menu-card {
+    font-size: 32px;
+  }
+
+  .menu-card-square {
+    width: 300px;
+    height: 270px;
+  }
+
+  .menu-card-wide {
+    width: 470px;
+    height: 170px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-card {
+    transition: background-color 0.2s ease;
+  }
+
+  .menu-card:hover,
+  .menu-card:active {
+    transform: none;
+  }
+}

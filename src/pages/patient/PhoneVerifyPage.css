@@ -1,0 +1,244 @@
+/* =========================================================
+   PhoneVerifyPage (Desktop - 80)
+   PasswordResetPage.css / SignupPage.css 의 입력 스타일을 따름
+========================================================= */
+
+.phone-page {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: #fff;
+
+  padding: clamp(20px, 2vw, 40px);
+
+  position: relative;
+}
+
+.phone-emergency {
+  position: absolute;
+
+  top: clamp(20px, 2vw, 40px);
+  right: clamp(20px, 2vw, 40px);
+}
+
+.phone-container {
+  width: min(900px, 92vw);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: clamp(28px, 3vw, 52px);
+
+  transform: translateY(clamp(-10px, -1vw, -30px));
+}
+
+/* ---------- 로고 ---------- */
+
+.phone-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  text-decoration: none;
+
+  transition: opacity 0.2s;
+}
+
+.phone-logo:hover {
+  opacity: 0.85;
+}
+
+.phone-logo-image {
+  width: clamp(220px, 17vw, 320px);
+
+  height: auto;
+
+  display: block;
+}
+
+/* ---------- 폼 ---------- */
+
+.phone-form {
+  width: min(700px, 90vw);
+}
+
+.phone-form .input-group {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  position: relative;
+
+  margin-bottom: clamp(18px, 1.8vw, 30px);
+}
+
+.phone-form .input-group label {
+  margin-bottom: clamp(6px, 0.8vw, 10px);
+
+  color: #666;
+
+  font-size: clamp(16px, 1vw, 20px);
+  font-weight: 600;
+}
+
+.phone-form .input-with-button {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    clamp(110px, 8vw, 150px);
+
+  gap: clamp(10px, 1vw, 14px);
+}
+
+.phone-form .input-with-button input {
+  width: 100%;
+
+  height: clamp(54px, 4vw, 70px);
+
+  padding: 0 clamp(16px, 1vw, 22px);
+
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+
+  outline: none;
+
+  font-size: clamp(15px, 1vw, 18px);
+
+  transition: 0.2s;
+}
+
+.phone-form .input-with-button input:focus {
+  border-color: #444;
+}
+
+.phone-form .input-with-button input::placeholder {
+  color: #aaa;
+}
+
+.phone-form .sub-button {
+  width: 100%;
+
+  height: clamp(54px, 4vw, 70px);
+
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+
+  background: #f5f5f5;
+
+  cursor: pointer;
+
+  font-size: clamp(15px, 1vw, 17px);
+  font-weight: 600;
+
+  transition: 0.2s;
+}
+
+.phone-form .sub-button:hover {
+  background: #ebebeb;
+}
+
+.phone-form .sub-button:active {
+  background: #e0e0e0;
+}
+
+/* ---------- 메시지 ---------- */
+
+.phone-form .request-message {
+  position: absolute;
+
+  left: 4px;
+  top: calc(100% + 1px);
+
+  min-height: 18px;
+
+  color: #666;
+
+  font-size: clamp(12px, 0.8vw, 14px);
+}
+
+.phone-form .auth-group {
+  margin-top: clamp(12px, 1.2vw, 20px);
+}
+
+.phone-form .verify-success,
+.phone-form .verify-fail {
+  position: absolute;
+
+  left: 4px;
+  top: calc(100% + 6px);
+
+  font-size: clamp(12px, 0.8vw, 14px);
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.phone-form .verify-success {
+  color: #28a745;
+}
+
+.phone-form .verify-fail {
+  color: #dc3545;
+}
+
+/* ---------- 제출 ---------- */
+
+.phone-submit {
+  width: 100%;
+
+  display: flex;
+  justify-content: center;
+
+  gap: clamp(20px, 2.5vw, 46px);
+
+  margin-top: clamp(40px, 4vw, 70px);
+}
+
+.phone-button {
+  width: clamp(130px, 9vw, 168px);
+  height: clamp(48px, 3.6vw, 70px);
+
+  border: none;
+  border-radius: 8px;
+
+  background: #2d2d2d;
+  color: #fff;
+
+  cursor: pointer;
+
+  font-size: clamp(16px, 1vw, 20px);
+  font-weight: 500;
+
+  transition: 0.2s;
+}
+
+.phone-button:hover:not(:disabled) {
+  background: #444;
+}
+
+.phone-button:active:not(:disabled) {
+  background: #1a1a1a;
+  transform: scale(0.97);
+}
+
+.phone-button:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+}
+
+.phone-button.cancel {
+  background: #9c9c9c;
+}
+
+.phone-button.cancel:hover {
+  background: #8a8a8a;
+}

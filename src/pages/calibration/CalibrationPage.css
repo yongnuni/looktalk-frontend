@@ -1,0 +1,58 @@
+.calibration-card {
+  max-width: 900px;
+}
+
+.calibration-header {
+  margin-bottom: 32px;
+}
+
+.calibration-header h1 {
+  margin: 0;
+}
+
+.calibration-kicker {
+  margin: 0 0 8px;
+  color: #1769e0;
+  font-weight: 800;
+}
+
+.calibration-placeholder {
+  padding: 52px 24px;
+  border: 2px dashed #98a2b3;
+  text-align: center;
+}
+
+.calibration-placeholder p {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.6;
+}
+
+.calibration-placeholder p + p {
+  margin-top: 12px;
+  color: #667085;
+  font-size: 20px;
+}
+
+.calibration-back-button {
+  display: block;
+  min-height: 72px;
+  margin: 28px auto 0;
+  padding: 16px 28px;
+  border: 0;
+  border-radius: 12px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.calibration-back-button:hover {
+  background: #1d4ed8;
+}
+
+.calibration-back-button:focus-visible {
+  outline: 4px solid #111827;
+  outline-offset: 3px;
+}
