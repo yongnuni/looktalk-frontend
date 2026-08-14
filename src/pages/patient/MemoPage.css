@@ -523,6 +523,16 @@ Hover
   object-fit: contain;
 }
 
+.memo-error-message {
+  margin: 0;
+  padding: 10px 24px;
+
+  color: #d93025;
+
+  font-size: 16px;
+  text-align: center;
+}
+
 /* ===========================
    1600px
 =========================== */
