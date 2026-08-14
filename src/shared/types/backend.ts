@@ -106,6 +106,15 @@ export interface StaffDto {
   created_at: string | null;
 }
 
+// GET /staff/me/patients
+export interface StaffAssignedPatientDto {
+  userId: string;
+  loginId: string;
+  name: string | null;
+  displayName: string;
+  assignedAt: string;
+}
+
 // GET /friends
 export interface SmsFriendshipDto {
   friendshipId: number;

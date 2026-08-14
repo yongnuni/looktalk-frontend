@@ -6,39 +6,83 @@ import SendImage from '../../../assets/send.png';
 import SettingImage from '../../../assets/setting.png';
 import { ROUTES } from '../../../shared/constants/routes';
 import { useEmergencyStore } from '../../../shared/stores/emergencyStore';
-import { staffPatientChats, staffProfile } from '../mock/staffChatMock';
+import type { StaffAssignedPatientDto } from '../../../shared/types/backend';
+import { getMyAssignedPatients } from '../api/staffPatients';
+import { staffProfile } from '../mock/staffChatMock';
 import type { StaffChatMessage, StaffPatientChat } from '../types/staffChat';
 import './StaffChatDashboard.css';
+
+function getPatientDisplayName(patient: StaffAssignedPatientDto): string {
+  return patient.displayName || patient.name || patient.loginId || patient.userId;
+}
+
+function toStaffPatientChat(patient: StaffAssignedPatientDto): StaffPatientChat {
+  return {
+    patientUserId: patient.userId,
+    patientName: getPatientDisplayName(patient),
+    hasUnread: false,
+    messages: [],
+  };
+}
 
 export default function StaffChatDashboard() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [patients, setPatients] = useState<StaffPatientChat[]>(staffPatientChats);
-  const [selectedPatientUserId, setSelectedPatientUserId] = useState(staffPatientChats[0].patientUserId);
+  const [patients, setPatients] = useState<StaffPatientChat[]>([]);
+  const [selectedPatientUserId, setSelectedPatientUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [draft, setDraft] = useState('');
   const emergencyHistory = useEmergencyStore((state) => state.history);
 
   const selectedPatient = patients.find((patient) => patient.patientUserId === selectedPatientUserId);
-  const selectedEmergencyCall = emergencyHistory.find(
-    (call) =>
-      call.room === selectedPatient?.roomLabel &&
-      call.patientName === selectedPatient?.patientName,
-  );
+  const selectedPatientMessages = selectedPatient?.messages ?? [];
+  const selectedEmergencyCall =
+    selectedPatient && selectedPatient.roomLabel
+      ? emergencyHistory.find(
+          (call) =>
+            call.room === selectedPatient.roomLabel &&
+            call.patientName === selectedPatient.patientName,
+        )
+      : undefined;
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredPatients = patients.filter((patient) => {
     if (!normalizedSearchQuery) return true;
 
-    return [patient.roomLabel, patient.patientName].some((value) =>
+    return [patient.patientName].some((value) =>
       value.toLowerCase().includes(normalizedSearchQuery),
     );
   });
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadAssignedPatients = async () => {
+      try {
+        const assignedPatients = await getMyAssignedPatients();
+        const nextPatients = assignedPatients.map(toStaffPatientChat);
+
+        if (isMounted) {
+          setPatients(nextPatients);
+          setSelectedPatientUserId(nextPatients[0]?.patientUserId ?? null);
+        }
+      } catch {
+        if (isMounted) {
+          setPatients([]);
+          setSelectedPatientUserId(null);
+        }
+      }
+    };
+
+    void loadAssignedPatients();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedPatientUserId, selectedPatient?.messages.length]);
-
-  if (!selectedPatient) return null;
 
   const selectPatient = (patientUserId: string) => {
     setSelectedPatientUserId(patientUserId);
@@ -122,14 +166,14 @@ export default function StaffChatDashboard() {
             {filteredPatients.length > 0 ? (
               filteredPatients.map((patient) => (
                 <button
-                  aria-label={`${patient.roomLabel} ${patient.patientName} 환자${patient.hasUnread ? ' 읽지 않은 메시지 있음' : ''}`}
+                  aria-label={`${patient.patientName} 환자${patient.hasUnread ? ' 읽지 않은 메시지 있음' : ''}`}
                   aria-pressed={patient.patientUserId === selectedPatientUserId}
                   className={`staff-chat-patient-row${patient.patientUserId === selectedPatientUserId ? ' staff-chat-patient-row--selected' : ''}`}
                   key={patient.patientUserId}
                   onClick={() => selectPatient(patient.patientUserId)}
                   type="button"
                 >
-                  <span>{patient.roomLabel} - {patient.patientName} 환자</span>
+                  <span>{patient.patientName} 환자</span>
                   {patient.hasUnread && (
                     <span aria-label="읽지 않은 메시지가 있습니다" className="staff-chat-unread-dot" role="img" />
                   )}
@@ -143,7 +187,7 @@ export default function StaffChatDashboard() {
 
         <section className="staff-chat-conversation" aria-label="환자 채팅">
           <header className="staff-chat-conversation-header">
-            <p className="staff-chat-room-label">{selectedPatient.roomLabel}</p>
+            <p className="staff-chat-room-label">{selectedPatient?.patientName ?? ''}</p>
             <button
               aria-label="의료진 마이페이지로 이동"
               className="staff-chat-settings-button"
@@ -163,8 +207,8 @@ export default function StaffChatDashboard() {
                 </time>
               </div>
             )}
-            {selectedPatient.messages.length > 0 ? (
-              selectedPatient.messages.map((message) => (
+            {selectedPatientMessages.length > 0 ? (
+              selectedPatientMessages.map((message) => (
                 <div
                   className={`staff-chat-message staff-chat-message--${message.direction}`}
                   key={message.id}
