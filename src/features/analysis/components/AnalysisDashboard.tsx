@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import Keyboard from '../../../assets/keyboard.png';
+import LeftArrow from '../../../assets/left_arrow.png';
 import Logo from '../../../assets/Logo.png';
+import RightArrow from '../../../assets/right_arrow.png';
+import Robot from '../../../assets/robot.png';
 import Setting from '../../../assets/setting.png';
 import Sos from '../../../assets/sos.png';
 import BaseModal from '../../../shared/components/modal/BaseModal';
@@ -9,12 +13,6 @@ import { analysisItems, initialAnalysis } from '../mock/analysisMock';
 import type { AnalysisItem, InputMethodId } from '../types/analysis';
 import MetricDonut from './MetricDonut';
 import InputMethodSelectionModal from './InputMethodSelectionModal';
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  KeyboardIcon,
-  RecommendationIcon,
-} from './AnalysisIcons';
 import './AnalysisDashboard.css';
 
 type ModalKind =
@@ -102,10 +100,10 @@ export default function AnalysisDashboard() {
 
         <section className="analysis-intro" aria-labelledby="analysis-title">
           <h1 id="analysis-title" className="analysis-intro__recommendation">
-            <RecommendationIcon />
+            <img className="analysis-intro__robot" src={Robot} alt="" />
             <span>추천 입력 방식: “{activeAnalysis.recommendedMethod}”</span>
           </h1>
-          <p className="analysis-intro__current">“{activeAnalysis.inputMethod}”</p>
+          <p className="analysis-intro__current">&lt;{activeAnalysis.inputMethod}&gt;</p>
         </section>
 
         <section className="analysis-metrics" aria-label={`${activeAnalysis.inputMethod} 분석 지표`}>
@@ -121,7 +119,7 @@ export default function AnalysisDashboard() {
             onClick={() => moveAnalysis(-1)}
             type="button"
           >
-            <ArrowLeftIcon />
+            <img src={LeftArrow} alt="" />
           </button>
           <button
             aria-label="입력 방식 변경 또는 재검사"
@@ -129,8 +127,7 @@ export default function AnalysisDashboard() {
             onClick={() => setModalKind('input-choice')}
             type="button"
           >
-            <KeyboardIcon />
-            <span>입력 방식 변경</span>
+            <img src={Keyboard} alt="" />
           </button>
           <button
             aria-label="다음 입력 방식 분석 보기"
@@ -138,7 +135,7 @@ export default function AnalysisDashboard() {
             onClick={() => moveAnalysis(1)}
             type="button"
           >
-            <ArrowRightIcon />
+            <img src={RightArrow} alt="" />
           </button>
         </nav>
       </div>
