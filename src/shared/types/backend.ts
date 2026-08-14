@@ -105,3 +105,49 @@ export interface StaffDto {
   hospital_id: number;
   created_at: string | null;
 }
+
+// chat room list API
+export interface HospitalChatRoomTargetDto {
+  type: string;
+  userId: string;
+  name: string;
+  displayName: string | null;
+  phone: string | null;
+}
+
+export interface HospitalChatRoomDto {
+  roomId: number;
+  roomType: 'HOSPITAL';
+  target: HospitalChatRoomTargetDto;
+  lastMessageEncryptedPayload: unknown | null;
+  lastMessageAt: string | null;
+}
+
+export interface EncryptedPayloadDto {
+  algorithm: 'LIBSODIUM_SEALED_BOX';
+  keyVersion: number;
+  ciphertext: string;
+}
+
+export interface ChatRoomMessageDto {
+  messageId: number;
+  senderParticipantId: number;
+  senderUserId: string;
+  senderDisplayName: string;
+  encryptedPayload: EncryptedPayloadDto;
+  messageType: string;
+  createdAt: string;
+}
+
+export interface ChatRoomMessagesDataDto {
+  messages: ChatRoomMessageDto[];
+  hasNext: boolean;
+  nextCursor: number | null;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  code: string;
+  message: string;
+  data: T;
+}
