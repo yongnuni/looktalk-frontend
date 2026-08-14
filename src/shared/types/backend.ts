@@ -130,6 +130,17 @@ export interface HospitalChatRoomDto {
   lastMessageAt: string | null;
 }
 
+// POST /chat-rooms/sms
+export interface CreateOrGetSmsChatRoomRequestDto {
+  friendshipId: number;
+}
+
+export interface SmsChatRoomDto {
+  roomId: number;
+  roomType: string;
+  createdAt: string;
+}
+
 export interface EncryptedPayloadDto {
   algorithm: 'LIBSODIUM_SEALED_BOX';
   keyVersion: number;
