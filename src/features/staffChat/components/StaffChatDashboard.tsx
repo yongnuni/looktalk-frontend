@@ -7,6 +7,7 @@ import SettingImage from '../../../assets/setting.png';
 import { ROUTES } from '../../../shared/constants/routes';
 import { useEmergencyStore } from '../../../shared/stores/emergencyStore';
 import type { StaffAssignedPatientDto } from '../../../shared/types/backend';
+import { createOrGetHospitalChatRoom } from '../../chat/api/chatRooms';
 import { getMyAssignedPatients } from '../api/staffPatients';
 import { staffProfile } from '../mock/staffChatMock';
 import type { StaffChatMessage, StaffPatientChat } from '../types/staffChat';
@@ -28,6 +29,7 @@ function toStaffPatientChat(patient: StaffAssignedPatientDto): StaffPatientChat 
 export default function StaffChatDashboard() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const roomRequestPatientUserIdsRef = useRef(new Set<string>());
   const [patients, setPatients] = useState<StaffPatientChat[]>([]);
   const [selectedPatientUserId, setSelectedPatientUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,6 +81,39 @@ export default function StaffChatDashboard() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      !selectedPatient ||
+      selectedPatient.chatRoomId !== undefined ||
+      roomRequestPatientUserIdsRef.current.has(selectedPatient.patientUserId)
+    ) {
+      return;
+    }
+
+    const targetUserId = selectedPatient.patientUserId;
+    roomRequestPatientUserIdsRef.current.add(targetUserId);
+
+    const createOrGetRoom = async () => {
+      try {
+        const { roomId } = await createOrGetHospitalChatRoom(targetUserId);
+
+        setPatients((currentPatients) =>
+          currentPatients.map((patient) =>
+            patient.patientUserId === targetUserId && patient.chatRoomId === undefined
+              ? { ...patient, chatRoomId: roomId }
+              : patient,
+          ),
+        );
+      } catch {
+        // The patient remains without a chat room ID when the request fails.
+      } finally {
+        roomRequestPatientUserIdsRef.current.delete(targetUserId);
+      }
+    };
+
+    void createOrGetRoom();
+  }, [selectedPatient?.chatRoomId, selectedPatient?.patientUserId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
