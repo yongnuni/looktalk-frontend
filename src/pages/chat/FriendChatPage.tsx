@@ -1,9 +1,11 @@
 import { useSearchParams } from 'react-router-dom';
 import PatientChatView from '../../features/chat/components/PatientChatView';
-import { friendChatRooms, mockCurrentPatientUser } from '../../features/chat/mock/friendChatMock';
+import { mockCurrentPatientUser } from '../../features/chat/mock/friendChatMock';
+import { useFriendChatRooms } from '../../features/friend/hooks/useFriendChatRooms';
 
 export default function FriendChatPage() {
   const [searchParams] = useSearchParams();
+  const friendChatRooms = useFriendChatRooms();
   const phoneVerified =
     searchParams.get('verified') === 'false'
       ? false

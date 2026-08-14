@@ -4,6 +4,7 @@ import type {
   FriendshipDto,
   HospitalChatRoomDto,
   MessageDto,
+  SmsFriendshipDto,
 } from '../../../shared/types/backend';
 import type { ChatMessage, ChatRoom, ChatRoomIcon } from '../types/chat';
 
@@ -53,6 +54,15 @@ export function mapFriendshipDtoToChatRoom(friendship: FriendshipDto): ChatRoom 
       friendship.friend_name ??
       friendship.friend_phone ??
       `친구 ${friendship.friendship_id}`,
+    icon: 'person',
+    messages: [],
+  };
+}
+
+export function mapSmsFriendshipDtoToChatRoom(friendship: SmsFriendshipDto): ChatRoom {
+  return {
+    id: `friendship-${friendship.friendshipId}`,
+    name: friendship.name || friendship.phone || `친구 ${friendship.friendshipId}`,
     icon: 'person',
     messages: [],
   };

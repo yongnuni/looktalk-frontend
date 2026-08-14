@@ -106,6 +106,13 @@ export interface StaffDto {
   created_at: string | null;
 }
 
+// GET /friends
+export interface SmsFriendshipDto {
+  friendshipId: number;
+  name: string;
+  phone: string;
+}
+
 // chat room list API
 export interface HospitalChatRoomTargetDto {
   type: string;
