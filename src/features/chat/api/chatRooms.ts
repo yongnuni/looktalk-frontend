@@ -2,6 +2,8 @@ import { apiClient } from '../../../shared/api/apiClient';
 import type {
   ApiResponse,
   ChatRoomMessagesDataDto,
+  CreateOrGetHospitalChatRoomDataDto,
+  CreateOrGetHospitalChatRoomRequestDto,
   CreateOrGetSmsChatRoomRequestDto,
   HospitalChatRoomDto,
   SendChatRoomMessageDataDto,
@@ -13,6 +15,18 @@ export async function getHospitalChatRooms(): Promise<HospitalChatRoomDto[]> {
   const response = await apiClient.get<ApiResponse<HospitalChatRoomDto[]>>('/chat-rooms', {
     params: { type: 'HOSPITAL' },
   });
+
+  return response.data.data;
+}
+
+export async function createOrGetHospitalChatRoom(
+  targetUserId: string,
+): Promise<CreateOrGetHospitalChatRoomDataDto> {
+  const payload: CreateOrGetHospitalChatRoomRequestDto = { targetUserId };
+  const response = await apiClient.post<ApiResponse<CreateOrGetHospitalChatRoomDataDto>>(
+    '/chat-rooms/hospital',
+    payload,
+  );
 
   return response.data.data;
 }

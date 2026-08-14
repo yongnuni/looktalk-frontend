@@ -139,6 +139,17 @@ export interface HospitalChatRoomDto {
   lastMessageAt: string | null;
 }
 
+// POST /chat-rooms/hospital
+export interface CreateOrGetHospitalChatRoomRequestDto {
+  targetUserId: string;
+}
+
+export interface CreateOrGetHospitalChatRoomDataDto {
+  roomId: number;
+  roomType: 'HOSPITAL';
+  createdAt: string;
+}
+
 // POST /chat-rooms/sms
 export interface CreateOrGetSmsChatRoomRequestDto {
   friendshipId: number;
