@@ -1,14 +1,28 @@
 import { apiClient } from '../../../shared/api/apiClient';
 import type {
   ApiResponse,
-  HospitalChatRoomDto,
   ChatRoomMessagesDataDto,
+  HospitalChatRoomDto,
+  SendChatRoomMessageDataDto,
+  SendChatRoomMessageRequestDto,
 } from '../../../shared/types/backend';
 
 export async function getHospitalChatRooms(): Promise<HospitalChatRoomDto[]> {
   const response = await apiClient.get<ApiResponse<HospitalChatRoomDto[]>>('/chat-rooms', {
     params: { type: 'HOSPITAL' },
   });
+
+  return response.data.data;
+}
+
+export async function sendChatRoomMessage(
+  roomId: number,
+  payload: SendChatRoomMessageRequestDto,
+): Promise<SendChatRoomMessageDataDto> {
+  const response = await apiClient.post<ApiResponse<SendChatRoomMessageDataDto>>(
+    `/chat-rooms/${roomId}/messages`,
+    payload,
+  );
 
   return response.data.data;
 }

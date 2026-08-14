@@ -145,6 +145,23 @@ export interface ChatRoomMessagesDataDto {
   nextCursor: number | null;
 }
 
+export interface ChatRoomMessageCiphertextDto {
+  recipientUserId: string;
+  keyVersion: number;
+  algorithm: 'LIBSODIUM_SEALED_BOX';
+  ciphertext: string;
+}
+
+export interface SendChatRoomMessageRequestDto {
+  messageType: 'TEXT';
+  ciphertexts: ChatRoomMessageCiphertextDto[];
+}
+
+export interface SendChatRoomMessageDataDto {
+  messageId: number;
+  createdAt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   code: string;
