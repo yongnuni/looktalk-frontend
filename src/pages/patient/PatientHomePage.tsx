@@ -1,11 +1,18 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import HospitalChatContactSearch from '../../features/chat/components/HospitalChatContactSearch';
 import VirtualKeyboard from '../../features/keyboard/components/VirtualKeyboard';
 import { useInputStore } from '../../shared/stores/inputStore';
 
 export default function PatientHomePage() {
+  const [searchParams] = useSearchParams();
   const text = useInputStore((state) => state.text);
   const pressKey = useInputStore((state) => state.pressKey);
   const clearText = useInputStore((state) => state.clearText);
+  const [hospitalSearchKeyword, setHospitalSearchKeyword] = useState<string | null>(null);
+  const [hospitalSearchPage, setHospitalSearchPage] = useState(0);
+  const [hospitalSearchRequestId, setHospitalSearchRequestId] = useState(0);
+  const isHospitalSearch = searchParams.get('source') === 'hospital-search';
 
   const handleSend = () => {
     if (!text.trim()) {
@@ -17,8 +24,23 @@ export default function PatientHomePage() {
     clearText();
   };
 
+  const handleHospitalContactSearch = () => {
+    const keyword = text.trim();
+
+    if (!keyword) return;
+
+    setHospitalSearchKeyword(keyword);
+    setHospitalSearchPage(0);
+    setHospitalSearchRequestId((current) => current + 1);
+  };
+
   const handleKeySelect = (keyValue: string) => {
     if (keyValue === 'ENTER') {
+      if (isHospitalSearch) {
+        handleHospitalContactSearch();
+        return;
+      }
+
       handleSend();
       return;
     }
@@ -53,6 +75,15 @@ export default function PatientHomePage() {
         />
 
         <VirtualKeyboard onKeySelect={handleKeySelect} />
+
+        {isHospitalSearch && hospitalSearchKeyword ? (
+          <HospitalChatContactSearch
+            keyword={hospitalSearchKeyword}
+            page={hospitalSearchPage}
+            requestId={hospitalSearchRequestId}
+            onPageChange={setHospitalSearchPage}
+          />
+        ) : null}
       </section>
     </main>
   );

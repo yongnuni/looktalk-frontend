@@ -139,6 +139,22 @@ export interface HospitalChatRoomDto {
   lastMessageAt: string | null;
 }
 
+// GET /chat-contacts
+export type ChatContactRole = 'PATIENT' | 'STAFF';
+
+export interface ChatContactDto {
+  userId: string;
+  role: ChatContactRole;
+  name: string | null;
+  displayName: string | null;
+  e2eeReady: boolean;
+}
+
+export interface ChatContactsDataDto {
+  content: ChatContactDto[];
+  hasNext: boolean;
+}
+
 // POST /chat-rooms/hospital
 export interface CreateOrGetHospitalChatRoomRequestDto {
   targetUserId: string;
