@@ -47,8 +47,7 @@ body,
 }
 
 .memo-logo {
-  width: clamp(100px, 4vw, 200px);
-
+  width: clamp(80px, 3.2vw, 160px);
   height: auto;
 }
 
@@ -168,7 +167,6 @@ body,
   min-height: clamp(90px, 8vw, 120px);
 
   display: flex;
-  justify-content: center;
   align-items: center;
 
   padding: clamp(20px, 2vw, 28px) clamp(30px, 3vw, 40px);
@@ -179,8 +177,6 @@ body,
 
   color: #222;
 
-  text-align: center;
-
   font-size: clamp(28px, 2vw, 40px);
 
   font-weight: 500;
@@ -190,6 +186,177 @@ body,
   word-break: break-word;
 
   flex-shrink: 0;
+
+  position: relative;
+}
+
+/* ===========================
+Delete Button
+=========================== */
+
+.delete-button {
+  width: clamp(70px, 6vw, 96px);
+  height: clamp(70px, 6vw, 96px);
+
+  flex-shrink: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 0;
+
+  background: #ffffff;
+
+  border: 1px solid #222;
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
+}
+
+.delete-button:hover {
+  transform: scale(1.05);
+  background: #fff5f5;
+}
+
+.trash-icon {
+  width: 55%;
+  height: 55%;
+
+  object-fit: contain;
+
+  display: block;
+}
+
+/* ===========================
+Memo Text
+=========================== */
+
+.memo-text {
+  flex: 1;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  text-align: center;
+
+  padding: 0 clamp(20px, 2vw, 40px);
+}
+
+/* ===========================
+Delete Modal
+=========================== */
+
+.delete-modal-overlay {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: rgba(0, 0, 0, 0.25);
+
+  z-index: 9999;
+}
+
+.delete-modal {
+  width: clamp(300px, 30vw, 480px);
+
+  background: #ffffff;
+
+  border-radius: 4px;
+
+  overflow: hidden;
+
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* ===========================
+Delete Message
+=========================== */
+
+.delete-message {
+  height: 60px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 0 20px;
+
+  border-bottom: 1px solid #d9d9d9;
+
+  color: #222;
+
+  font-size: clamp(17px, 1.1vw, 22px);
+
+  font-weight: 400;
+
+  text-align: center;
+}
+
+/* ===========================
+Delete Modal Buttons
+=========================== */
+
+.delete-modal-buttons {
+  display: flex;
+
+  width: 100%;
+}
+
+.delete-modal-buttons button {
+  width: 50%;
+  aspect-ratio: 3 / 2;
+
+  border: none;
+
+  background: #ffffff;
+
+  font-size: clamp(18px, 1.2vw, 24px);
+
+  cursor: pointer;
+}
+
+/* ===========================
+Delete Button
+=========================== */
+
+.delete-confirm-button {
+  color: #ff0000;
+
+  border-right: 1px solid #d9d9d9 !important;
+}
+
+/* ===========================
+Cancel Button
+=========================== */
+
+.delete-cancel-button {
+  color: #777777;
+}
+
+/* ===========================
+Hover
+=========================== */
+
+.delete-confirm-button:hover {
+  background: #fff5f5;
+}
+
+.delete-cancel-button:hover {
+  background: #f5f5f5;
 }
 
 /* ===========================
@@ -356,6 +523,16 @@ body,
   object-fit: contain;
 }
 
+.memo-error-message {
+  margin: 0;
+  padding: 10px 24px;
+
+  color: #d93025;
+
+  font-size: 16px;
+  text-align: center;
+}
+
 /* ===========================
    1600px
 =========================== */
@@ -388,7 +565,7 @@ body,
   }
 
   .memo-logo {
-    width: 150px;
+    width: 120px;
   }
 
   .memo-title {
@@ -428,6 +605,18 @@ body,
     width: 72px;
     height: 72px;
   }
+
+  .delete-button {
+    width: 68px;
+    height: 68px;
+
+    border-radius: 10px;
+  }
+
+  .trash-icon {
+    width: 55%;
+    height: 55%;
+  }
 }
 
 /* ===========================
@@ -440,7 +629,7 @@ body,
   }
 
   .memo-logo {
-    width: 100px;
+    width: 90px;
   }
 
   .memo-title {
@@ -490,6 +679,17 @@ body,
     width: 68px;
     height: 68px;
   }
+
+  .delete-button {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+  }
+
+  .trash-icon {
+    width: 55%;
+    height: 55%;
+  }
 }
 
 /* ===========================
@@ -502,7 +702,7 @@ body,
   }
 
   .memo-logo {
-    width: 95px;
+    width: 80px;
   }
 
   .memo-title {
@@ -562,6 +762,12 @@ body,
     width: 60px;
     height: 60px;
   }
+
+  .delete-button {
+    width: 54px;
+    height: 54px;
+    border-radius: 9px;
+  }
 }
 
 /* ===========================
@@ -574,7 +780,7 @@ body,
   }
 
   .memo-logo {
-    width: 210px;
+    width: 180px;
   }
 
   .memo-title {

@@ -3,57 +3,266 @@ import Logo from '../../assets/Logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T | null;
+}
+
+interface EmailVerificationResponse {
+  [key: string]: unknown;
+}
+
+interface PasswordResetVerificationResponse {
+  resetToken?: string;
+}
+
+const API_BASE_URL = 'http://localhost:8080';
+
 export default function PasswordResetPage() {
   const navigate = useNavigate();
 
+  // =========================
+  // 입력값
+  // =========================
   const [email, setEmail] = useState('');
-  const [authCode, setAuthCode] = useState('');
   const [inputCode, setInputCode] = useState('');
-
-  const [requestMessage, setRequestMessage] = useState('');
-  const [verifyMessage, setVerifyMessage] = useState('');
-  const [verifySuccess, setVerifySuccess] = useState(false);
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleRequestCode = () => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // =========================
+  // 이메일 인증 상태
+  // =========================
+  const [requestMessage, setRequestMessage] = useState('');
+  const [verifyMessage, setVerifyMessage] = useState('');
+  const [verifySuccess, setVerifySuccess] = useState(false);
 
-    setAuthCode(code);
+  // 인증번호 요청한 이메일
+  const [requestedEmail, setRequestedEmail] = useState('');
 
-    alert(`임시 인증번호 : ${code}`);
+  // 인증 성공 후 백엔드에서 받은 resetToken
+  const [resetToken, setResetToken] = useState('');
 
-    setRequestMessage('인증번호가 발급되었습니다.');
-    setVerifyMessage('');
-    setVerifySuccess(false);
-  };
+  // =========================
+  // Loading 상태
+  // =========================
+  const [isRequestingCode, setIsRequestingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
-  const handleVerifyCode = () => {
-    if (inputCode === authCode) {
-      setVerifySuccess(true);
-      setVerifyMessage('인증이 완료되었습니다.');
-    } else {
+  // =========================
+  // 비밀번호 변경 메시지
+  // =========================
+  const [resetMessage, setResetMessage] = useState('');
+
+  // =========================
+  // 인증번호 요청
+  // POST /api/auth/email-verifications
+  // =========================
+  const handleRequestCode = async () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setRequestMessage('이메일을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setIsRequestingCode(true);
+
+      setRequestMessage('');
+      setVerifyMessage('');
       setVerifySuccess(false);
-      setVerifyMessage('인증번호가 일치하지 않습니다.');
+      setRequestedEmail('');
+      setResetToken('');
+      setInputCode('');
+      setResetMessage('');
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/email-verifications`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: trimmedEmail,
+            purpose: 'PASSWORD_RESET',
+          }),
+        },
+      );
+
+      const result: ApiResponse<EmailVerificationResponse> =
+        await response.json();
+
+      if (!response.ok || !result.success) {
+        setRequestMessage(
+          result.message || '인증번호 발송 요청에 실패했습니다.',
+        );
+        return;
+      }
+
+      setRequestedEmail(trimmedEmail);
+
+      setRequestMessage('인증번호 발송 요청이 완료되었습니다.');
+    } catch (error) {
+      console.error('비밀번호 재설정 인증번호 요청 실패:', error);
+
+      setRequestMessage(
+        '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
+      );
+    } finally {
+      setIsRequestingCode(false);
     }
   };
 
+  // =========================
+  // 인증번호 확인
+  // POST /api/auth/email-verifications/confirm
+  // =========================
+  const handleVerifyCode = async () => {
+    const trimmedCode = inputCode.trim();
+
+    if (!requestedEmail) {
+      setVerifySuccess(false);
+      setVerifyMessage('먼저 인증번호를 요청해주세요.');
+      return;
+    }
+
+    if (!trimmedCode) {
+      setVerifySuccess(false);
+      setVerifyMessage('인증번호를 입력해주세요.');
+      return;
+    }
+
+    if (email.trim() !== requestedEmail) {
+      setVerifySuccess(false);
+      setVerifyMessage(
+        '이메일이 변경되었습니다. 인증번호를 다시 요청해주세요.',
+      );
+      return;
+    }
+
+    try {
+      setIsVerifyingCode(true);
+      setVerifyMessage('');
+      setResetMessage('');
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/email-verifications/confirm`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: requestedEmail,
+            purpose: 'PASSWORD_RESET',
+            code: trimmedCode,
+          }),
+        },
+      );
+
+      const result: ApiResponse<PasswordResetVerificationResponse> =
+        await response.json();
+
+      if (!response.ok || !result.success || !result.data?.resetToken) {
+        setVerifySuccess(false);
+        setResetToken('');
+
+        setVerifyMessage(result.message || '인증번호가 일치하지 않습니다.');
+
+        return;
+      }
+
+      setResetToken(result.data.resetToken);
+      setVerifySuccess(true);
+      setVerifyMessage('인증이 완료되었습니다.');
+    } catch (error) {
+      console.error('비밀번호 재설정 인증번호 확인 실패:', error);
+
+      setVerifySuccess(false);
+      setResetToken('');
+
+      setVerifyMessage('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  // =========================
+  // 이메일 변경
+  // =========================
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = event.target.value;
+
+    setEmail(newEmail);
+
+    setRequestMessage('');
+    setVerifyMessage('');
+    setResetMessage('');
+
+    if (requestedEmail && newEmail.trim() !== requestedEmail) {
+      setVerifySuccess(false);
+      setResetToken('');
+    }
+  };
+
+  // =========================
   // 완료 버튼 활성화 조건
+  // =========================
   const isComplete =
     email.trim() !== '' &&
     inputCode.trim() !== '' &&
     password.trim() !== '' &&
     confirmPassword.trim() !== '' &&
     verifySuccess &&
+    resetToken !== '' &&
+    email.trim() === requestedEmail &&
     password === confirmPassword;
 
-  const handleComplete = () => {
-    if (!isComplete) return;
+  // =========================
+  // 비밀번호 재설정
+  // POST /api/auth/password/reset
+  // =========================
+  const handleComplete = async () => {
+    if (!isComplete || isResettingPassword) {
+      return;
+    }
 
-    // TODO : 비밀번호 변경 API 호출
+    try {
+      setIsResettingPassword(true);
+      setResetMessage('');
 
-    navigate('/login');
+      const response = await fetch(`${API_BASE_URL}/api/auth/password/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resetToken,
+          newPassword: password,
+        }),
+      });
+
+      const result: ApiResponse<null> = await response.json();
+
+      if (!response.ok || !result.success) {
+        setResetMessage(result.message || '비밀번호 재설정에 실패했습니다.');
+        return;
+      }
+
+      alert('비밀번호가 재설정되었습니다.');
+
+      navigate('/login');
+    } catch (error) {
+      console.error('비밀번호 재설정 API 호출 실패:', error);
+
+      setResetMessage('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   return (
@@ -73,19 +282,23 @@ export default function PasswordResetPage() {
                 type="email"
                 placeholder="이메일을 입력하세요."
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                onChange={handleEmailChange}
               />
 
               <button
                 type="button"
                 className="sub-button"
-                onClick={handleRequestCode}
+                onClick={() => void handleRequestCode()}
+                disabled={isRequestingCode}
               >
-                인증요청
+                {isRequestingCode ? '요청 중...' : '인증요청'}
               </button>
             </div>
 
-            <p className="request-message">{requestMessage}</p>
+            {requestMessage && (
+              <p className="request-message">{requestMessage}</p>
+            )}
           </div>
 
           {/* 인증번호 */}
@@ -97,15 +310,23 @@ export default function PasswordResetPage() {
                 type="text"
                 placeholder="인증번호를 입력하세요."
                 value={inputCode}
-                onChange={(e) => setInputCode(e.target.value)}
+                maxLength={6}
+                inputMode="numeric"
+                onChange={(event) => {
+                  setInputCode(event.target.value);
+                  setVerifySuccess(false);
+                  setResetToken('');
+                  setVerifyMessage('');
+                }}
               />
 
               <button
                 type="button"
                 className="sub-button"
-                onClick={handleVerifyCode}
+                onClick={() => void handleVerifyCode()}
+                disabled={isVerifyingCode}
               >
-                인증확인
+                {isVerifyingCode ? '확인 중...' : '인증확인'}
               </button>
             </div>
 
@@ -125,7 +346,11 @@ export default function PasswordResetPage() {
                 type="password"
                 placeholder="비밀번호를 입력하세요."
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setResetMessage('');
+                }}
               />
 
               <div className="button-space"></div>
@@ -141,7 +366,11 @@ export default function PasswordResetPage() {
                 type="password"
                 placeholder="비밀번호를 입력하세요."
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                onChange={(event) => {
+                  setConfirmPassword(event.target.value);
+                  setResetMessage('');
+                }}
               />
 
               <div className="button-space"></div>
@@ -162,14 +391,18 @@ export default function PasswordResetPage() {
             )}
           </div>
 
+          {/* 비밀번호 재설정 실패 메시지 */}
+          {resetMessage && <p className="verify-fail">{resetMessage}</p>}
+
+          {/* 완료 */}
           <div className="password-submit">
             <button
               type="button"
               className="password-button"
-              disabled={!isComplete}
-              onClick={handleComplete}
+              disabled={!isComplete || isResettingPassword}
+              onClick={() => void handleComplete()}
             >
-              완료
+              {isResettingPassword ? '변경 중...' : '완료'}
             </button>
           </div>
         </div>

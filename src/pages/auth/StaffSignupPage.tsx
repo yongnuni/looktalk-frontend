@@ -3,60 +3,238 @@ import Logo from '../../assets/Logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T | null;
+}
+
+interface EmailVerificationResponse {
+  [key: string]: unknown;
+}
+
+interface EmailVerificationConfirmResponse {
+  verified?: boolean;
+}
+
+interface StaffSignupResponse {
+  [key: string]: unknown;
+}
+
+const API_BASE_URL = 'http://localhost:8080';
+
 export default function StaffSignupPage() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [email, setEmail] = useState('');
-  const [authCode, setAuthCode] = useState('');
   const [inputCode, setInputCode] = useState('');
-
-  const [requestMessage, setRequestMessage] = useState('');
-  const [verifyMessage, setVerifyMessage] = useState('');
-  const [verifySuccess, setVerifySuccess] = useState(false);
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
 
-  const handleRequestCode = () => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const [requestMessage, setRequestMessage] = useState('');
+  const [verifyMessage, setVerifyMessage] = useState('');
+  const [verifySuccess, setVerifySuccess] = useState(false);
 
-    setAuthCode(code);
+  const [requestedEmail, setRequestedEmail] = useState('');
 
-    alert(`임시 인증번호 : ${code}`);
+  const [isRequestingCode, setIsRequestingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
-    setRequestMessage('인증번호가 발급되었습니다.');
-    setVerifyMessage('');
-    setVerifySuccess(false);
-  };
+  const [signupMessage, setSignupMessage] = useState('');
 
-  const handleVerifyCode = () => {
-    if (inputCode === authCode) {
-      setVerifySuccess(true);
-      setVerifyMessage('인증이 완료되었습니다.');
-    } else {
+  const handleRequestCode = async () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setRequestMessage('이메일을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setIsRequestingCode(true);
+
+      setRequestMessage('');
+      setVerifyMessage('');
       setVerifySuccess(false);
-      setVerifyMessage('인증번호가 일치하지 않습니다.');
+      setRequestedEmail('');
+      setInputCode('');
+      setSignupMessage('');
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/email-verifications`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: trimmedEmail,
+            purpose: 'SIGNUP',
+          }),
+        },
+      );
+
+      const result: ApiResponse<EmailVerificationResponse> =
+        await response.json();
+
+      if (!response.ok || !result.success) {
+        setRequestMessage(
+          result.message || '인증번호 발송 요청에 실패했습니다.',
+        );
+        return;
+      }
+
+      setRequestedEmail(trimmedEmail);
+
+      setRequestMessage('인증번호 발송 요청이 완료되었습니다.');
+    } catch (error) {
+      console.error('의료진 이메일 인증번호 요청 실패:', error);
+
+      setRequestMessage(
+        '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
+      );
+    } finally {
+      setIsRequestingCode(false);
     }
   };
 
+  const handleVerifyCode = async () => {
+    const trimmedCode = inputCode.trim();
+
+    if (!requestedEmail) {
+      setVerifySuccess(false);
+      setVerifyMessage('먼저 인증번호를 요청해주세요.');
+      return;
+    }
+
+    if (!trimmedCode) {
+      setVerifySuccess(false);
+      setVerifyMessage('인증번호를 입력해주세요.');
+      return;
+    }
+
+    if (email.trim() !== requestedEmail) {
+      setVerifySuccess(false);
+      setVerifyMessage(
+        '이메일이 변경되었습니다. 인증번호를 다시 요청해주세요.',
+      );
+      return;
+    }
+
+    try {
+      setIsVerifyingCode(true);
+      setVerifyMessage('');
+      setSignupMessage('');
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/email-verifications/confirm`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: requestedEmail,
+            purpose: 'SIGNUP',
+            code: trimmedCode,
+          }),
+        },
+      );
+
+      const result: ApiResponse<EmailVerificationConfirmResponse> =
+        await response.json();
+
+      if (!response.ok || !result.success) {
+        setVerifySuccess(false);
+
+        setVerifyMessage(result.message || '인증번호가 일치하지 않습니다.');
+
+        return;
+      }
+
+      setVerifySuccess(true);
+      setVerifyMessage('인증이 완료되었습니다.');
+    } catch (error) {
+      console.error('의료진 이메일 인증번호 확인 실패:', error);
+
+      setVerifySuccess(false);
+
+      setVerifyMessage('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = event.target.value;
+
+    setEmail(newEmail);
+
+    setRequestMessage('');
+    setVerifyMessage('');
+    setSignupMessage('');
+
+    if (requestedEmail && newEmail.trim() !== requestedEmail) {
+      setVerifySuccess(false);
+    }
+  };
+
+  const isPasswordValid = password.length >= 8 && password.length <= 64;
+
   const isComplete =
-    name.trim() !== '' &&
+    loginId.trim() !== '' &&
     email.trim() !== '' &&
     inputCode.trim() !== '' &&
-    password.trim() !== '' &&
+    isPasswordValid &&
     confirmPassword.trim() !== '' &&
     inviteCode.trim() !== '' &&
     verifySuccess &&
+    email.trim() === requestedEmail &&
     password === confirmPassword;
 
-  const handleComplete = () => {
-    if (!isComplete) return;
+  const handleComplete = async () => {
+    if (!isComplete || isSigningUp) {
+      return;
+    }
 
-    // TODO : 의료진 회원가입 API 호출
+    try {
+      setIsSigningUp(true);
+      setSignupMessage('');
 
-    navigate('/staff-login');
+      const response = await fetch(`${API_BASE_URL}/api/auth/staff/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          loginId: loginId.trim(),
+          email: email.trim(),
+          password,
+          inviteCode: inviteCode.trim(),
+        }),
+      });
+
+      const result: ApiResponse<StaffSignupResponse> = await response.json();
+
+      if (!response.ok || !result.success) {
+        setSignupMessage(result.message || '의료진 회원가입에 실패했습니다.');
+        return;
+      }
+
+      alert('의료진 회원가입이 완료되었습니다.');
+
+      navigate('/staff-login');
+    } catch (error) {
+      console.error('의료진 회원가입 API 호출 실패:', error);
+
+      setSignupMessage('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsSigningUp(false);
+    }
   };
 
   return (
@@ -75,16 +253,21 @@ export default function StaffSignupPage() {
         <div className="staff-signup-container">
           {/* ================= 왼쪽 ================= */}
           <div className="staff-signup-column">
-            {/* 이름 */}
+            {/* 아이디 */}
             <div className="staff-input-group">
-              <label>이름</label>
+              <label>아이디</label>
 
               <div className="staff-input-with-button">
                 <input
                   type="text"
-                  placeholder="이름을 입력하세요."
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  placeholder="아이디를 입력하세요."
+                  value={loginId}
+                  maxLength={50}
+                  autoComplete="username"
+                  onChange={(event) => {
+                    setLoginId(event.target.value);
+                    setSignupMessage('');
+                  }}
                 />
 
                 <div className="staff-button-space"></div>
@@ -100,19 +283,23 @@ export default function StaffSignupPage() {
                   type="email"
                   placeholder="이메일을 입력하세요."
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  onChange={handleEmailChange}
                 />
 
                 <button
                   type="button"
                   className="staff-sub-button"
-                  onClick={handleRequestCode}
+                  onClick={() => void handleRequestCode()}
+                  disabled={isRequestingCode}
                 >
-                  인증요청
+                  {isRequestingCode ? '요청 중...' : '인증요청'}
                 </button>
               </div>
 
-              <p className="staff-request-message">{requestMessage}</p>
+              {requestMessage && (
+                <p className="staff-request-message">{requestMessage}</p>
+              )}
             </div>
 
             {/* 인증번호 */}
@@ -124,15 +311,22 @@ export default function StaffSignupPage() {
                   type="text"
                   placeholder="인증번호를 입력하세요."
                   value={inputCode}
-                  onChange={(e) => setInputCode(e.target.value)}
+                  maxLength={6}
+                  inputMode="numeric"
+                  onChange={(event) => {
+                    setInputCode(event.target.value);
+                    setVerifySuccess(false);
+                    setVerifyMessage('');
+                  }}
                 />
 
                 <button
                   type="button"
                   className="staff-sub-button"
-                  onClick={handleVerifyCode}
+                  onClick={() => void handleVerifyCode()}
+                  disabled={isVerifyingCode}
                 >
-                  인증확인
+                  {isVerifyingCode ? '확인 중...' : '인증확인'}
                 </button>
               </div>
 
@@ -159,11 +353,23 @@ export default function StaffSignupPage() {
                   type="password"
                   placeholder="비밀번호를 입력하세요."
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={8}
+                  maxLength={64}
+                  autoComplete="new-password"
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    setSignupMessage('');
+                  }}
                 />
 
                 <div className="staff-button-space"></div>
               </div>
+
+              {password !== '' && !isPasswordValid && (
+                <p className="staff-password-fail">
+                  비밀번호는 8자 이상 64자 이하로 입력해주세요.
+                </p>
+              )}
             </div>
 
             {/* 비밀번호 확인 */}
@@ -175,7 +381,13 @@ export default function StaffSignupPage() {
                   type="password"
                   placeholder="비밀번호를 입력하세요."
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={8}
+                  maxLength={64}
+                  autoComplete="new-password"
+                  onChange={(event) => {
+                    setConfirmPassword(event.target.value);
+                    setSignupMessage('');
+                  }}
                 />
 
                 <div className="staff-button-space"></div>
@@ -205,22 +417,30 @@ export default function StaffSignupPage() {
                   type="text"
                   placeholder="초대 코드를 입력하세요."
                   value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
+                  onChange={(event) => {
+                    setInviteCode(event.target.value);
+                    setSignupMessage('');
+                  }}
                 />
 
                 <div className="staff-button-space"></div>
               </div>
             </div>
 
+            {/* 회원가입 실패 메시지 */}
+            {signupMessage && (
+              <p className="staff-verify-fail">{signupMessage}</p>
+            )}
+
             {/* 완료 */}
             <div className="staff-signup-submit">
               <button
                 type="button"
                 className="staff-signup-button"
-                disabled={!isComplete}
-                onClick={handleComplete}
+                disabled={!isComplete || isSigningUp}
+                onClick={() => void handleComplete()}
               >
-                완료
+                {isSigningUp ? '회원가입 중...' : '완료'}
               </button>
             </div>
           </div>
