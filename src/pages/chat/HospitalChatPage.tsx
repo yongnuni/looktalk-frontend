@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getHospitalChatRooms } from '../../features/chat/api/chatRooms';
 import PatientChatView from '../../features/chat/components/PatientChatView';
 import { hospitalChatRooms } from '../../features/chat/mock/hospitalChatMock';
@@ -10,7 +11,9 @@ const requestChatRoom =
   hospitalChatRooms[0];
 
 export default function HospitalChatPage() {
+  const [searchParams] = useSearchParams();
   const [rooms, setRooms] = useState<ChatRoom[]>([requestChatRoom]);
+  const initialRoomId = searchParams.get('roomId') ?? 'request';
 
   useEffect(() => {
     let isMounted = true;
@@ -38,7 +41,7 @@ export default function HospitalChatPage() {
 
   return (
     <PatientChatView
-      initialRoomId="request"
+      initialRoomId={initialRoomId}
       messagePath="/patient?source=hospital-message"
       mode="hospital"
       rooms={rooms}

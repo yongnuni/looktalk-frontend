@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { createOrGetHospitalChatRoom } from '../../features/chat/api/chatRooms';
 import HospitalChatContactSearch from '../../features/chat/components/HospitalChatContactSearch';
 import VirtualKeyboard from '../../features/keyboard/components/VirtualKeyboard';
 import { useInputStore } from '../../shared/stores/inputStore';
 
 export default function PatientHomePage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const text = useInputStore((state) => state.text);
   const pressKey = useInputStore((state) => state.pressKey);
@@ -32,6 +34,11 @@ export default function PatientHomePage() {
     setHospitalSearchKeyword(keyword);
     setHospitalSearchPage(0);
     setHospitalSearchRequestId((current) => current + 1);
+  };
+
+  const handleHospitalContactSelect = async (targetUserId: string) => {
+    const { roomId } = await createOrGetHospitalChatRoom(targetUserId);
+    navigate(`/chat/hospital?roomId=${roomId}`);
   };
 
   const handleKeySelect = (keyValue: string) => {
@@ -81,6 +88,7 @@ export default function PatientHomePage() {
             keyword={hospitalSearchKeyword}
             page={hospitalSearchPage}
             requestId={hospitalSearchRequestId}
+            onContactSelect={handleHospitalContactSelect}
             onPageChange={setHospitalSearchPage}
           />
         ) : null}
