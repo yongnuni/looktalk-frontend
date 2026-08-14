@@ -105,3 +105,120 @@ export interface StaffDto {
   hospital_id: number;
   created_at: string | null;
 }
+
+// GET /staff/me/patients
+export interface StaffAssignedPatientDto {
+  userId: string;
+  loginId: string;
+  name: string | null;
+  displayName: string;
+  assignedAt: string;
+}
+
+// GET /friends
+export interface SmsFriendshipDto {
+  friendshipId: number;
+  name: string;
+  phone: string;
+}
+
+// chat room list API
+export interface HospitalChatRoomTargetDto {
+  type: string;
+  userId: string;
+  name: string;
+  displayName: string | null;
+  phone: string | null;
+}
+
+export interface HospitalChatRoomDto {
+  roomId: number;
+  roomType: 'HOSPITAL';
+  target: HospitalChatRoomTargetDto;
+  lastMessageEncryptedPayload: unknown | null;
+  lastMessageAt: string | null;
+}
+
+// GET /chat-contacts
+export type ChatContactRole = 'PATIENT' | 'STAFF';
+
+export interface ChatContactDto {
+  userId: string;
+  role: ChatContactRole;
+  name: string | null;
+  displayName: string | null;
+  e2eeReady: boolean;
+}
+
+export interface ChatContactsDataDto {
+  content: ChatContactDto[];
+  hasNext: boolean;
+}
+
+// POST /chat-rooms/hospital
+export interface CreateOrGetHospitalChatRoomRequestDto {
+  targetUserId: string;
+}
+
+export interface CreateOrGetHospitalChatRoomDataDto {
+  roomId: number;
+  roomType: 'HOSPITAL';
+  createdAt: string;
+}
+
+// POST /chat-rooms/sms
+export interface CreateOrGetSmsChatRoomRequestDto {
+  friendshipId: number;
+}
+
+export interface SmsChatRoomDto {
+  roomId: number;
+  roomType: string;
+  createdAt: string;
+}
+
+export interface EncryptedPayloadDto {
+  algorithm: 'LIBSODIUM_SEALED_BOX';
+  keyVersion: number;
+  ciphertext: string;
+}
+
+export interface ChatRoomMessageDto {
+  messageId: number;
+  senderParticipantId: number;
+  senderUserId: string;
+  senderDisplayName: string;
+  encryptedPayload: EncryptedPayloadDto;
+  messageType: string;
+  createdAt: string;
+}
+
+export interface ChatRoomMessagesDataDto {
+  messages: ChatRoomMessageDto[];
+  hasNext: boolean;
+  nextCursor: number | null;
+}
+
+export interface ChatRoomMessageCiphertextDto {
+  recipientUserId: string;
+  keyVersion: number;
+  algorithm: 'LIBSODIUM_SEALED_BOX';
+  ciphertext: string;
+}
+
+export interface SendChatRoomMessageRequestDto {
+  messageType: 'TEXT';
+  ciphertexts: ChatRoomMessageCiphertextDto[];
+}
+
+export interface SendChatRoomMessageDataDto {
+  messageId: number;
+  createdAt: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  code: string;
+  message: string;
+  data: T;
+}

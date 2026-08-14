@@ -27,6 +27,7 @@ export interface PatientChatViewProps {
   searchPath: string;
   messagePath: string;
   phoneVerified?: boolean;
+  onRoomSelect?: (room: ChatRoom) => void;
   onRequirePhoneVerification?: () => void;
 }
 
@@ -40,6 +41,7 @@ export default function PatientChatView({
   searchPath,
   messagePath,
   phoneVerified = true,
+  onRoomSelect,
   onRequirePhoneVerification,
 }: PatientChatViewProps) {
   const navigate = useNavigate();
@@ -111,6 +113,11 @@ export default function PatientChatView({
     navigate(messagePath);
   };
 
+  const handleRoomSelect = (room: ChatRoom) => {
+    setSelectedRoomId(room.id);
+    onRoomSelect?.(room);
+  };
+
   const handleEmergencyOpen = () => {
     setCountdown(5);
     setEmergencyState('countdown');
@@ -172,7 +179,7 @@ export default function PatientChatView({
                 aria-pressed={room.id === selectedRoom?.id}
                 className="patient-chat-room-card"
                 type="button"
-                onClick={() => setSelectedRoomId(room.id)}
+                onClick={() => handleRoomSelect(room)}
               >
                 {room.icon === 'request' ? (
                   <span className="patient-chat-room-icon">

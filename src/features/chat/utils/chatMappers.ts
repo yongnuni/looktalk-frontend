@@ -2,7 +2,9 @@ import type {
   ChatParticipantDto,
   ChatRoomDto,
   FriendshipDto,
+  HospitalChatRoomDto,
   MessageDto,
+  SmsFriendshipDto,
 } from '../../../shared/types/backend';
 import type { ChatMessage, ChatRoom, ChatRoomIcon } from '../types/chat';
 
@@ -48,10 +50,30 @@ export function mapChatRoomDtoToChatRoom(
 export function mapFriendshipDtoToChatRoom(friendship: FriendshipDto): ChatRoom {
   return {
     id: `friendship-${friendship.friendship_id}`,
+    friendshipId: friendship.friendship_id,
     name:
       friendship.friend_name ??
       friendship.friend_phone ??
       `친구 ${friendship.friendship_id}`,
+    icon: 'person',
+    messages: [],
+  };
+}
+
+export function mapSmsFriendshipDtoToChatRoom(friendship: SmsFriendshipDto): ChatRoom {
+  return {
+    id: `friendship-${friendship.friendshipId}`,
+    friendshipId: friendship.friendshipId,
+    name: friendship.name || friendship.phone || `친구 ${friendship.friendshipId}`,
+    icon: 'person',
+    messages: [],
+  };
+}
+
+export function mapHospitalChatRoomDtoToChatRoom(room: HospitalChatRoomDto): ChatRoom {
+  return {
+    id: String(room.roomId),
+    name: room.target.displayName ?? room.target.name ?? `Chat room ${room.roomId}`,
     icon: 'person',
     messages: [],
   };
