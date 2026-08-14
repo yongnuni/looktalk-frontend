@@ -50,6 +50,7 @@ export function mapChatRoomDtoToChatRoom(
 export function mapFriendshipDtoToChatRoom(friendship: FriendshipDto): ChatRoom {
   return {
     id: `friendship-${friendship.friendship_id}`,
+    friendshipId: friendship.friendship_id,
     name:
       friendship.friend_name ??
       friendship.friend_phone ??
@@ -62,6 +63,7 @@ export function mapFriendshipDtoToChatRoom(friendship: FriendshipDto): ChatRoom 
 export function mapSmsFriendshipDtoToChatRoom(friendship: SmsFriendshipDto): ChatRoom {
   return {
     id: `friendship-${friendship.friendshipId}`,
+    friendshipId: friendship.friendshipId,
     name: friendship.name || friendship.phone || `친구 ${friendship.friendshipId}`,
     icon: 'person',
     messages: [],
