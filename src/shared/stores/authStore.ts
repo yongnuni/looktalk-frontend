@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { clearStoredAuthTokens, getAccessToken } from '../api/authToken';
+import { disconnectAllChatWebSockets } from '../api/websocketClient';
 
 type UserRole = 'PATIENT' | 'STAFF' | null;
 
@@ -25,8 +27,8 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  accessToken: localStorage.getItem('looktalk_access_token'),
-  isLoggedIn: Boolean(localStorage.getItem('looktalk_access_token')),
+  accessToken: getAccessToken(),
+  isLoggedIn: Boolean(getAccessToken()),
 
   loginAsPatient: () => {
     const mockToken = 'mock-patient-token';
@@ -71,7 +73,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    localStorage.removeItem('looktalk_access_token');
+    disconnectAllChatWebSockets();
+    clearStoredAuthTokens();
 
     set({
       user: null,

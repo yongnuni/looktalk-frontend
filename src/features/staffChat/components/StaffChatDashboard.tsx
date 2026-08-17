@@ -1,20 +1,30 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../../assets/Logo.png';
 import SendImage from '../../../assets/send.png';
 import SettingImage from '../../../assets/setting.png';
+import { clearStoredAuthTokens } from '../../../shared/api/authToken';
+import { disconnectAllChatWebSockets } from '../../../shared/api/websocketClient';
 import { ROUTES } from '../../../shared/constants/routes';
 import { useEmergencyStore } from '../../../shared/stores/emergencyStore';
 import type { StaffAssignedPatientDto } from '../../../shared/types/backend';
+import { sendHospitalChatMessage } from '../../chat/api/chatMessages';
 import { createOrGetHospitalChatRoom } from '../../chat/api/chatRooms';
+import { useChatRoomMessages } from '../../chat/hooks/useChatRoomMessages';
+import { formatChatTime } from '../../chat/utils/formatChatTime';
 import { getMyAssignedPatients } from '../api/staffPatients';
 import { staffProfile } from '../mock/staffChatMock';
-import type { StaffChatMessage, StaffPatientChat } from '../types/staffChat';
+import type { StaffPatientChat } from '../types/staffChat';
 import './StaffChatDashboard.css';
 
+interface RoomPreparationState {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  error: string | null;
+}
+
 function getPatientDisplayName(patient: StaffAssignedPatientDto): string {
-  return patient.displayName || patient.name || patient.loginId || patient.userId;
+  return patient.patientAlias || patient.displayName || patient.name || patient.loginId || patient.userId;
 }
 
 function toStaffPatientChat(patient: StaffAssignedPatientDto): StaffPatientChat {
@@ -29,15 +39,38 @@ function toStaffPatientChat(patient: StaffAssignedPatientDto): StaffPatientChat 
 export default function StaffChatDashboard() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const roomRequestPatientUserIdsRef = useRef(new Set<string>());
+  const roomRequestsRef = useRef(new Map<string, Promise<number>>());
   const [patients, setPatients] = useState<StaffPatientChat[]>([]);
   const [selectedPatientUserId, setSelectedPatientUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [draft, setDraft] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [roomPreparations, setRoomPreparations] = useState<
+    Record<string, RoomPreparationState>
+  >({});
   const emergencyHistory = useEmergencyStore((state) => state.history);
 
   const selectedPatient = patients.find((patient) => patient.patientUserId === selectedPatientUserId);
-  const selectedPatientMessages = selectedPatient?.messages ?? [];
+  const selectedPatientChatRoomId = selectedPatient?.chatRoomId;
+  const {
+    addMessage,
+    e2eeError,
+    e2eeStatus,
+    messages: selectedPatientMessages,
+    retryE2ee,
+  } = useChatRoomMessages(selectedPatientChatRoomId, {
+    onMessageEvent: (_event, message) => {
+      if (message.direction !== 'received' || !message.senderDisplayName?.trim()) return;
+
+      setPatients((currentPatients) =>
+        currentPatients.map((patient) =>
+          patient.patientUserId === selectedPatientUserId
+            ? { ...patient, patientName: message.senderDisplayName! }
+            : patient,
+        ),
+      );
+    },
+  });
   const selectedEmergencyCall =
     selectedPatient && selectedPatient.roomLabel
       ? emergencyHistory.find(
@@ -54,6 +87,56 @@ export default function StaffChatDashboard() {
       value.toLowerCase().includes(normalizedSearchQuery),
     );
   });
+  const selectedRoomPreparation: RoomPreparationState | null = selectedPatientUserId
+    ? selectedPatientChatRoomId
+      ? { status: 'ready', error: null }
+      : (roomPreparations[selectedPatientUserId] ?? { status: 'idle', error: null })
+    : null;
+
+  const ensurePatientRoom = useCallback((targetUserId: string): Promise<number> => {
+    const existingRequest = roomRequestsRef.current.get(targetUserId);
+    if (existingRequest) return existingRequest;
+
+    setRoomPreparations((current) => ({
+      ...current,
+      [targetUserId]: { status: 'loading', error: null },
+    }));
+
+    const request = createOrGetHospitalChatRoom(targetUserId)
+      .then(({ roomId }) => {
+        setPatients((currentPatients) =>
+          currentPatients.map((patient) =>
+            patient.patientUserId === targetUserId && patient.chatRoomId === undefined
+              ? { ...patient, chatRoomId: roomId }
+              : patient,
+          ),
+        );
+        setRoomPreparations((current) => ({
+          ...current,
+          [targetUserId]: { status: 'ready', error: null },
+        }));
+        return roomId;
+      })
+      .catch((error: unknown) => {
+        setRoomPreparations((current) => ({
+          ...current,
+          [targetUserId]: {
+            status: 'error',
+            error:
+              error instanceof Error
+                ? error.message
+                : '채팅방을 준비하지 못했습니다.',
+          },
+        }));
+        throw error;
+      })
+      .finally(() => {
+        roomRequestsRef.current.delete(targetUserId);
+      });
+
+    roomRequestsRef.current.set(targetUserId, request);
+    return request;
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,40 +167,24 @@ export default function StaffChatDashboard() {
 
   useEffect(() => {
     if (
-      !selectedPatient ||
-      selectedPatient.chatRoomId !== undefined ||
-      roomRequestPatientUserIdsRef.current.has(selectedPatient.patientUserId)
+      !selectedPatientUserId ||
+      selectedPatientChatRoomId !== undefined ||
+      selectedRoomPreparation?.status !== 'idle'
     ) {
       return;
     }
 
-    const targetUserId = selectedPatient.patientUserId;
-    roomRequestPatientUserIdsRef.current.add(targetUserId);
-
-    const createOrGetRoom = async () => {
-      try {
-        const { roomId } = await createOrGetHospitalChatRoom(targetUserId);
-
-        setPatients((currentPatients) =>
-          currentPatients.map((patient) =>
-            patient.patientUserId === targetUserId && patient.chatRoomId === undefined
-              ? { ...patient, chatRoomId: roomId }
-              : patient,
-          ),
-        );
-      } catch {
-        // The patient remains without a chat room ID when the request fails.
-      } finally {
-        roomRequestPatientUserIdsRef.current.delete(targetUserId);
-      }
-    };
-
-    void createOrGetRoom();
-  }, [selectedPatient?.chatRoomId, selectedPatient?.patientUserId]);
+    void ensurePatientRoom(selectedPatientUserId).catch(() => undefined);
+  }, [
+    ensurePatientRoom,
+    selectedPatientChatRoomId,
+    selectedPatientUserId,
+    selectedRoomPreparation?.status,
+  ]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedPatientUserId, selectedPatient?.messages.length]);
+  }, [selectedPatientMessages.length, selectedPatientUserId]);
 
   const selectPatient = (patientUserId: string) => {
     setSelectedPatientUserId(patientUserId);
@@ -129,40 +196,49 @@ export default function StaffChatDashboard() {
     );
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const content = draft.trim();
-    if (!content) return;
+    if (!content || !selectedPatient?.chatRoomId || isSending) return;
 
-    const newMessage: StaffChatMessage = {
-      id: `staff-message-${Date.now()}`,
-      content,
-      direction: 'sent',
-      createdAt: new Date().toLocaleTimeString('ko-KR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }),
-    };
+    setIsSending(true);
 
-    setPatients((currentPatients) =>
-      currentPatients.map((patient) =>
-        patient.patientUserId === selectedPatientUserId
-          ? { ...patient, messages: [...patient.messages, newMessage] }
-          : patient,
-      ),
-    );
-    setDraft('');
+    try {
+      const sentMessage = await sendHospitalChatMessage(
+        selectedPatient.chatRoomId,
+        selectedPatient.patientUserId,
+        content,
+      );
+
+      addMessage({
+        id: String(sentMessage.messageId),
+        text: content,
+        direction: 'sent',
+        createdAt: sentMessage.createdAt,
+      });
+      setDraft('');
+    } catch {
+      alert('메시지를 전송하지 못했습니다. 로그인 상태와 네트워크 연결을 확인해주세요.');
+    } finally {
+      setIsSending(false);
+    }
   };
+  const canSendMessage = Boolean(
+    selectedPatient?.chatRoomId &&
+      selectedRoomPreparation?.status === 'ready' &&
+      e2eeStatus === 'ready' &&
+      !isSending,
+  );
 
   const handleDraftKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      sendMessage();
+      void sendMessage();
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('looktalk_access_token');
+    disconnectAllChatWebSockets();
+    clearStoredAuthTokens();
     navigate('/login');
   };
 
@@ -234,6 +310,31 @@ export default function StaffChatDashboard() {
           </header>
 
           <div className="staff-chat-messages" aria-live="polite">
+            {e2eeStatus === 'loading' && (
+              <p className="staff-chat-empty" role="status">암호화 키를 준비하고 있습니다.</p>
+            )}
+            {e2eeStatus === 'error' && (
+              <div role="alert">
+                <p className="staff-chat-empty">{e2eeError}</p>
+                <button type="button" onClick={retryE2ee}>다시 시도</button>
+              </div>
+            )}
+            {selectedRoomPreparation?.status === 'loading' && (
+              <p className="staff-chat-empty" role="status">채팅방을 준비하고 있습니다.</p>
+            )}
+            {selectedRoomPreparation?.status === 'error' && selectedPatientUserId && (
+              <div role="alert">
+                <p className="staff-chat-empty">{selectedRoomPreparation.error}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void ensurePatientRoom(selectedPatientUserId).catch(() => undefined);
+                  }}
+                >
+                  다시 시도
+                </button>
+              </div>
+            )}
             {selectedEmergencyCall && (
               <div className="staff-chat-emergency-notice" role="status">
                 <strong>비상호출</strong>
@@ -249,8 +350,10 @@ export default function StaffChatDashboard() {
                   key={message.id}
                 >
                   <div className="staff-chat-message-bubble">
-                    <p>{message.content}</p>
-                    <time dateTime={message.createdAt}>{message.createdAt}</time>
+                    <p>{message.text}</p>
+                    <time dateTime={message.createdAt ?? undefined}>
+                      {formatChatTime(message.createdAt)}
+                    </time>
                   </div>
                 </div>
               ))
@@ -264,7 +367,7 @@ export default function StaffChatDashboard() {
             className="staff-chat-composer"
             onSubmit={(event) => {
               event.preventDefault();
-              sendMessage();
+              void sendMessage();
             }}
           >
             <label className="staff-chat-visually-hidden" htmlFor="staff-message-input">
@@ -273,6 +376,7 @@ export default function StaffChatDashboard() {
             <textarea
               aria-label="메시지 입력"
               className="staff-chat-message-input"
+              disabled={!canSendMessage}
               id="staff-message-input"
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={handleDraftKeyDown}
@@ -280,7 +384,12 @@ export default function StaffChatDashboard() {
               rows={2}
               value={draft}
             />
-            <button aria-label="메시지 전송" className="staff-chat-send-button" type="submit">
+            <button
+              aria-label="메시지 전송"
+              className="staff-chat-send-button"
+              disabled={!canSendMessage}
+              type="submit"
+            >
               <img alt="" src={SendImage} />
             </button>
           </form>

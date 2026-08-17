@@ -112,6 +112,7 @@ export interface StaffAssignedPatientDto {
   loginId: string;
   name: string | null;
   displayName: string;
+  patientAlias: string | null;
   assignedAt: string;
 }
 
@@ -125,7 +126,7 @@ export interface SmsFriendshipDto {
 // chat room list API
 export interface HospitalChatRoomTargetDto {
   type: string;
-  userId: string;
+  userId: string | null;
   name: string;
   displayName: string | null;
   phone: string | null;
@@ -186,7 +187,7 @@ export interface EncryptedPayloadDto {
 export interface ChatRoomMessageDto {
   messageId: number;
   senderParticipantId: number;
-  senderUserId: string;
+  senderUserId: string | null;
   senderDisplayName: string;
   encryptedPayload: EncryptedPayloadDto;
   messageType: string;
@@ -208,12 +209,56 @@ export interface ChatRoomMessageCiphertextDto {
 
 export interface SendChatRoomMessageRequestDto {
   messageType: 'TEXT';
-  ciphertexts: ChatRoomMessageCiphertextDto[];
+  ciphertexts?: ChatRoomMessageCiphertextDto[];
+  content?: string;
 }
 
 export interface SendChatRoomMessageDataDto {
   messageId: number;
   createdAt: string;
+}
+
+export interface CurrentUserDto {
+  userId: string;
+  loginId: string;
+  email: string;
+  name: string | null;
+  displayName: string;
+  phone: string | null;
+  emailVerified: boolean;
+  smsVerified: boolean;
+  role: 'PATIENT' | 'STAFF';
+}
+
+export interface E2eeUserPublicKeyDto {
+  userId: string;
+  keyVersion: number;
+  publicKey: string;
+}
+
+export interface E2eeKeyStatusDto {
+  registered: boolean;
+  keyVersion: number | null;
+  publicKey: string | null;
+}
+
+export interface E2eeKeyRegisterDto {
+  keyVersion: number;
+}
+
+export interface ChatMessageCreatedEventDataDto {
+  messageId: number;
+  senderParticipantId: number;
+  senderUserId: string;
+  senderDisplayName: string;
+  encryptedPayload: EncryptedPayloadDto;
+  createdAt: string;
+}
+
+export interface ChatWebSocketEventDto {
+  type: 'MESSAGE_CREATED';
+  roomId: number;
+  data: ChatMessageCreatedEventDataDto;
 }
 
 export interface ApiResponse<T> {

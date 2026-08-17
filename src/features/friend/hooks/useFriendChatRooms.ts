@@ -6,12 +6,12 @@ import { getSmsFriends } from '../api/friends';
 
 interface UseFriendChatRoomsResult {
   rooms: ChatRoom[];
-  ensureSmsChatRoom: (friendshipId: number) => Promise<void>;
+  ensureSmsChatRoom: (friendshipId: number) => Promise<number>;
 }
 
 export function useFriendChatRooms(): UseFriendChatRoomsResult {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const requestedFriendshipIdsRef = useRef(new Set<number>());
+  const roomRequestsRef = useRef(new Map<number, Promise<number>>());
   const chatRoomIdsRef = useRef(new Map<number, number>());
 
   useEffect(() => {
@@ -39,17 +39,14 @@ export function useFriendChatRooms(): UseFriendChatRoomsResult {
     };
   }, []);
 
-  const ensureSmsChatRoom = useCallback(async (friendshipId: number) => {
-    if (
-      chatRoomIdsRef.current.has(friendshipId) ||
-      requestedFriendshipIdsRef.current.has(friendshipId)
-    ) {
-      return;
-    }
+  const ensureSmsChatRoom = useCallback((friendshipId: number): Promise<number> => {
+    const existingRoomId = chatRoomIdsRef.current.get(friendshipId);
+    if (existingRoomId !== undefined) return Promise.resolve(existingRoomId);
 
-    requestedFriendshipIdsRef.current.add(friendshipId);
+    const existingRequest = roomRequestsRef.current.get(friendshipId);
+    if (existingRequest) return existingRequest;
 
-    try {
+    const request = (async () => {
       const { roomId } = await createOrGetSmsChatRoom(friendshipId);
       chatRoomIdsRef.current.set(friendshipId, roomId);
       setRooms((currentRooms) =>
@@ -57,11 +54,13 @@ export function useFriendChatRooms(): UseFriendChatRoomsResult {
           room.friendshipId === friendshipId ? { ...room, chatRoomId: roomId } : room,
         ),
       );
-    } catch {
-      // 생성/조회 실패 시 기존 친구 목록과 선택 상태를 그대로 유지한다.
-    } finally {
-      requestedFriendshipIdsRef.current.delete(friendshipId);
-    }
+      return roomId;
+    })().finally(() => {
+      roomRequestsRef.current.delete(friendshipId);
+    });
+
+    roomRequestsRef.current.set(friendshipId, request);
+    return request;
   }, []);
 
   return { rooms, ensureSmsChatRoom };
