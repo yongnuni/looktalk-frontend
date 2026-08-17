@@ -267,3 +267,40 @@ export interface ApiResponse<T> {
   message: string;
   data: T;
 }
+
+// auth — AuthController/AuthService(AUTH-001/002/004)와 일치. purpose="SIGNUP"만 이번
+// 범위(PATIENT signup)에서 다룬다 — PASSWORD_RESET의 confirm 응답은 { resetToken }으로
+// 구조가 달라 PasswordResetPage.tsx가 별도로 갖고 있는 자체 구현을 그대로 둔다.
+export type EmailVerificationPurpose = 'SIGNUP' | 'PASSWORD_RESET';
+
+export interface EmailVerificationRequestDto {
+  email: string;
+  purpose: EmailVerificationPurpose;
+}
+
+export interface EmailVerificationResponseDto {
+  expiresInSeconds: number;
+}
+
+export interface EmailVerificationConfirmRequestDto {
+  email: string;
+  purpose: EmailVerificationPurpose;
+  code: string;
+}
+
+// purpose="SIGNUP"일 때의 confirm 응답(SignupVerificationResult.java)만 다룬다.
+export interface SignupVerificationResultDto {
+  verified: boolean;
+}
+
+export interface PatientSignupRequestDto {
+  loginId: string;
+  email: string;
+  password: string;
+}
+
+export interface PatientSignupResponseDto {
+  userId: string;
+  loginId: string;
+  role: string;
+}
