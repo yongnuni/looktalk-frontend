@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../../assets/Logo.png';
 import DownArrow from '../../../assets/down_arrow.png';
@@ -7,6 +7,7 @@ import Sos from '../../../assets/sos.png';
 import UpArrow from '../../../assets/up_arrow.png';
 import { BaseModal } from '../../../shared/components/modal';
 import { ROUTES } from '../../../shared/constants/routes';
+import { useChatRoomMessages } from '../hooks/useChatRoomMessages';
 import type { ChatRoom } from '../types/chat';
 import { formatChatTime } from '../utils/formatChatTime';
 import {
@@ -16,6 +17,13 @@ import {
 import './PatientChatView.css';
 
 type OpenEmergencyState = 'closed' | 'countdown' | 'complete';
+type PhoneVerificationStatus = 'loading' | 'verified' | 'unverified' | 'error';
+type RoomPreparationStatus = 'idle' | 'loading' | 'ready' | 'error' | 'unavailable';
+
+interface RoomPreparationState {
+  status: RoomPreparationStatus;
+  error: string | null;
+}
 
 export interface PatientChatViewProps {
   mode: 'hospital' | 'friend';
@@ -27,7 +35,9 @@ export interface PatientChatViewProps {
   searchPath: string;
   messagePath: string;
   phoneVerified?: boolean;
-  onRoomSelect?: (room: ChatRoom) => void;
+  phoneVerificationStatus?: PhoneVerificationStatus;
+  onRetryPhoneVerification?: () => void;
+  onRoomSelect?: (room: ChatRoom) => Promise<unknown> | void;
   onRequirePhoneVerification?: () => void;
 }
 
@@ -40,30 +50,122 @@ export default function PatientChatView({
   switchPath,
   searchPath,
   messagePath,
-  phoneVerified = true,
+  phoneVerified: phoneVerifiedProp = true,
+  phoneVerificationStatus,
+  onRetryPhoneVerification,
   onRoomSelect,
   onRequirePhoneVerification,
 }: PatientChatViewProps) {
   const navigate = useNavigate();
+  const resolvedPhoneVerificationStatus =
+    phoneVerificationStatus ?? (phoneVerifiedProp ? 'verified' : 'unverified');
+  const phoneVerified = resolvedPhoneVerificationStatus === 'verified';
   const messageListRef = useRef<HTMLDivElement>(null);
-  const hasShownPhoneVerification = useRef(phoneVerified === false);
+  const hasShownPhoneVerification = useRef(
+    resolvedPhoneVerificationStatus === 'unverified',
+  );
   const [selectedRoomId, setSelectedRoomId] = useState(initialRoomId);
   const [listPage, setListPage] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(!phoneVerified);
+  const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(
+    resolvedPhoneVerificationStatus === 'unverified',
+  );
   const [emergencyState, setEmergencyState] = useState<OpenEmergencyState>('closed');
   const [countdown, setCountdown] = useState(5);
+  const [roomDisplayNames, setRoomDisplayNames] = useState<Record<string, string>>({});
+  const [roomPreparations, setRoomPreparations] = useState<
+    Record<string, RoomPreparationState>
+  >({});
 
   const roomPageSize = 4;
   const roomPageCount = Math.max(1, Math.ceil(rooms.length / roomPageSize));
   const visibleRooms = rooms.slice(listPage * roomPageSize, (listPage + 1) * roomPageSize);
   const selectedRoom = rooms.find((room) => room.id === selectedRoomId) ?? rooms[0];
+  const {
+    e2eeError,
+    e2eeStatus,
+    messages: realtimeMessages,
+    retryE2ee,
+  } = useChatRoomMessages(
+    selectedRoom?.chatRoomId,
+    {
+      onMessageEvent: (_event, message) => {
+        if (
+          message.direction === 'received' &&
+          message.senderDisplayName?.trim() &&
+          selectedRoom
+        ) {
+          setRoomDisplayNames((current) => ({
+            ...current,
+            [selectedRoom.id]: message.senderDisplayName!,
+          }));
+        }
+      },
+    },
+  );
+  const selectedRoomPreparation: RoomPreparationState = selectedRoom?.chatRoomId
+    ? { status: 'ready', error: null }
+    : selectedRoom
+      ? (roomPreparations[selectedRoom.id] ?? {
+          status: onRoomSelect ? 'idle' : 'unavailable',
+          error: null,
+        })
+      : { status: 'unavailable', error: null };
+  const prepareRoom = useCallback(
+    async (room: ChatRoom) => {
+      if (room.chatRoomId || !onRoomSelect) return;
+
+      setRoomPreparations((current) => ({
+        ...current,
+        [room.id]: { status: 'loading', error: null },
+      }));
+
+      try {
+        await onRoomSelect(room);
+        setRoomPreparations((current) => ({
+          ...current,
+          [room.id]: { status: 'ready', error: null },
+        }));
+      } catch (error) {
+        setRoomPreparations((current) => ({
+          ...current,
+          [room.id]: {
+            status: 'error',
+            error:
+              error instanceof Error
+                ? error.message
+                : '채팅방을 준비하지 못했습니다.',
+          },
+        }));
+      }
+    },
+    [onRoomSelect],
+  );
+  const selectedRoomName = selectedRoom
+    ? (roomDisplayNames[selectedRoom.id] ?? selectedRoom.name)
+    : '';
+  const selectedRoomMessages = selectedRoom?.chatRoomId
+    ? realtimeMessages
+    : (selectedRoom?.messages ?? []);
   const pageClassName = `patient-chat-page patient-chat-page--${mode}${
     phoneVerified ? '' : ' patient-chat-page--unverified'
   }`;
 
   useEffect(() => {
-    if (phoneVerified || hasShownPhoneVerification.current) return;
+    if (
+      selectedRoom &&
+      !selectedRoom.chatRoomId &&
+      selectedRoomPreparation.status === 'idle'
+    ) {
+      void prepareRoom(selectedRoom);
+    }
+  }, [prepareRoom, selectedRoom, selectedRoomPreparation.status]);
+
+  useEffect(() => {
+    if (
+      resolvedPhoneVerificationStatus !== 'unverified' ||
+      hasShownPhoneVerification.current
+    ) return;
 
     hasShownPhoneVerification.current = true;
     const timeoutId = window.setTimeout(() => {
@@ -72,7 +174,7 @@ export default function PatientChatView({
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [onRequirePhoneVerification, phoneVerified]);
+  }, [onRequirePhoneVerification, resolvedPhoneVerificationStatus]);
 
   useEffect(() => {
     if (emergencyState !== 'countdown') return;
@@ -97,7 +199,9 @@ export default function PatientChatView({
 
   const handleSettingsOpen = () => {
     if (!phoneVerified) {
-      requestPhoneVerification();
+      if (resolvedPhoneVerificationStatus === 'unverified') {
+        requestPhoneVerification();
+      }
       return;
     }
 
@@ -106,17 +210,59 @@ export default function PatientChatView({
 
   const handleMessageSend = () => {
     if (!phoneVerified) {
-      requestPhoneVerification();
+      if (resolvedPhoneVerificationStatus === 'unverified') {
+        requestPhoneVerification();
+      }
       return;
     }
 
-    navigate(messagePath);
+    if (e2eeStatus !== 'ready') return;
+    if (!selectedRoom?.chatRoomId) return;
+    if (mode === 'hospital' && !selectedRoom.targetUserId) return;
+
+    const [inputPath, existingQuery = ''] = messagePath.split('?');
+    const params = new URLSearchParams(existingQuery);
+    params.set('roomId', String(selectedRoom.chatRoomId));
+
+    if (selectedRoom.targetUserId) {
+      params.set('targetUserId', selectedRoom.targetUserId);
+    }
+
+    const returnPath =
+      mode === 'hospital'
+        ? `/chat/hospital?roomId=${selectedRoom.chatRoomId}`
+        : `/chat/friend?friendshipId=${selectedRoom.friendshipId ?? ''}`;
+    params.set('returnPath', returnPath);
+    navigate(`${inputPath}?${params.toString()}`);
   };
 
   const handleRoomSelect = (room: ChatRoom) => {
     setSelectedRoomId(room.id);
-    onRoomSelect?.(room);
   };
+
+  const canSendMessage = Boolean(
+    phoneVerified &&
+      e2eeStatus === 'ready' &&
+      selectedRoom?.chatRoomId &&
+      (mode !== 'hospital' || selectedRoom.targetUserId),
+  );
+  const messageEntryLabel =
+    resolvedPhoneVerificationStatus === 'loading'
+      ? '사용자 정보 확인 중'
+      : resolvedPhoneVerificationStatus === 'error'
+        ? '사용자 정보 확인 실패'
+        : e2eeStatus === 'loading'
+          ? '암호화 키 준비 중'
+          : e2eeStatus === 'error'
+            ? '암호화 키 확인 필요'
+            : selectedRoomPreparation.status === 'loading' ||
+                (selectedRoomPreparation.status === 'ready' && !selectedRoom?.chatRoomId)
+              ? '채팅방 준비 중'
+              : selectedRoomPreparation.status === 'error'
+                ? '채팅방 준비 실패'
+                : selectedRoomPreparation.status === 'unavailable' || !selectedRoom?.chatRoomId
+                  ? '채팅방 선택 필요'
+                  : '메 시 지\u00a0 보 내 기';
 
   const handleEmergencyOpen = () => {
     setCountdown(5);
@@ -213,7 +359,7 @@ export default function PatientChatView({
 
         <section className="patient-chat-panel" aria-label={title}>
           <header className="patient-chat-header">
-            <h2 className="patient-chat-current-title">{selectedRoom?.name ?? ''}</h2>
+            <h2 className="patient-chat-current-title">{selectedRoomName}</h2>
             <div className="patient-chat-header-actions">
               <button
                 aria-label="비상호출"
@@ -231,9 +377,50 @@ export default function PatientChatView({
               ref={messageListRef}
               className="patient-chat-message-list"
               aria-live="polite"
-              aria-label={`${selectedRoom?.name ?? ''} 메시지`}
+              aria-label={`${selectedRoomName} 메시지`}
             >
-              {selectedRoom?.messages.map((message) => (
+              {resolvedPhoneVerificationStatus === 'loading' && (
+                <p role="status">사용자 인증 정보를 확인하고 있습니다.</p>
+              )}
+              {resolvedPhoneVerificationStatus === 'error' && (
+                <div role="alert">
+                  <p>사용자 인증 정보를 불러오지 못했습니다.</p>
+                  {onRetryPhoneVerification && (
+                    <button type="button" onClick={onRetryPhoneVerification}>
+                      다시 시도
+                    </button>
+                  )}
+                </div>
+              )}
+              {resolvedPhoneVerificationStatus === 'unverified' && (
+                <p role="status">친구 채팅을 사용하려면 전화번호 인증이 필요합니다.</p>
+              )}
+              {e2eeStatus === 'loading' && (
+                <p role="status">암호화 키를 준비하고 있습니다.</p>
+              )}
+              {e2eeStatus === 'error' && (
+                <div role="alert">
+                  <p>{e2eeError}</p>
+                  <button type="button" onClick={retryE2ee}>
+                    다시 시도
+                  </button>
+                </div>
+              )}
+              {selectedRoomPreparation.status === 'loading' && (
+                <p role="status">채팅방을 준비하고 있습니다.</p>
+              )}
+              {selectedRoomPreparation.status === 'error' && selectedRoom && (
+                <div role="alert">
+                  <p>{selectedRoomPreparation.error}</p>
+                  <button type="button" onClick={() => void prepareRoom(selectedRoom)}>
+                    다시 시도
+                  </button>
+                </div>
+              )}
+              {selectedRoomPreparation.status === 'unavailable' && (
+                <p role="status">메시지를 보낼 채팅방을 선택해주세요.</p>
+              )}
+              {selectedRoomMessages.map((message) => (
                 (() => {
                   const formattedTime = formatChatTime(message.createdAt);
 
@@ -282,10 +469,11 @@ export default function PatientChatView({
             <button
               aria-label="메시지 보내기"
               className="patient-chat-message-entry"
+              disabled={!canSendMessage}
               type="button"
               onClick={handleMessageSend}
             >
-              <span>메 시 지&nbsp; 보 내 기</span>
+              <span>{messageEntryLabel}</span>
             </button>
             <button
               aria-label="채팅 설정 열기"
