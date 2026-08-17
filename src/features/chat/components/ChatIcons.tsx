@@ -44,15 +44,6 @@ export function EmergencyIcon({ size = 38 }: ChatIconProps) {
   return <img alt="" aria-hidden="true" height={size} src={sosImage} width={size} />;
 }
 
-export function SearchIcon({ size = 34 }: ChatIconProps) {
-  return (
-    <IconFrame size={size}>
-      <circle cx="21" cy="21" fill="none" r="12" stroke="currentColor" strokeWidth="4" />
-      <path d="m30 30 10 10" stroke="currentColor" strokeLinecap="round" strokeWidth="4" />
-    </IconFrame>
-  );
-}
-
 export function SettingsIcon({ size = 38 }: ChatIconProps) {
   return <img alt="" aria-hidden="true" height={size} src={settingImage} width={size} />;
 }

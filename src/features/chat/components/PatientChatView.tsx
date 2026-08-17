@@ -10,10 +10,7 @@ import { ROUTES } from '../../../shared/constants/routes';
 import { useChatRoomMessages } from '../hooks/useChatRoomMessages';
 import type { ChatRoom } from '../types/chat';
 import { formatChatTime } from '../utils/formatChatTime';
-import {
-  RequestIcon,
-  SearchIcon,
-} from './ChatIcons';
+import { RequestIcon } from './ChatIcons';
 import './PatientChatView.css';
 
 type OpenEmergencyState = 'closed' | 'countdown' | 'complete';
@@ -25,6 +22,13 @@ interface RoomPreparationState {
   error: string | null;
 }
 
+interface PatientChatRoomPagination {
+  page: number;
+  hasNext: boolean;
+  isLoading?: boolean;
+  onPageChange: (page: number) => void;
+}
+
 export interface PatientChatViewProps {
   mode: 'hospital' | 'friend';
   title: string;
@@ -32,13 +36,13 @@ export interface PatientChatViewProps {
   initialRoomId: string;
   switchLabel: string;
   switchPath: string;
-  searchPath: string;
   messagePath: string;
   phoneVerified?: boolean;
   phoneVerificationStatus?: PhoneVerificationStatus;
   onRetryPhoneVerification?: () => void;
-  onRoomSelect?: (room: ChatRoom) => Promise<unknown> | void;
+  onRoomSelect?: (room: ChatRoom) => Promise<ChatRoom | void> | ChatRoom | void;
   onRequirePhoneVerification?: () => void;
+  roomPagination?: PatientChatRoomPagination;
 }
 
 export default function PatientChatView({
@@ -48,13 +52,13 @@ export default function PatientChatView({
   initialRoomId,
   switchLabel,
   switchPath,
-  searchPath,
   messagePath,
   phoneVerified: phoneVerifiedProp = true,
   phoneVerificationStatus,
   onRetryPhoneVerification,
   onRoomSelect,
   onRequirePhoneVerification,
+  roomPagination,
 }: PatientChatViewProps) {
   const navigate = useNavigate();
   const resolvedPhoneVerificationStatus =
@@ -79,7 +83,13 @@ export default function PatientChatView({
 
   const roomPageSize = 4;
   const roomPageCount = Math.max(1, Math.ceil(rooms.length / roomPageSize));
-  const visibleRooms = rooms.slice(listPage * roomPageSize, (listPage + 1) * roomPageSize);
+  const visibleRooms = roomPagination
+    ? rooms
+    : rooms.slice(listPage * roomPageSize, (listPage + 1) * roomPageSize);
+  const canGoToPreviousRoomPage = roomPagination ? roomPagination.page > 0 : listPage > 0;
+  const canGoToNextRoomPage = roomPagination
+    ? roomPagination.hasNext
+    : listPage < roomPageCount - 1;
   const selectedRoom = rooms.find((room) => room.id === selectedRoomId) ?? rooms[0];
   const {
     e2eeError,
@@ -103,11 +113,16 @@ export default function PatientChatView({
       },
     },
   );
+  const canPrepareSelectedRoom = Boolean(
+    onRoomSelect &&
+      selectedRoom &&
+      (mode !== 'hospital' || selectedRoom.targetUserId),
+  );
   const selectedRoomPreparation: RoomPreparationState = selectedRoom?.chatRoomId
     ? { status: 'ready', error: null }
     : selectedRoom
       ? (roomPreparations[selectedRoom.id] ?? {
-          status: onRoomSelect ? 'idle' : 'unavailable',
+          status: canPrepareSelectedRoom ? 'idle' : 'unavailable',
           error: null,
         })
       : { status: 'unavailable', error: null };
@@ -121,7 +136,12 @@ export default function PatientChatView({
       }));
 
       try {
-        await onRoomSelect(room);
+        const preparedRoom = await onRoomSelect(room);
+
+        if (preparedRoom) {
+          setSelectedRoomId(preparedRoom.id);
+        }
+
         setRoomPreparations((current) => ({
           ...current,
           [room.id]: { status: 'ready', error: null },
@@ -240,6 +260,24 @@ export default function PatientChatView({
     setSelectedRoomId(room.id);
   };
 
+  const handlePreviousRoomPage = () => {
+    if (roomPagination) {
+      roomPagination.onPageChange(Math.max(0, roomPagination.page - 1));
+      return;
+    }
+
+    setListPage((page) => Math.max(0, page - 1));
+  };
+
+  const handleNextRoomPage = () => {
+    if (roomPagination) {
+      roomPagination.onPageChange(roomPagination.page + 1);
+      return;
+    }
+
+    setListPage((page) => Math.min(roomPageCount - 1, page + 1));
+  };
+
   const canSendMessage = Boolean(
     phoneVerified &&
       e2eeStatus === 'ready' &&
@@ -300,21 +338,6 @@ export default function PatientChatView({
               <Link className="patient-chat-link-action" to={switchPath}>
                 {switchLabel}
               </Link>
-              {phoneVerified ? (
-                <Link className="patient-chat-search-action" to={searchPath}>
-                  <SearchIcon size={30} />
-                  검색
-                </Link>
-              ) : (
-                <button
-                  className="patient-chat-search-action"
-                  disabled
-                  type="button"
-                >
-                  <SearchIcon size={30} />
-                  검색
-                </button>
-              )}
             </div>
           </header>
 
@@ -340,17 +363,29 @@ export default function PatientChatView({
           <div className="patient-chat-pagination" aria-label="채팅 대상 목록 페이지 이동">
             <button
               className="patient-chat-pagination-button"
-              disabled={!phoneVerified}
+              disabled={
+                !phoneVerified ||
+                Boolean(
+                  roomPagination &&
+                    (roomPagination.isLoading || !canGoToPreviousRoomPage),
+                )
+              }
               type="button"
-              onClick={() => setListPage((page) => Math.max(0, page - 1))}
+              onClick={handlePreviousRoomPage}
             >
               이전
             </button>
             <button
               className="patient-chat-pagination-button"
-              disabled={!phoneVerified}
+              disabled={
+                !phoneVerified ||
+                Boolean(
+                  roomPagination &&
+                    (roomPagination.isLoading || !canGoToNextRoomPage),
+                )
+              }
               type="button"
-              onClick={() => setListPage((page) => Math.min(roomPageCount - 1, page + 1))}
+              onClick={handleNextRoomPage}
             >
               다음
             </button>

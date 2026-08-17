@@ -54,8 +54,7 @@ export default function FriendChatPage() {
       onRetryPhoneVerification={retrySmsVerification}
       phoneVerificationStatus={smsVerificationStatus}
       rooms={smsVerificationStatus === 'verified' ? friendChatRooms : []}
-      searchPath="/patient?source=friend-search"
-      switchLabel="병원 채팅으로 이동"
+      switchLabel="병원 채팅으로 이동하기"
       switchPath="/chat/hospital"
       title="친구 채팅"
     />

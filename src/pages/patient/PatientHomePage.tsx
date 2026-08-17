@@ -1,11 +1,9 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { createOrGetHospitalChatRoom } from '../../features/chat/api/chatRooms';
 import {
   sendHospitalChatMessage,
   sendSmsChatMessage,
 } from '../../features/chat/api/chatMessages';
-import HospitalChatContactSearch from '../../features/chat/components/HospitalChatContactSearch';
 import VirtualKeyboard from '../../features/keyboard/components/VirtualKeyboard';
 import { useInputStore } from '../../shared/stores/inputStore';
 
@@ -17,10 +15,6 @@ export default function PatientHomePage() {
   const clearText = useInputStore((state) => state.clearText);
   const sendingRef = useRef(false);
   const [isSending, setIsSending] = useState(false);
-  const [hospitalSearchKeyword, setHospitalSearchKeyword] = useState<string | null>(null);
-  const [hospitalSearchPage, setHospitalSearchPage] = useState(0);
-  const [hospitalSearchRequestId, setHospitalSearchRequestId] = useState(0);
-  const isHospitalSearch = searchParams.get('source') === 'hospital-search';
   const messageSource = searchParams.get('source');
   const isHospitalMessage = messageSource === 'hospital-message';
   const isFriendMessage = messageSource === 'friend-message';
@@ -79,29 +73,9 @@ export default function PatientHomePage() {
     }
   };
 
-  const handleHospitalContactSearch = () => {
-    const keyword = text.trim();
-
-    if (!keyword) return;
-
-    setHospitalSearchKeyword(keyword);
-    setHospitalSearchPage(0);
-    setHospitalSearchRequestId((current) => current + 1);
-  };
-
-  const handleHospitalContactSelect = async (targetUserId: string) => {
-    const { roomId } = await createOrGetHospitalChatRoom(targetUserId);
-    navigate(`/chat/hospital?roomId=${roomId}`);
-  };
-
   const handleKeySelect = (keyValue: string) => {
     if (keyValue === 'ENTER') {
       if (isSending) return;
-
-      if (isHospitalSearch) {
-        handleHospitalContactSearch();
-        return;
-      }
 
       void handleSend();
       return;
@@ -140,15 +114,6 @@ export default function PatientHomePage() {
 
         {isSending && <p role="status">메시지를 전송하고 있습니다.</p>}
 
-        {isHospitalSearch && hospitalSearchKeyword ? (
-          <HospitalChatContactSearch
-            keyword={hospitalSearchKeyword}
-            page={hospitalSearchPage}
-            requestId={hospitalSearchRequestId}
-            onContactSelect={handleHospitalContactSelect}
-            onPageChange={setHospitalSearchPage}
-          />
-        ) : null}
       </section>
     </main>
   );
