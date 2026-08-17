@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ROUTES } from '../../shared/constants/routes';
+import { BaseModal } from '../../shared/components/modal';
 
 import {
   decryptMemo,
@@ -23,6 +24,8 @@ import {
 } from '../../shared/utils/e2ee';
 
 const API_BASE_URL = 'http://localhost:8080';
+
+type EmergencyState = 'closed' | 'countdown' | 'complete';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -89,6 +92,14 @@ export default function MemoPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [deleteMemoId, setDeleteMemoId] = useState<number | null>(null);
+
+  // =========================
+  // 비상호출 Modal
+  // =========================
+  const [emergencyState, setEmergencyState] =
+    useState<EmergencyState>('closed');
+
+  const [countdown, setCountdown] = useState(5);
 
   // =========================
   // Access Token
@@ -329,6 +340,45 @@ export default function MemoPage() {
   }, [loadMemos, prepareE2eeKey]);
 
   // =========================
+  // 비상호출 카운트다운
+  // =========================
+  useEffect(() => {
+    if (emergencyState !== 'countdown') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (countdown <= 1) {
+        setCountdown(0);
+        setEmergencyState('complete');
+        return;
+      }
+
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [countdown, emergencyState]);
+
+  // =========================
+  // 비상호출 팝업 열기
+  // =========================
+  const handleEmergencyOpen = () => {
+    setCountdown(5);
+    setEmergencyState('countdown');
+  };
+
+  // =========================
+  // 비상호출 팝업 닫기
+  // =========================
+  const handleEmergencyClose = () => {
+    setEmergencyState('closed');
+    setCountdown(5);
+  };
+
+  // =========================
   // 메모 추가
   // POST /api/memos
   // =========================
@@ -524,7 +574,12 @@ export default function MemoPage() {
           <h1 className="memo-title">개인 메모장</h1>
         </div>
 
-        <button type="button" className="emergency-button">
+        <button
+          type="button"
+          className="emergency-button"
+          aria-label="비상호출"
+          onClick={handleEmergencyOpen}
+        >
           <img src={SosIcon} alt="SOS" className="emergency-icon" />
         </button>
       </header>
@@ -651,6 +706,48 @@ export default function MemoPage() {
           </div>
         </div>
       )}
+
+      {/* ===========================
+          비상호출 팝업
+      =========================== */}
+
+      <BaseModal
+        isOpen={emergencyState !== 'closed'}
+        variant={emergencyState === 'complete' ? 'emergency' : 'default'}
+        onClose={handleEmergencyClose}
+        actions={
+          emergencyState === 'complete'
+            ? [
+                {
+                  label: '확인',
+                  tone: 'neutral',
+                  onClick: handleEmergencyClose,
+                },
+              ]
+            : [
+                {
+                  label: '취소',
+                  tone: 'neutral',
+                  onClick: handleEmergencyClose,
+                },
+              ]
+        }
+      >
+        {emergencyState === 'complete' ? (
+          '달려오고 있어요! 조금만 기다려주세요!'
+        ) : (
+          <>
+            <p>응답이 없을 경우 5초 후 비상호출이 전송됩니다.</p>
+
+            <strong
+              className="base-modal-countdown"
+              aria-label={`${countdown}초`}
+            >
+              {countdown}
+            </strong>
+          </>
+        )}
+      </BaseModal>
     </div>
   );
 }
