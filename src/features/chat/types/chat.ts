@@ -7,6 +7,7 @@ export interface ChatMessage {
   text: string;
   direction: ChatMessageDirection;
   createdAt: string | null;
+  senderDisplayName?: string;
 }
 
 export interface ChatRoom {
@@ -14,6 +15,7 @@ export interface ChatRoom {
   id: string;
   friendshipId?: number;
   chatRoomId?: number;
+  targetUserId?: string;
   name: string;
   icon: ChatRoomIcon;
   messages: ChatMessage[];

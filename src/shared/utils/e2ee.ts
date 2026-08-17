@@ -2,10 +2,16 @@ import sodium from 'libsodium-wrappers';
 
 const ALGORITHM = 'LIBSODIUM_SEALED_BOX';
 
-const getPrivateKeyStorageKey = (keyVersion: number) =>
+const getPrivateKeyStorageKey = (userId: string, keyVersion: number) =>
+  `looktalk_e2ee_private_key_${encodeURIComponent(userId)}_v${keyVersion}`;
+
+const getPublicKeyStorageKey = (userId: string, keyVersion: number) =>
+  `looktalk_e2ee_public_key_${encodeURIComponent(userId)}_v${keyVersion}`;
+
+const getLegacyPrivateKeyStorageKey = (keyVersion: number) =>
   `looktalk_e2ee_private_key_v${keyVersion}`;
 
-const getPublicKeyStorageKey = (keyVersion: number) =>
+const getLegacyPublicKeyStorageKey = (keyVersion: number) =>
   `looktalk_e2ee_public_key_v${keyVersion}`;
 
 export interface EncryptedPayload {
@@ -46,24 +52,89 @@ export async function generateKeyPair(): Promise<StoredKeyPair> {
 // =========================
 // Key Pair 로컬 저장
 // =========================
-export function saveKeyPair(keyVersion: number, keyPair: StoredKeyPair) {
-  localStorage.setItem(getPublicKeyStorageKey(keyVersion), keyPair.publicKey);
+export function saveKeyPair(userId: string, keyVersion: number, keyPair: StoredKeyPair) {
+  localStorage.setItem(getPublicKeyStorageKey(userId, keyVersion), keyPair.publicKey);
 
-  localStorage.setItem(getPrivateKeyStorageKey(keyVersion), keyPair.privateKey);
+  localStorage.setItem(getPrivateKeyStorageKey(userId, keyVersion), keyPair.privateKey);
 }
 
 // =========================
 // 공개키 조회
 // =========================
-export function getStoredPublicKey(keyVersion: number): string | null {
-  return localStorage.getItem(getPublicKeyStorageKey(keyVersion));
+export function getStoredPublicKey(userId: string, keyVersion: number): string | null {
+  return localStorage.getItem(getPublicKeyStorageKey(userId, keyVersion));
 }
 
 // =========================
 // 개인키 조회
 // =========================
-export function getStoredPrivateKey(keyVersion: number): string | null {
-  return localStorage.getItem(getPrivateKeyStorageKey(keyVersion));
+export function getStoredPrivateKey(userId: string, keyVersion: number): string | null {
+  return localStorage.getItem(getPrivateKeyStorageKey(userId, keyVersion));
+}
+
+async function isValidKeyPair(keyPair: StoredKeyPair): Promise<boolean> {
+  try {
+    await sodium.ready;
+
+    const publicKey = sodium.from_base64(
+      keyPair.publicKey,
+      sodium.base64_variants.ORIGINAL,
+    );
+    const privateKey = sodium.from_base64(
+      keyPair.privateKey,
+      sodium.base64_variants.ORIGINAL,
+    );
+    const derivedPublicKey = sodium.crypto_scalarmult_base(privateKey);
+
+    return sodium.memcmp(publicKey, derivedPublicKey);
+  } catch {
+    return false;
+  }
+}
+
+export async function hasMatchingStoredKeyPair(
+  userId: string,
+  keyVersion: number,
+  serverPublicKey: string,
+): Promise<boolean> {
+  const publicKey = getStoredPublicKey(userId, keyVersion);
+  const privateKey = getStoredPrivateKey(userId, keyVersion);
+
+  return Boolean(
+    publicKey === serverPublicKey &&
+      privateKey &&
+      (await isValidKeyPair({ publicKey, privateKey })),
+  );
+}
+
+export async function migrateLegacyKeyPair(
+  userId: string,
+  keyVersion: number,
+  serverPublicKey: string,
+): Promise<boolean> {
+  if (await hasMatchingStoredKeyPair(userId, keyVersion, serverPublicKey)) {
+    return true;
+  }
+
+  const legacyPublicKey = localStorage.getItem(getLegacyPublicKeyStorageKey(keyVersion));
+  const legacyPrivateKey = localStorage.getItem(getLegacyPrivateKeyStorageKey(keyVersion));
+
+  if (
+    legacyPublicKey !== serverPublicKey ||
+    !legacyPrivateKey ||
+    !(await isValidKeyPair({ publicKey: legacyPublicKey, privateKey: legacyPrivateKey }))
+  ) {
+    return false;
+  }
+
+  saveKeyPair(userId, keyVersion, {
+    publicKey: legacyPublicKey,
+    privateKey: legacyPrivateKey,
+  });
+  localStorage.removeItem(getLegacyPublicKeyStorageKey(keyVersion));
+  localStorage.removeItem(getLegacyPrivateKeyStorageKey(keyVersion));
+
+  return true;
 }
 
 // =========================
@@ -100,12 +171,15 @@ export async function encryptMemo(
 // =========================
 // 메모 복호화
 // =========================
-export async function decryptMemo(payload: EncryptedPayload): Promise<string> {
+export async function decryptMemo(
+  payload: EncryptedPayload,
+  userId: string,
+): Promise<string> {
   await sodium.ready;
 
-  const publicKeyBase64 = getStoredPublicKey(payload.keyVersion);
+  const publicKeyBase64 = getStoredPublicKey(userId, payload.keyVersion);
 
-  const privateKeyBase64 = getStoredPrivateKey(payload.keyVersion);
+  const privateKeyBase64 = getStoredPrivateKey(userId, payload.keyVersion);
 
   if (!publicKeyBase64 || !privateKeyBase64) {
     throw new Error(
@@ -140,3 +214,6 @@ export async function decryptMemo(payload: EncryptedPayload): Promise<string> {
 
   return sodium.to_string(decrypted);
 }
+
+export const encryptChatMessage = encryptMemo;
+export const decryptChatMessage = decryptMemo;

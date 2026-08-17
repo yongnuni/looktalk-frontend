@@ -73,6 +73,8 @@ export function mapSmsFriendshipDtoToChatRoom(friendship: SmsFriendshipDto): Cha
 export function mapHospitalChatRoomDtoToChatRoom(room: HospitalChatRoomDto): ChatRoom {
   return {
     id: String(room.roomId),
+    chatRoomId: room.roomId,
+    targetUserId: room.target.userId ?? undefined,
     name: room.target.displayName ?? room.target.name ?? `Chat room ${room.roomId}`,
     icon: 'person',
     messages: [],
