@@ -4,10 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../../assets/Logo.png';
 import DownArrow from '../../../assets/down_arrow.png';
 import Setting from '../../../assets/setting.png';
+import Sos from '../../../assets/sos.png';
 import UpArrow from '../../../assets/up_arrow.png';
 
 import { BaseModal } from '../../../shared/components/modal';
-import EmergencyButton from '../../emergency/components/EmergencyButton';
 import { ROUTES } from '../../../shared/constants/routes';
 
 import {
@@ -21,6 +21,8 @@ import { formatChatTime } from '../utils/formatChatTime';
 import { RequestIcon } from './ChatIcons';
 
 import './PatientChatView.css';
+
+type OpenEmergencyState = 'closed' | 'countdown' | 'complete';
 
 type PhoneVerificationStatus = 'loading' | 'verified' | 'unverified' | 'error';
 
@@ -78,7 +80,6 @@ export default function PatientChatView({
   initialRoomId,
   switchLabel,
   switchPath,
-  messagePath: _messagePath,
   phoneVerified: phoneVerifiedProp = true,
   phoneVerificationStatus,
   onRetryPhoneVerification,
@@ -123,9 +124,16 @@ export default function PatientChatView({
      Modal
   =========================== */
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(
     resolvedPhoneVerificationStatus === 'unverified',
   );
+
+  const [emergencyState, setEmergencyState] =
+    useState<OpenEmergencyState>('closed');
+
+  const [countdown, setCountdown] = useState(5);
 
   /* ===========================
      채팅방 표시 이름
@@ -341,6 +349,30 @@ export default function PatientChatView({
   }, [onRequirePhoneVerification, resolvedPhoneVerificationStatus]);
 
   /* ===========================
+     비상호출 카운트다운
+  =========================== */
+
+  useEffect(() => {
+    if (emergencyState !== 'countdown') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (countdown <= 1) {
+        setCountdown(0);
+
+        setEmergencyState('complete');
+
+        return;
+      }
+
+      setCountdown((previous) => previous - 1);
+    }, 1000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [countdown, emergencyState]);
+
+  /* ===========================
      메시지 추가 후
      자동 아래 스크롤
   =========================== */
@@ -370,12 +402,19 @@ export default function PatientChatView({
   };
 
   /* ===========================
-     설정 버튼
-     마이페이지로 바로 이동
+     설정 열기
   =========================== */
 
   const handleSettingsOpen = () => {
-    navigate('/mypage');
+    if (!phoneVerified) {
+      if (resolvedPhoneVerificationStatus === 'unverified') {
+        requestPhoneVerification();
+      }
+
+      return;
+    }
+
+    setSettingsOpen(true);
   };
 
   /* ===========================
@@ -525,6 +564,26 @@ export default function PatientChatView({
                 : '메 시 지\u00a0 보 내 기';
 
   /* ===========================
+     비상호출 열기
+  =========================== */
+
+  const handleEmergencyOpen = () => {
+    setCountdown(5);
+
+    setEmergencyState('countdown');
+  };
+
+  /* ===========================
+     비상호출 닫기
+  =========================== */
+
+  const handleEmergencyClose = () => {
+    setEmergencyState('closed');
+
+    setCountdown(5);
+  };
+
+  /* ===========================
      메시지 스크롤
   =========================== */
 
@@ -656,7 +715,14 @@ export default function PatientChatView({
             <h2 className="patient-chat-current-title">{selectedRoomName}</h2>
 
             <div className="patient-chat-header-actions">
-              <EmergencyButton />
+              <button
+                aria-label="비상호출"
+                className="patient-chat-emergency-button"
+                type="button"
+                onClick={handleEmergencyOpen}
+              >
+                <img src={Sos} alt="" />
+              </button>
             </div>
           </header>
 
@@ -829,7 +895,7 @@ export default function PatientChatView({
             {/* 설정 */}
 
             <button
-              aria-label="마이페이지로 이동"
+              aria-label="채팅 설정 열기"
               className="patient-chat-settings-button"
               type="button"
               onClick={handleSettingsOpen}
@@ -839,6 +905,38 @@ export default function PatientChatView({
           </footer>
         </section>
       </div>
+
+      {/* ===========================
+          Setting Modal
+      =========================== */}
+
+      <BaseModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        actions={[
+          {
+            label: '분석페이지로 이동',
+
+            tone: 'positive',
+
+            onClick: () => {
+              setSettingsOpen(false);
+
+              navigate('/analysis');
+            },
+          },
+
+          {
+            label: '취소',
+
+            tone: 'neutral',
+
+            onClick: () => setSettingsOpen(false),
+          },
+        ]}
+      >
+        이동할 화면을 선택해 주세요.
+      </BaseModal>
 
       {/* ===========================
           Phone Verification
@@ -872,6 +970,52 @@ export default function PatientChatView({
         해당 페이지는 전화번호 인증 후에 사용할 수 있습니다.
         <br />
         인증하시겠습니까?
+      </BaseModal>
+
+      {/* ===========================
+          Emergency
+      =========================== */}
+
+      <BaseModal
+        isOpen={emergencyState !== 'closed'}
+        variant={emergencyState === 'complete' ? 'emergency' : 'default'}
+        onClose={handleEmergencyClose}
+        actions={
+          emergencyState === 'complete'
+            ? [
+                {
+                  label: '확인',
+
+                  tone: 'neutral',
+
+                  onClick: handleEmergencyClose,
+                },
+              ]
+            : [
+                {
+                  label: '취소',
+
+                  tone: 'neutral',
+
+                  onClick: handleEmergencyClose,
+                },
+              ]
+        }
+      >
+        {emergencyState === 'complete' ? (
+          '달려오고 있어요! 조금만 기다려주세요!'
+        ) : (
+          <>
+            <p>응답이 없을 경우 5초 후 비상호출이 전송됩니다.</p>
+
+            <strong
+              className="base-modal-countdown"
+              aria-label={`${countdown}초`}
+            >
+              {countdown}
+            </strong>
+          </>
+        )}
       </BaseModal>
     </main>
   );
