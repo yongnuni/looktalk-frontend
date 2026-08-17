@@ -4,6 +4,86 @@
   color: #111827;
 }
 
+/* Front Step 14 §11 — 메시지 보내기 → VirtualKeyboard full-page 오버레이. 뒤쪽 Chat UI를
+   완전히 덮어 mouse/gaze 둘 다 실수로 뒤쪽 target을 건드리지 않게 한다(§12). */
+.patient-chat-keyboard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.55);
+}
+
+.patient-chat-keyboard-panel {
+  width: 100%;
+  max-width: 1024px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 24px clamp(16px, 4vw, 40px) 32px;
+  border-radius: 24px 24px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.25);
+}
+
+.patient-chat-keyboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.patient-chat-keyboard-draft {
+  flex: 1;
+  min-height: 32px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-word;
+}
+
+.patient-chat-keyboard-close {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.patient-chat-keyboard-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.patient-chat-keyboard-error {
+  margin: 12px 0 0;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.patient-chat-keyboard-status {
+  margin: 12px 0 0;
+  color: #6b7280;
+}
+
+.patient-chat-load-error {
+  margin: 0 0 12px;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.patient-chat-empty-state {
+  margin: 0 0 12px;
+  color: #6b7280;
+}
+
 .patient-chat-shell {
   display: grid;
   grid-template-columns: minmax(360px, 32%) minmax(0, 1fr);

@@ -9,7 +9,9 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('looktalk_access_token');
+  // 실제 로그인 흐름(LoginPage.tsx/StaffLoginPage.tsx)이 저장하는 key로 통일.
+  // 과거 'looktalk_access_token'는 실제 로그인 경로와 연결된 적이 없어 항상 빈 값이었다.
+  const token = localStorage.getItem('accessToken');
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

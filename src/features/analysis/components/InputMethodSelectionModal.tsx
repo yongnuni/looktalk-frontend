@@ -7,6 +7,11 @@ interface InputMethodSelectionModalProps {
   onRetest: () => void;
   onSelect: (inputMethodId: InputMethodId) => void;
   recommendedInputMethod?: InputMethodId;
+  /** Front Step 17 §14/§30 — 실제 Backend 저장 진행/실패 상태(추가 전용 확장, 기본값은
+   * 기존 동작과 동일). 저장 중에는 버튼을 막아 중복 요청을 방지하고, 실패하면 에러를
+   * 보여주고 모달에 그대로 머무른다(MeasurementResultModal의 SAVING/ERROR와 동일한 정책). */
+  isSaving?: boolean;
+  errorMessage?: string | null;
 }
 
 const inputMethodOptions: Array<{ id: InputMethodId; label: string }> = [
@@ -20,6 +25,8 @@ export default function InputMethodSelectionModal({
   onRetest,
   onSelect,
   recommendedInputMethod = 'gaze',
+  isSaving = false,
+  errorMessage = null,
 }: InputMethodSelectionModalProps) {
   if (!isOpen) return null;
 
@@ -46,6 +53,7 @@ export default function InputMethodSelectionModal({
             {inputMethodOptions.map((option) => (
               <button
                 className={`analysis-selection-option${option.id === recommendedInputMethod ? ' analysis-selection-option--recommended' : ''}`}
+                disabled={isSaving}
                 key={option.id}
                 onClick={() => onSelect(option.id)}
                 type="button"
@@ -57,8 +65,21 @@ export default function InputMethodSelectionModal({
               </button>
             ))}
           </div>
+
+          {isSaving && (
+            <p className="analysis-selection-modal__status" aria-live="polite">
+              저장 중입니다…
+            </p>
+          )}
+          {errorMessage && (
+            <p className="analysis-selection-modal__error" role="alert">
+              {errorMessage}
+            </p>
+          )}
+
           <button
             className="analysis-selection-retest"
+            disabled={isSaving}
             onClick={onRetest}
             type="button"
           >

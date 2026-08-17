@@ -1,0 +1,81 @@
+.gaze-dwell-debug-error {
+  color: #dc2626;
+}
+
+.gaze-dwell-debug-readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px 16px;
+  margin: 16px 0;
+}
+
+.gaze-dwell-debug-readout div {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 4px;
+}
+
+.gaze-dwell-debug-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 480px;
+  margin: 24px 0;
+}
+
+.gaze-dwell-debug-key {
+  position: relative;
+  height: 120px;
+  font-size: 32px;
+  font-weight: 700;
+  border-radius: 16px;
+  border: 3px solid #cbd5e1;
+  background: #f8fafc;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.gaze-dwell-debug-key--hovered {
+  border-color: #2563eb;
+}
+
+.gaze-dwell-debug-key--hovered::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: calc(var(--dwell-progress, 0) * 100%);
+  background: rgba(37, 99, 235, 0.35);
+  transition: height 60ms linear;
+}
+
+.gaze-dwell-debug-log ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.gaze-dwell-debug-cursor {
+  position: fixed;
+  z-index: 3000;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f97316;
+  border: 2px solid #ffffff;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: left 40ms linear, top 40ms linear;
+}
+
+.gaze-dwell-debug-hidden-video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}

@@ -1,0 +1,33 @@
+.setting-complete-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2002;
+  padding: 28px 32px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.95);
+  color: #f8fafc;
+  text-align: center;
+  max-width: min(480px, 90vw);
+}
+
+.setting-complete-modal p {
+  margin: 0 0 8px;
+}
+
+.setting-complete-modal__confirm-button {
+  margin-top: 16px;
+  padding: 12px 28px;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.setting-complete-modal__confirm-button:hover {
+  background: #1d4ed8;
+}

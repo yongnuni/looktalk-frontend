@@ -85,6 +85,25 @@
   color: #667085;
 }
 
+.analysis-selection-option:disabled,
+.analysis-selection-retest:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.analysis-selection-modal__status {
+  margin: 16px 0 0;
+  color: #667085;
+  font-size: 18px;
+}
+
+.analysis-selection-modal__error {
+  margin: 16px 0 0;
+  color: #dc2626;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .analysis-selection-option:hover,
 .analysis-selection-retest:hover {
   border-color: #2563eb;

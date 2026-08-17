@@ -11,3 +11,29 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+.keyboard-row--function {
+  flex-wrap: nowrap;
+}
+
+.keyboard-row--confirm {
+  justify-content: flex-end;
+}
+
+.keyboard-row--confirm .keyboard-key {
+  min-width: 96px;
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.keyboard-row--confirm .keyboard-key:hover {
+  background: #1d4ed8;
+}
+
+/* UserSetting.keyEnlarged 대응(Step 4에서 실제 값 연동) */
+.virtual-keyboard--enlarged .keyboard-key {
+  min-width: 84px;
+  min-height: 72px;
+  font-size: 26px;
+}

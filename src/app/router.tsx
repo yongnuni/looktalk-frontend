@@ -22,6 +22,12 @@ import FriendChatPage from '../pages/chat/FriendChatPage';
 
 import CalibrationPage from '../pages/calibration/CalibrationPage';
 import AnalysisPage from '../pages/analysis/AnalysisPage';
+import PatientCalibrationGate from '../features/calibration/components/PatientCalibrationGate';
+import PatientGazeRuntimeLayout from '../features/gazeRuntime/PatientGazeRuntimeLayout';
+import PatientRouteGuard from '../features/auth/PatientRouteGuard';
+
+import FaceTrackingDebugPage from '../pages/dev/FaceTrackingDebugPage';
+import GazeDwellDebugPage from '../pages/dev/GazeDwellDebugPage';
 
 import StaffDashboardPage from '../pages/staff/StaffDashboardPage';
 import StaffMyPage from '../pages/staff/StaffMyPage';
@@ -40,22 +46,54 @@ export const router = createBrowserRouter([
   { path: ROUTES.STAFF_PASSWORD_RESET, element: <StaffPasswordResetPage /> },
   { path: ROUTES.STAFF_SIGNUP, element: <StaffSignupPage /> },
 
-  { path: ROUTES.MAIN, element: <MainPage /> },
+  // Front Step 16 §44 — PATIENT route tree 전체(Calibration 포함)를 PatientRouteGuard로
+  // 감싼다. accessToken/userRole이 실제 PATIENT 세션이 아니면 어떤 하위 route로 직접
+  // 진입해도(Gate/Runtime을 건드리기 전에) /login으로 보낸다 — STAFF/비인증 사용자에게
+  // Camera/FaceLandmarker가 mount되는 경로 자체를 구조적으로 차단한다.
+  //
+  // Front Step 10 — 그 안에서 PATIENT route tree는 Calibration Bootstrap Gate로 감싼다.
+  // active calibration이 없으면 이 안의 어떤 route로 직접 진입해도 /calibration으로
+  // 보낸다. /calibration 자체는 Gate 밖(그러나 여전히 PatientRouteGuard 안)의 형제
+  // route로 남겨 무한 redirect를 방지한다.
+  //
+  // Front Step 11 — Gate가 READY를 판정한 뒤에만 PatientGazeRuntimeLayout이 mount되고,
+  // 그 안에서 Global Gaze Runtime(Camera/FaceLandmarker/GazeFilter)이 하나만 살아
+  // PATIENT route 전환 동안 유지된다. /calibration은 이 layout 밖이라 절대 겹치지 않는다.
+  {
+    element: <PatientRouteGuard />,
+    children: [
+      {
+        element: <PatientCalibrationGate />,
+        children: [
+          {
+            element: <PatientGazeRuntimeLayout />,
+            children: [
+              { path: ROUTES.MAIN, element: <MainPage /> },
+              { path: '/patient', element: <PatientHomePage /> },
+              { path: ROUTES.MEMO, element: <MemoPage /> },
 
-  { path: '/patient', element: <PatientHomePage /> },
-  { path: ROUTES.MEMO, element: <MemoPage /> },
+              // ---------- 환자 마이페이지 ----------
+              { path: ROUTES.MYPAGE, element: <MyPage /> },
+              { path: ROUTES.MYPAGE_FRIENDS, element: <FriendListPage /> },
+              { path: ROUTES.MYPAGE_PHONE_VERIFY, element: <PhoneVerifyPage /> },
+              { path: ROUTES.MYPAGE_PHRASES, element: <PhrasePage /> },
 
-  // ---------- 환자 마이페이지 ----------
-  { path: ROUTES.MYPAGE, element: <MyPage /> },
-  { path: ROUTES.MYPAGE_FRIENDS, element: <FriendListPage /> },
-  { path: ROUTES.MYPAGE_PHONE_VERIFY, element: <PhoneVerifyPage /> },
-  { path: ROUTES.MYPAGE_PHRASES, element: <PhrasePage /> },
+              { path: ROUTES.CHAT_HOSPITAL, element: <HospitalChatPage /> },
+              { path: ROUTES.CHAT_FRIEND, element: <FriendChatPage /> },
 
-  { path: ROUTES.CHAT_HOSPITAL, element: <HospitalChatPage /> },
-  { path: ROUTES.CHAT_FRIEND, element: <FriendChatPage /> },
+              { path: ROUTES.ANALYSIS, element: <AnalysisPage /> },
+            ],
+          },
+        ],
+      },
 
-  { path: '/calibration', element: <CalibrationPage /> },
-  { path: ROUTES.ANALYSIS, element: <AnalysisPage /> },
+      { path: '/calibration', element: <CalibrationPage /> },
+    ],
+  },
+
+  // ---------- 개발용 (Front Step 0 debug) ----------
+  { path: '/dev/face-tracking', element: <FaceTrackingDebugPage /> },
+  { path: '/dev/gaze-dwell', element: <GazeDwellDebugPage /> },
 
   { path: '/staff', element: <StaffDashboardPage /> },
 

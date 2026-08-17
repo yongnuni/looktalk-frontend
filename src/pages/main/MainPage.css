@@ -68,6 +68,8 @@ body,
 /* ---------- 버튼 ---------- */
 
 .main-button {
+  position: relative;
+
   width: clamp(210px, 15vw, 260px);
   height: clamp(180px, 13vw, 230px);
 
@@ -99,7 +101,7 @@ body,
     box-shadow 0.25s ease;
 }
 
-/* ---------- Hover ---------- */
+/* ---------- Hover (Mouse) ---------- */
 
 .main-card:hover .main-button {
   background: #d9d9d9;
@@ -111,6 +113,31 @@ body,
   transform: translateY(-5px);
 
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+}
+
+/* ---------- Hover (Gaze, Front Step 12) ----------
+   GazeInteractionProvider가 hover 중인 target element에 직접 붙이는 data attribute다
+   (§23). Mouse hover와 같은 시각 언어를 재사용하되, 진행률(--gaze-progress, 0..1)을
+   아래쪽 progress bar로 보여줘 "지금 선택 중"임을 알 수 있게 한다. */
+.main-button[data-gaze-hovered='true'] {
+  background: #d9d9d9;
+  border-color: #bcbcbc;
+  color: #111;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+}
+
+.main-button[data-gaze-hovered='true']::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 14px;
+  height: 4px;
+  border-radius: 2px;
+  background: #f97316;
+  transform: scaleX(var(--gaze-progress, 0));
+  transform-origin: left;
+  transition: transform 60ms linear;
 }
 
 /* ---------- 설명 ---------- */

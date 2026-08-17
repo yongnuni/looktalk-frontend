@@ -71,6 +71,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
+    // 실제 LoginPage/StaffLoginPage가 쓰는 키('accessToken'/'tokenType'/'userRole' —
+    // apiClient 인터셉터와 MemoPage의 401 처리가 참조하는 진짜 세션 키)를 정리한다.
+    // 'looktalk_access_token'은 이 store의 mock 로그인 경로가 쓰던 과거 잔여 키라 함께
+    // 지운다(Front Step 10 감사: 이전에는 이 mock 키만 지워서 실제 로그아웃이 되지
+    // 않았다 — apiClient가 계속 이전 accessToken을 붙여 보내는 버그).
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('tokenType');
+    localStorage.removeItem('userRole');
     localStorage.removeItem('looktalk_access_token');
 
     set({

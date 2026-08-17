@@ -17,4 +17,7 @@ export interface ChatRoom {
   name: string;
   icon: ChatRoomIcon;
   messages: ChatMessage[];
+  /** HOSPITAL room 상대방의 내부 userId. Front Step 14 — CHAT-006 HOSPITAL 발송 시
+   * E2EE-003으로 상대 공개키를 조회하기 위해 필요하다. SMS room/미확정 상태에서는 없다. */
+  targetUserId?: string;
 }

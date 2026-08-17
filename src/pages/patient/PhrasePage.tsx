@@ -1,15 +1,29 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import PageHeader from '../../shared/components/layout/PageHeader';
 import EmergencyButton from '../../features/emergency/components/EmergencyButton';
+import { usePageScope } from '../../features/gazeInteraction/usePageScope';
+import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
 import { usePhrases } from '../../features/phrase/hooks/usePhrases';
 import { ROUTES } from '../../shared/constants/routes';
 
 import './PhrasePage.css';
 
 export default function PhrasePage() {
+  const navigate = useNavigate();
+  usePageScope('MAIN');
+
   const { phrases, maxPhrases, registerDummyPhrase, removePhrase } =
     usePhrases();
+
+  // §29 — 실제 존재하는 핵심 navigation/action(뒤로가기, 문장 등록)만. 개별 문장 삭제는
+  // 목록 길이가 가변적이라(§28과 동일한 hooks 규칙 제약) 이번 범위에서는 제외한다.
+  const backTargetRef = useGazeTarget({ id: 'phrase-back', scope: 'MAIN', onSelect: () => navigate(ROUTES.MYPAGE) });
+  const registerTargetRef = useGazeTarget({
+    id: 'phrase-register',
+    scope: 'MAIN',
+    onSelect: registerDummyPhrase,
+  });
 
   return (
     <div className="phrase-page">
@@ -17,7 +31,7 @@ export default function PhrasePage() {
         title="자주 쓰는 문장 관리"
         logoTo={ROUTES.MAIN}
         titleActions={
-          <Link to={ROUTES.MYPAGE} className="header-pill-button">
+          <Link ref={backTargetRef} to={ROUTES.MYPAGE} className="header-pill-button">
             뒤로가기
           </Link>
         }
@@ -26,6 +40,7 @@ export default function PhrasePage() {
 
       <div className="phrase-toolbar">
         <button
+          ref={registerTargetRef}
           type="button"
           className="phrase-register-button"
           onClick={registerDummyPhrase}

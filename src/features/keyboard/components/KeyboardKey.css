@@ -1,4 +1,5 @@
 .keyboard-key {
+  position: relative;
   min-width: 64px;
   min-height: 56px;
   padding: 12px 16px;
@@ -8,6 +9,7 @@
   font-size: 20px;
   font-weight: 600;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .keyboard-key:hover {
@@ -16,4 +18,54 @@
 
 .keyboard-key:active {
   transform: scale(0.98);
+}
+
+.keyboard-key--active {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.keyboard-key--wide {
+  flex: 1 1 auto;
+}
+
+/* gaze dwell hover 상태 — 진행률을 아래에서 차오르는 바로 표시한다. */
+.keyboard-key--hovered {
+  border-color: #2563eb;
+  border-width: 2px;
+}
+
+.keyboard-key--hovered::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: calc(var(--dwell-progress, 0) * 100%);
+  background: rgba(37, 99, 235, 0.25);
+  pointer-events: none;
+  transition: height 60ms linear;
+}
+
+/* Front Step 14 §41/§42 — Chat의 VirtualKeyboard는 useKeyboardGazeTargets를 통해 Global
+   Gaze Target Registry(KEYBOARD scope)에 등록되므로, hover 시각 상태는 React prop이
+   아니라 GazeInteractionProvider가 DOM에 직접 붙이는 data-gaze-hovered/--gaze-progress로
+   온다(MainPage.css의 [data-gaze-hovered] 패턴과 동일한 언어를 재사용, §42). `/patient`
+   QA route는 두 경로(prop 기반 .keyboard-key--hovered + 아래 attribute selector)가 동시에
+   적용되지만 시각적으로 동일한 progress를 그리므로 문제되지 않는다. */
+[data-key-id][data-gaze-hovered='true'] {
+  border-color: #2563eb;
+  border-width: 2px;
+}
+
+[data-key-id][data-gaze-hovered='true']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: calc(var(--gaze-progress, 0) * 100%);
+  background: rgba(37, 99, 235, 0.25);
+  pointer-events: none;
+  transition: height 60ms linear;
 }

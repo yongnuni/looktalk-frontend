@@ -1,0 +1,19 @@
+.patient-home-gaze-status {
+  margin: 12px 0;
+}
+
+.patient-home-compatibility-banner {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.patient-home-hidden-video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
