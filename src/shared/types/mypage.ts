@@ -9,14 +9,20 @@ export interface Friend {
 export interface Phrase {
   id: number;
   text: string;
-  createdAt: number;
+  category: string | null;
+  createdAt: string;
 }
 
 /** 담당 환자 (의료진) */
 export interface ManagedPatient {
-  id: number;
-  /** Figma 기준 호실을 이름에 포함해 표기 ("101호 - 김민준"). 컬럼 분리 X */
-  name: string;
+  /** 내부 사용자 ID. 담당 관계 해제(DELETE) 시 사용 */
+  userId: string;
+  loginId: string;
+  /** 서버 displayName/name 우선순위 적용 결과 (환자 본인이 설정한 이름) */
+  displayName: string;
+  /** 이 STAFF만 보는 개인 별칭. 없으면 null (표시할 땐 displayName으로 대체) */
+  alias: string | null;
+  assignedAt: string;
 }
 
 /** 비상호출 내역 1건 */

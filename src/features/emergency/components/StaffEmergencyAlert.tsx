@@ -1,23 +1,27 @@
 import { AlertModal } from '../../../shared/components/modal';
-import { useEmergencyStore } from '../../../shared/stores/emergencyStore';
+import { useStaffPatients } from '../../mypage/hooks/useStaffPatients';
+import { useEmergencyAlerts } from '../hooks/useEmergencyAlerts';
 
 /**
  * 의료진 화면 어디서든 즉시 뜨는 비상호출 알림 (Figma Frame 182).
- * 의료진 레이아웃(또는 app/providers)에 한 번만 마운트한다.
+ * 담당 환자의 읽지 않은 호출을 폴링으로 확인해 하나씩 띄운다 (EMERGENCY-002/003).
  */
 export default function StaffEmergencyAlert() {
-  const alerts = useEmergencyStore((state) => state.incomingAlerts);
-  const dismissAlert = useEmergencyStore((state) => state.dismissAlert);
+  const { alerts, dismissAlert } = useEmergencyAlerts();
+  const { patients } = useStaffPatients();
 
   const current = alerts[0];
 
   if (!current) return null;
 
+  const alias = patients.find((patient) => patient.userId === current.patientUserId)?.alias;
+  const displayName = alias || current.patientDisplayName;
+
   return (
     <AlertModal
       isOpen
-      message={`${current.room} - ${current.patientName} 환자가 비상호출을 하였습니다!`}
-      onConfirm={() => dismissAlert(current.id)}
+      message={`${displayName} 환자가 비상호출을 하였습니다!`}
+      onConfirm={() => void dismissAlert(current.emergencyCallId)}
     />
   );
 }

@@ -1,20 +1,37 @@
 import './StaffSignupPage.css';
 import Logo from '../../assets/Logo.png';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import {
+  confirmSignupEmailVerification,
+  sendEmailVerification,
+} from '../../features/auth/api/authApi';
+import { mapAuthErrorToMessage } from '../../features/auth/authErrorMessages';
+import {
+  PASSWORD_LENGTH_ERROR_MESSAGE,
+  isPasswordLengthValid,
+} from '../../features/auth/passwordPolicy';
+import {
+  INITIAL_EMAIL_VERIFICATION_STATE,
+  canConfirmVerification,
+  canSubmitSignup,
+  changeVerificationCode,
+  changeVerificationEmail,
+  confirmVerificationFailed,
+  confirmVerificationSucceeded,
+  sendVerificationFailed,
+  sendVerificationSucceeded,
+  startSendingVerification,
+  startVerifyingCode,
+  verificationExpired,
+  type EmailVerificationState,
+} from '../../features/auth/emailVerification';
 
 interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T | null;
-}
-
-interface EmailVerificationResponse {
-  [key: string]: unknown;
-}
-
-interface EmailVerificationConfirmResponse {
-  verified?: boolean;
 }
 
 interface StaffSignupResponse {
@@ -23,149 +40,144 @@ interface StaffSignupResponse {
 
 const API_BASE_URL = 'http://localhost:8080';
 
+const NETWORK_ERROR_MESSAGE =
+  '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+
+function formatTimer(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(
+    2,
+    '0',
+  )}`;
+}
+
 export default function StaffSignupPage() {
   const navigate = useNavigate();
 
   const [loginId, setLoginId] = useState('');
   const [email, setEmail] = useState('');
-  const [inputCode, setInputCode] = useState('');
-
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
 
-  const [requestMessage, setRequestMessage] = useState('');
-  const [verifyMessage, setVerifyMessage] = useState('');
-  const [verifySuccess, setVerifySuccess] = useState(false);
+  const [verification, setVerification] = useState<EmailVerificationState>(
+    INITIAL_EMAIL_VERIFICATION_STATE,
+  );
 
-  const [requestedEmail, setRequestedEmail] = useState('');
-
-  const [isRequestingCode, setIsRequestingCode] = useState(false);
-  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
-  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [codeSentAtMs, setCodeSentAtMs] = useState<number | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
   const [signupMessage, setSignupMessage] = useState('');
+  const [isSigningUp, setIsSigningUp] = useState(false);
+
+  useEffect(() => {
+    if (
+      verification.status !== 'CODE_SENT' ||
+      verification.expiresInSeconds === null ||
+      codeSentAtMs === null
+    ) {
+      setRemainingSeconds(null);
+      return;
+    }
+
+    const expiresInSeconds = verification.expiresInSeconds;
+
+    const tick = () => {
+      const elapsedSeconds = (Date.now() - codeSentAtMs) / 1000;
+      const remaining = Math.max(
+        0,
+        Math.ceil(expiresInSeconds - elapsedSeconds),
+      );
+
+      setRemainingSeconds(remaining);
+
+      if (remaining <= 0) {
+        setVerification((prev) =>
+          prev.status === 'CODE_SENT' ? verificationExpired(prev) : prev,
+        );
+      }
+    };
+
+    tick();
+
+    const intervalId = window.setInterval(tick, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [verification.status, verification.expiresInSeconds, codeSentAtMs]);
 
   const handleRequestCode = async () => {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
-      setRequestMessage('이메일을 입력해주세요.');
+      setVerification((prev) =>
+        sendVerificationFailed(prev, '이메일을 입력해주세요.'),
+      );
       return;
     }
 
+    if (verification.status === 'SENDING') {
+      return;
+    }
+
+    setVerification((prev) => startSendingVerification(prev));
+    setSignupMessage('');
+
     try {
-      setIsRequestingCode(true);
+      const result = await sendEmailVerification(trimmedEmail, 'SIGNUP');
 
-      setRequestMessage('');
-      setVerifyMessage('');
-      setVerifySuccess(false);
-      setRequestedEmail('');
-      setInputCode('');
-      setSignupMessage('');
+      setCodeSentAtMs(Date.now());
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/auth/email-verifications`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: trimmedEmail,
-            purpose: 'SIGNUP',
-          }),
-        },
+      setVerification((prev) =>
+        sendVerificationSucceeded(prev, trimmedEmail, result.expiresInSeconds),
       );
-
-      const result: ApiResponse<EmailVerificationResponse> =
-        await response.json();
-
-      if (!response.ok || !result.success) {
-        setRequestMessage(
-          result.message || '인증번호 발송 요청에 실패했습니다.',
-        );
-        return;
-      }
-
-      setRequestedEmail(trimmedEmail);
-
-      setRequestMessage('인증번호 발송 요청이 완료되었습니다.');
     } catch (error) {
-      console.error('의료진 이메일 인증번호 요청 실패:', error);
-
-      setRequestMessage(
-        '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
+      setVerification((prev) =>
+        sendVerificationFailed(
+          prev,
+          mapAuthErrorToMessage(error, NETWORK_ERROR_MESSAGE),
+        ),
       );
-    } finally {
-      setIsRequestingCode(false);
     }
   };
 
   const handleVerifyCode = async () => {
-    const trimmedCode = inputCode.trim();
-
-    if (!requestedEmail) {
-      setVerifySuccess(false);
-      setVerifyMessage('먼저 인증번호를 요청해주세요.');
+    if (
+      verification.status === 'VERIFYING' ||
+      !canConfirmVerification(verification) ||
+      !verification.requestedEmail
+    ) {
       return;
     }
 
-    if (!trimmedCode) {
-      setVerifySuccess(false);
-      setVerifyMessage('인증번호를 입력해주세요.');
-      return;
-    }
+    const requestedEmail = verification.requestedEmail;
+    const code = verification.code;
 
-    if (email.trim() !== requestedEmail) {
-      setVerifySuccess(false);
-      setVerifyMessage(
-        '이메일이 변경되었습니다. 인증번호를 다시 요청해주세요.',
-      );
-      return;
-    }
+    setVerification((prev) => startVerifyingCode(prev));
+    setSignupMessage('');
 
     try {
-      setIsVerifyingCode(true);
-      setVerifyMessage('');
-      setSignupMessage('');
+      const result = await confirmSignupEmailVerification(requestedEmail, code);
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/auth/email-verifications/confirm`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: requestedEmail,
-            purpose: 'SIGNUP',
-            code: trimmedCode,
-          }),
-        },
-      );
-
-      const result: ApiResponse<EmailVerificationConfirmResponse> =
-        await response.json();
-
-      if (!response.ok || !result.success) {
-        setVerifySuccess(false);
-
-        setVerifyMessage(result.message || '인증번호가 일치하지 않습니다.');
-
-        return;
+      if (result.verified) {
+        setVerification((prev) =>
+          confirmVerificationSucceeded(prev, requestedEmail),
+        );
+      } else {
+        setVerification((prev) =>
+          confirmVerificationFailed(prev, '인증번호가 올바르지 않습니다.'),
+        );
       }
-
-      setVerifySuccess(true);
-      setVerifyMessage('인증이 완료되었습니다.');
     } catch (error) {
-      console.error('의료진 이메일 인증번호 확인 실패:', error);
-
-      setVerifySuccess(false);
-
-      setVerifyMessage('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
-    } finally {
-      setIsVerifyingCode(false);
+      setVerification((prev) =>
+        confirmVerificationFailed(
+          prev,
+          mapAuthErrorToMessage(error, NETWORK_ERROR_MESSAGE),
+        ),
+      );
     }
   };
 
@@ -173,28 +185,26 @@ export default function StaffSignupPage() {
     const newEmail = event.target.value;
 
     setEmail(newEmail);
-
-    setRequestMessage('');
-    setVerifyMessage('');
     setSignupMessage('');
-
-    if (requestedEmail && newEmail.trim() !== requestedEmail) {
-      setVerifySuccess(false);
-    }
+    setVerification((prev) => changeVerificationEmail(prev, newEmail));
   };
 
-  const isPasswordValid = password.length >= 8 && password.length <= 64;
+  const handleCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setVerification((prev) => changeVerificationCode(prev, event.target.value));
+  };
+
+  const isVerified = canSubmitSignup(verification, email);
+  const isPasswordValid = isPasswordLengthValid(password);
 
   const isComplete =
     loginId.trim() !== '' &&
     email.trim() !== '' &&
-    inputCode.trim() !== '' &&
-    isPasswordValid &&
+    password.trim() !== '' &&
     confirmPassword.trim() !== '' &&
     inviteCode.trim() !== '' &&
-    verifySuccess &&
-    email.trim() === requestedEmail &&
-    password === confirmPassword;
+    isPasswordValid &&
+    password === confirmPassword &&
+    isVerified;
 
   const handleComplete = async () => {
     if (!isComplete || isSigningUp) {
@@ -226,16 +236,49 @@ export default function StaffSignupPage() {
       }
 
       alert('의료진 회원가입이 완료되었습니다.');
-
       navigate('/staff-login');
     } catch (error) {
       console.error('의료진 회원가입 API 호출 실패:', error);
-
-      setSignupMessage('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      setSignupMessage(NETWORK_ERROR_MESSAGE);
     } finally {
       setIsSigningUp(false);
     }
   };
+
+  const isSending = verification.status === 'SENDING';
+  const isVerifying = verification.status === 'VERIFYING';
+  const hasRequestedCode = verification.requestedEmail !== null;
+
+  let emailFieldMessage = '';
+
+  if (isSending) {
+    emailFieldMessage = '인증번호를 발송하는 중입니다...';
+  } else if (
+    verification.status === 'ERROR' &&
+    verification.requestedEmail === null
+  ) {
+    emailFieldMessage = verification.errorMessage ?? '';
+  } else if (hasRequestedCode) {
+    emailFieldMessage =
+      remainingSeconds !== null && remainingSeconds > 0
+        ? `인증번호가 발송되었습니다. (남은 시간 ${formatTimer(
+            remainingSeconds,
+          )})`
+        : '인증번호가 발송되었습니다.';
+  }
+
+  const codeFieldIsSuccess = verification.status === 'VERIFIED';
+
+  let codeFieldMessage = '';
+
+  if (codeFieldIsSuccess) {
+    codeFieldMessage = '인증이 완료되었습니다.';
+  } else if (
+    verification.status === 'ERROR' &&
+    verification.requestedEmail !== null
+  ) {
+    codeFieldMessage = verification.errorMessage ?? '';
+  }
 
   return (
     <div className="staff-signup-page">
@@ -251,9 +294,7 @@ export default function StaffSignupPage() {
         </Link>
 
         <div className="staff-signup-container">
-          {/* ================= 왼쪽 ================= */}
           <div className="staff-signup-column">
-            {/* 아이디 */}
             <div className="staff-input-group">
               <label>아이디</label>
 
@@ -274,7 +315,6 @@ export default function StaffSignupPage() {
               </div>
             </div>
 
-            {/* 이메일 */}
             <div className="staff-input-group staff-email-group">
               <label>이메일</label>
 
@@ -291,60 +331,63 @@ export default function StaffSignupPage() {
                   type="button"
                   className="staff-sub-button"
                   onClick={() => void handleRequestCode()}
-                  disabled={isRequestingCode}
+                  disabled={isSending}
                 >
-                  {isRequestingCode ? '요청 중...' : '인증요청'}
+                  {isSending
+                    ? '발송 중...'
+                    : hasRequestedCode
+                      ? '재전송'
+                      : '인증요청'}
                 </button>
               </div>
 
-              {requestMessage && (
-                <p className="staff-request-message">{requestMessage}</p>
+              {emailFieldMessage && (
+                <p className="staff-request-message">{emailFieldMessage}</p>
               )}
             </div>
 
-            {/* 인증번호 */}
             <div className="staff-input-group staff-auth-group">
               <label>인증번호</label>
 
               <div className="staff-input-with-button">
                 <input
                   type="text"
-                  placeholder="인증번호를 입력하세요."
-                  value={inputCode}
+                  placeholder="인증번호 6자리를 입력하세요."
+                  value={verification.code}
                   maxLength={6}
                   inputMode="numeric"
-                  onChange={(event) => {
-                    setInputCode(event.target.value);
-                    setVerifySuccess(false);
-                    setVerifyMessage('');
-                  }}
+                  autoComplete="one-time-code"
+                  disabled={!hasRequestedCode || isVerifying}
+                  onChange={handleCodeChange}
                 />
 
                 <button
                   type="button"
                   className="staff-sub-button"
                   onClick={() => void handleVerifyCode()}
-                  disabled={isVerifyingCode}
+                  disabled={
+                    isVerifying || !canConfirmVerification(verification)
+                  }
                 >
-                  {isVerifyingCode ? '확인 중...' : '인증확인'}
+                  {isVerifying ? '확인 중...' : '인증확인'}
                 </button>
               </div>
 
-              {verifyMessage && (
+              {codeFieldMessage && (
                 <p
                   className={
-                    verifySuccess ? 'staff-verify-success' : 'staff-verify-fail'
+                    codeFieldIsSuccess
+                      ? 'staff-verify-success'
+                      : 'staff-verify-fail'
                   }
                 >
-                  {verifyMessage}
+                  {codeFieldMessage}
                 </p>
               )}
             </div>
           </div>
 
-          {/* ================= 오른쪽 ================= */}
           <div className="staff-signup-column">
-            {/* 비밀번호 */}
             <div className="staff-input-group">
               <label>비밀번호</label>
 
@@ -353,8 +396,6 @@ export default function StaffSignupPage() {
                   type="password"
                   placeholder="비밀번호를 입력하세요."
                   value={password}
-                  minLength={8}
-                  maxLength={64}
                   autoComplete="new-password"
                   onChange={(event) => {
                     setPassword(event.target.value);
@@ -367,12 +408,11 @@ export default function StaffSignupPage() {
 
               {password !== '' && !isPasswordValid && (
                 <p className="staff-password-fail">
-                  비밀번호는 8자 이상 64자 이하로 입력해주세요.
+                  {PASSWORD_LENGTH_ERROR_MESSAGE}
                 </p>
               )}
             </div>
 
-            {/* 비밀번호 확인 */}
             <div className="staff-input-group">
               <label>비밀번호 확인</label>
 
@@ -381,8 +421,6 @@ export default function StaffSignupPage() {
                   type="password"
                   placeholder="비밀번호를 입력하세요."
                   value={confirmPassword}
-                  minLength={8}
-                  maxLength={64}
                   autoComplete="new-password"
                   onChange={(event) => {
                     setConfirmPassword(event.target.value);
@@ -408,7 +446,6 @@ export default function StaffSignupPage() {
               )}
             </div>
 
-            {/* 초대 코드 */}
             <div className="staff-input-group">
               <label>초대 코드</label>
 
@@ -417,6 +454,7 @@ export default function StaffSignupPage() {
                   type="text"
                   placeholder="초대 코드를 입력하세요."
                   value={inviteCode}
+                  maxLength={50}
                   onChange={(event) => {
                     setInviteCode(event.target.value);
                     setSignupMessage('');
@@ -427,12 +465,10 @@ export default function StaffSignupPage() {
               </div>
             </div>
 
-            {/* 회원가입 실패 메시지 */}
             {signupMessage && (
               <p className="staff-verify-fail">{signupMessage}</p>
             )}
 
-            {/* 완료 */}
             <div className="staff-signup-submit">
               <button
                 type="button"
