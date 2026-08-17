@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { createOrGetHospitalChatRoom } from '../../features/chat/api/chatRooms';
-import HospitalChatContactSearch from '../../features/chat/components/HospitalChatContactSearch';
+import { useCallback, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import VirtualKeyboard from '../../features/keyboard/components/VirtualKeyboard';
 import { useKeyboardInput } from '../../features/keyboard/hooks/useKeyboardInput';
 import { useKeyboardGazeTargets } from '../../features/keyboard/useKeyboardGazeTargets';
@@ -12,53 +10,28 @@ import { resolveGazeInputMode } from '../../features/multimodalInput/gazeInputMo
 import { useUserSettings } from '../../features/userSetting/hooks/useUserSettings';
 import './PatientHomePage.css';
 
+// Front Step 17 merge — 병원 상대 검색은 더 이상 이 QA 페이지를 거치지 않는다.
+// HospitalChatPage.tsx가 chat-contacts API를 room grid에 직접 병합해 보여주므로
+// (origin/develop의 websocket 통합 브랜치가 도입) `/patient?source=hospital-search` +
+// HospitalChatContactSearch 화면 전체가 중복이 되어 제거했다 — HospitalChatContactSearch
+// 컴포넌트 자체도 삭제되어 더 이상 존재하지 않는다.
 export default function PatientHomePage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isHospitalSearch = searchParams.get('source') === 'hospital-search';
-
-  const [hospitalSearchKeyword, setHospitalSearchKeyword] = useState<string | null>(null);
-  const [hospitalSearchPage, setHospitalSearchPage] = useState(0);
-  const [hospitalSearchRequestId, setHospitalSearchRequestId] = useState(0);
-
-  const handleHospitalContactSearch = useCallback((composedText: string) => {
-    const keyword = composedText.trim();
-    if (!keyword) return;
-
-    setHospitalSearchKeyword(keyword);
-    setHospitalSearchPage(0);
-    setHospitalSearchRequestId((current) => current + 1);
-  }, []);
-
-  const handleHospitalContactSelect = async (targetUserId: string) => {
-    const { roomId } = await createOrGetHospitalChatRoom(targetUserId);
-    navigate(`/chat/hospital?roomId=${roomId}`);
-  };
-
   // useKeyboardInput()이 반환하는 clearText는 handleConfirm보다 나중에 생기므로(순환
   // 참조), ref로 최신 함수를 받아둔다 — onFrameRef 등과 동일한 패턴.
   const clearTextRef = useRef<() => void>(() => {});
 
   // Integration Plan §15.4: VirtualKeyboard의 '확인'은 onConfirm(composedText) 콜백을
-  // 트리거할 뿐, 실제 전송/검색 동작은 이 페이지가 결정한다 — 기존 ENTER 기반
-  // handleSend/병원검색 흐름을 여기로 이전했다(Front Step 3-4).
-  const handleConfirm = useCallback(
-    (composedText: string) => {
-      if (isHospitalSearch) {
-        handleHospitalContactSearch(composedText);
-        return;
-      }
+  // 트리거할 뿐, 실제 전송 동작은 이 페이지가 결정한다(Front Step 3-4). `/patient`는 실제
+  // 서비스 화면이 아니라 QA route라 실제 전송 대신 alert로만 확인한다.
+  const handleConfirm = useCallback((composedText: string) => {
+    if (!composedText.trim()) {
+      alert('전송할 문장이 없습니다.');
+      return;
+    }
 
-      if (!composedText.trim()) {
-        alert('전송할 문장이 없습니다.');
-        return;
-      }
-
-      alert(`전송할 문장: ${composedText}`);
-      clearTextRef.current();
-    },
-    [isHospitalSearch, handleHospitalContactSearch],
-  );
+    alert(`전송할 문장: ${composedText}`);
+    clearTextRef.current();
+  }, []);
 
   const { keyboardState, text, handleKeySelect, clearText } = useKeyboardInput({ onConfirm: handleConfirm });
 
@@ -153,16 +126,6 @@ export default function PatientHomePage() {
             keyEnlarged={userSettings?.keyEnlarged ?? false}
           />
         </div>
-
-        {isHospitalSearch && hospitalSearchKeyword ? (
-          <HospitalChatContactSearch
-            keyword={hospitalSearchKeyword}
-            page={hospitalSearchPage}
-            requestId={hospitalSearchRequestId}
-            onContactSelect={handleHospitalContactSelect}
-            onPageChange={setHospitalSearchPage}
-          />
-        ) : null}
       </section>
 
       {/* Front Step 11: hidden <video>는 더 이상 이 페이지가 렌더링하지 않는다 —

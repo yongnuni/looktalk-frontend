@@ -6,7 +6,7 @@ import { getSmsFriends } from '../api/friends';
 
 interface UseFriendChatRoomsResult {
   rooms: ChatRoom[];
-  ensureSmsChatRoom: (friendshipId: number) => Promise<void>;
+  ensureSmsChatRoom: (friendshipId: number) => Promise<number>;
   /** Front Step 17 §30 — 친구 목록 조회/채팅방 find-or-create 실패를 조용히 무시하지
    * 않고 화면에 알리기 위한 추가 전용 필드(기존 rooms/ensureSmsChatRoom 동작은 그대로). */
   error: string | null;
@@ -15,7 +15,7 @@ interface UseFriendChatRoomsResult {
 export function useFriendChatRooms(): UseFriendChatRoomsResult {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const requestedFriendshipIdsRef = useRef(new Set<number>());
+  const roomRequestsRef = useRef(new Map<number, Promise<number>>());
   const chatRoomIdsRef = useRef(new Map<number, number>());
 
   useEffect(() => {
@@ -45,17 +45,14 @@ export function useFriendChatRooms(): UseFriendChatRoomsResult {
     };
   }, []);
 
-  const ensureSmsChatRoom = useCallback(async (friendshipId: number) => {
-    if (
-      chatRoomIdsRef.current.has(friendshipId) ||
-      requestedFriendshipIdsRef.current.has(friendshipId)
-    ) {
-      return;
-    }
+  const ensureSmsChatRoom = useCallback((friendshipId: number): Promise<number> => {
+    const existingRoomId = chatRoomIdsRef.current.get(friendshipId);
+    if (existingRoomId !== undefined) return Promise.resolve(existingRoomId);
 
-    requestedFriendshipIdsRef.current.add(friendshipId);
+    const existingRequest = roomRequestsRef.current.get(friendshipId);
+    if (existingRequest) return existingRequest;
 
-    try {
+    const request = (async () => {
       const { roomId } = await createOrGetSmsChatRoom(friendshipId);
       chatRoomIdsRef.current.set(friendshipId, roomId);
       setRooms((currentRooms) =>
@@ -64,12 +61,19 @@ export function useFriendChatRooms(): UseFriendChatRoomsResult {
         ),
       );
       setError(null);
-    } catch {
-      // 생성/조회 실패 시 기존 친구 목록과 선택 상태를 그대로 유지하되, 원인을 화면에 알린다.
-      setError('채팅방을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.');
-    } finally {
-      requestedFriendshipIdsRef.current.delete(friendshipId);
-    }
+      return roomId;
+    })()
+      .catch((error: unknown) => {
+        // 생성/조회 실패 시 기존 친구 목록과 선택 상태를 그대로 유지하되, 원인을 화면에 알린다.
+        setError('채팅방을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        throw error;
+      })
+      .finally(() => {
+        roomRequestsRef.current.delete(friendshipId);
+      });
+
+    roomRequestsRef.current.set(friendshipId, request);
+    return request;
   }, []);
 
   return { rooms, ensureSmsChatRoom, error };

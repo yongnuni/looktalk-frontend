@@ -14,20 +14,29 @@ import VirtualKeyboard from '../../keyboard/components/VirtualKeyboard';
 import { useKeyboardInput } from '../../keyboard/hooks/useKeyboardInput';
 import { useKeyboardGazeTargets } from '../../keyboard/useKeyboardGazeTargets';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
-import { getCurrentUserId } from '../../../shared/utils/jwt';
-import { getChatRoomMessages } from '../api/chatRooms';
-import { isSendableMessage, sendFriendChatMessage, sendHospitalChatMessage } from '../chatSend';
-import { isMessageEntryEnabled, needsChatRoomCreation, resolveSelectedRoom } from '../roomSelection';
-import type { ChatMessage, ChatRoom } from '../types/chat';
+import { sendHospitalChatMessage, sendSmsChatMessage } from '../api/chatMessages';
+import { isSendableMessage } from '../chatSend';
+import { useChatRoomMessages } from '../hooks/useChatRoomMessages';
+import type { ChatRoom } from '../types/chat';
 import { formatChatTime } from '../utils/formatChatTime';
-import { mapChatRoomMessagesToChatMessages } from '../utils/chatMappers';
-import {
-  RequestIcon,
-  SearchIcon,
-} from './ChatIcons';
+import { RequestIcon } from './ChatIcons';
 import './PatientChatView.css';
 
 type OpenEmergencyState = 'closed' | 'countdown' | 'complete';
+type PhoneVerificationStatus = 'loading' | 'verified' | 'unverified' | 'error';
+type RoomPreparationStatus = 'idle' | 'loading' | 'ready' | 'error' | 'unavailable';
+
+interface RoomPreparationState {
+  status: RoomPreparationStatus;
+  error: string | null;
+}
+
+interface PatientChatRoomPagination {
+  page: number;
+  hasNext: boolean;
+  isLoading?: boolean;
+  onPageChange: (page: number) => void;
+}
 
 // Front Step 14 §10/§8 — Chat 목록 한 페이지에 보이는 카드 수는 고정값이다. 카드마다
 // useGazeTarget()을 .map() 안에서 호출하면(개수가 페이지마다 0~4개로 달라짐) React
@@ -43,13 +52,15 @@ export interface PatientChatViewProps {
   initialRoomId: string;
   switchLabel: string;
   switchPath: string;
-  searchPath: string;
   phoneVerified?: boolean;
-  onRoomSelect?: (room: ChatRoom) => void;
+  phoneVerificationStatus?: PhoneVerificationStatus;
+  onRetryPhoneVerification?: () => void;
+  onRoomSelect?: (room: ChatRoom) => Promise<ChatRoom | void> | ChatRoom | void;
   onRequirePhoneVerification?: () => void;
   /** Front Step 17 §30 — room 목록 조회 실패를 조용히 무시하지 않고 화면에 알리기 위한
    * 추가 전용 prop(기본값 null이면 기존 동작과 동일). */
   loadError?: string | null;
+  roomPagination?: PatientChatRoomPagination;
 }
 
 export default function PatientChatView({
@@ -59,16 +70,23 @@ export default function PatientChatView({
   initialRoomId,
   switchLabel,
   switchPath,
-  searchPath,
-  phoneVerified = true,
+  phoneVerified: phoneVerifiedProp = true,
+  phoneVerificationStatus,
+  onRetryPhoneVerification,
   onRoomSelect,
   onRequirePhoneVerification,
   loadError = null,
+  roomPagination,
 }: PatientChatViewProps) {
   const navigate = useNavigate();
+  const resolvedPhoneVerificationStatus =
+    phoneVerificationStatus ?? (phoneVerifiedProp ? 'verified' : 'unverified');
+  const phoneVerified = resolvedPhoneVerificationStatus === 'verified';
   const messageListRef = useRef<HTMLDivElement>(null);
   const keyboardContainerRef = useRef<HTMLDivElement | null>(null);
-  const hasShownPhoneVerification = useRef(phoneVerified === false);
+  const hasShownPhoneVerification = useRef(
+    resolvedPhoneVerificationStatus === 'unverified',
+  );
   const isSendingRef = useRef(false);
 
   const [selectedRoomId, setSelectedRoomId] = useState(initialRoomId);
@@ -88,24 +106,118 @@ export default function PatientChatView({
   }
   const [listPage, setListPage] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(!phoneVerified);
+  const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(
+    resolvedPhoneVerificationStatus === 'unverified',
+  );
   const [emergencyState, setEmergencyState] = useState<OpenEmergencyState>('closed');
   const [countdown, setCountdown] = useState(5);
+  const [roomDisplayNames, setRoomDisplayNames] = useState<Record<string, string>>({});
+  const [roomPreparations, setRoomPreparations] = useState<
+    Record<string, RoomPreparationState>
+  >({});
 
   // Front Step 14 — 메시지 보내기 → VirtualKeyboard 오버레이. Keyboard는 텍스트를 직접
   // 알지 못하고 onConfirm(composedText)만 호출한다(VirtualKeyboard Integration Plan §15.4).
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [historyMessages, setHistoryMessages] = useState<ChatMessage[]>([]);
 
   const { settings } = useUserSettings();
   const { setActiveScope } = useGazeInteraction();
 
   const roomPageSize = ROOM_SLOT_COUNT;
   const roomPageCount = Math.max(1, Math.ceil(rooms.length / roomPageSize));
-  const visibleRooms = rooms.slice(listPage * roomPageSize, (listPage + 1) * roomPageSize);
-  const selectedRoom = resolveSelectedRoom(rooms, selectedRoomId);
+  const visibleRooms = roomPagination
+    ? rooms
+    : rooms.slice(listPage * roomPageSize, (listPage + 1) * roomPageSize);
+  const canGoToPreviousRoomPage = roomPagination ? roomPagination.page > 0 : listPage > 0;
+  const canGoToNextRoomPage = roomPagination
+    ? roomPagination.hasNext
+    : listPage < roomPageCount - 1;
+  // Hospital의 "요청" 카드(icon: 'request')는 Backend에 대응하는 room_type이 없는 순수
+  // UI 항목이다(4칸 grid의 1번 슬롯 고정 — HospitalChatPage.tsx 참고). selectedRoom
+  // fallback이 이 카드로 떨어지면 message-entry가 영구적으로 disabled로 보이므로(Front
+  // Step 17 BUG A/B), selectedRoomId가 우연히 그 카드를 가리키더라도 항상 건너뛴다.
+  const selectedRoom =
+    rooms.find((room) => room.id === selectedRoomId && room.icon !== 'request') ??
+    rooms.find((room) => room.icon !== 'request');
+  const {
+    addMessage,
+    e2eeError,
+    e2eeStatus,
+    messages: realtimeMessages,
+    retryE2ee,
+  } = useChatRoomMessages(
+    selectedRoom?.chatRoomId,
+    {
+      onMessageEvent: (_event, message) => {
+        if (
+          message.direction === 'received' &&
+          message.senderDisplayName?.trim() &&
+          selectedRoom
+        ) {
+          setRoomDisplayNames((current) => ({
+            ...current,
+            [selectedRoom.id]: message.senderDisplayName!,
+          }));
+        }
+      },
+    },
+  );
+  const canPrepareSelectedRoom = Boolean(
+    onRoomSelect &&
+      selectedRoom &&
+      (mode !== 'hospital' || selectedRoom.targetUserId),
+  );
+  const selectedRoomPreparation: RoomPreparationState = selectedRoom?.chatRoomId
+    ? { status: 'ready', error: null }
+    : selectedRoom
+      ? (roomPreparations[selectedRoom.id] ?? {
+          status: canPrepareSelectedRoom ? 'idle' : 'unavailable',
+          error: null,
+        })
+      : { status: 'unavailable', error: null };
+  const prepareRoom = useCallback(
+    async (room: ChatRoom) => {
+      if (room.chatRoomId || !onRoomSelect) return;
+
+      setRoomPreparations((current) => ({
+        ...current,
+        [room.id]: { status: 'loading', error: null },
+      }));
+
+      try {
+        const preparedRoom = await onRoomSelect(room);
+
+        if (preparedRoom) {
+          setSelectedRoomId(preparedRoom.id);
+        }
+
+        setRoomPreparations((current) => ({
+          ...current,
+          [room.id]: { status: 'ready', error: null },
+        }));
+      } catch (error) {
+        setRoomPreparations((current) => ({
+          ...current,
+          [room.id]: {
+            status: 'error',
+            error:
+              error instanceof Error
+                ? error.message
+                : '채팅방을 준비하지 못했습니다.',
+          },
+        }));
+      }
+    },
+    [onRoomSelect],
+  );
+  const selectedRoomName = selectedRoom
+    ? (roomDisplayNames[selectedRoom.id] ?? selectedRoom.name)
+    : '';
+  const selectedRoomMessages = selectedRoom?.chatRoomId
+    ? realtimeMessages
+    : (selectedRoom?.messages ?? []);
   const pageClassName = `patient-chat-page patient-chat-page--${mode}${
     phoneVerified ? '' : ' patient-chat-page--unverified'
   }`;
@@ -115,18 +227,10 @@ export default function PatientChatView({
     selectedRoomRef.current = selectedRoom;
   }, [selectedRoom]);
 
-  // Front Step 17 §0/§9 BUG A/B root cause(Friend Chat) — 기존에는 room 선택 시 사용자가
-  // 직접 카드를 클릭(handleRoomSelect)해야만 onRoomSelect(→ ensureSmsChatRoom)가 호출됐다.
-  // 초기/기본으로 선택된 room(예: 유일한 친구 1명이 `?? rooms[0]`로 자동 선택된 경우)은
-  // 한 번도 명시적으로 "선택"되지 않으므로 SMS chatRoomId가 영원히 만들어지지 않아
-  // "메시지 보내기"가 계속 disabled로 보였다. selectedRoom이 바뀔 때마다(수동 선택이든
-  // 자동 기본값이든) chatRoomId가 아직 없으면 항상 find-or-create를 시도한다.
-  // ensureSmsChatRoom 자체가 friendshipId 단위로 중복 호출을 막으므로 안전하다.
-  useEffect(() => {
-    if (needsChatRoomCreation(selectedRoom)) {
-      onRoomSelect?.(selectedRoom as ChatRoom);
-    }
-  }, [selectedRoom, onRoomSelect]);
+  // Front Step 17 §0/§9 BUG A/B root cause(Friend Chat)는 아래 prepareRoom 이펙트가
+  // 해결한다 — selectedRoom이 바뀔 때마다(수동 선택이든 `?? rooms[0]` 자동 기본값이든)
+  // chatRoomId가 없고 아직 준비를 시도한 적이 없으면(status==='idle') find-or-create를
+  // 시도하고, 결과(loading/ready/error)를 selectedRoomPreparation으로 노출한다.
 
   // Front Step 14 §9 — Chat 목록/채팅방은 기본 CHAT scope. Keyboard가 열리면 KEYBOARD로
   // 전환해 뒤쪽 room 카드/설정/메시지 보내기 버튼이 실수로 선택되지 않게 한다(§12).
@@ -137,7 +241,20 @@ export default function PatientChatView({
   }, [isKeyboardOpen, setActiveScope]);
 
   useEffect(() => {
-    if (phoneVerified || hasShownPhoneVerification.current) return;
+    if (
+      selectedRoom &&
+      !selectedRoom.chatRoomId &&
+      selectedRoomPreparation.status === 'idle'
+    ) {
+      void prepareRoom(selectedRoom);
+    }
+  }, [prepareRoom, selectedRoom, selectedRoomPreparation.status]);
+
+  useEffect(() => {
+    if (
+      resolvedPhoneVerificationStatus !== 'unverified' ||
+      hasShownPhoneVerification.current
+    ) return;
 
     hasShownPhoneVerification.current = true;
     const timeoutId = window.setTimeout(() => {
@@ -146,7 +263,7 @@ export default function PatientChatView({
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [onRequirePhoneVerification, phoneVerified]);
+  }, [onRequirePhoneVerification, resolvedPhoneVerificationStatus]);
 
   useEffect(() => {
     if (emergencyState !== 'countdown') return;
@@ -164,45 +281,6 @@ export default function PatientChatView({
     return () => window.clearTimeout(timeoutId);
   }, [countdown, emergencyState]);
 
-  // Front Step 14 §7/§20 — 실제 CHAT-005 history를 room 선택마다 조회해 복호화한다.
-  // WebSocket 실시간 수신은 이번 범위에 없다(최종 보고에 KNOWN_LIMITATION으로 기록) —
-  // 전송 성공 시에는 아래 handleConfirmSend가 직접 historyMessages에 추가한다.
-  useEffect(() => {
-    let isMounted = true;
-    const chatRoomId = selectedRoom?.chatRoomId;
-
-    // react-hooks/set-state-in-effect — setState는 항상 이 async 함수(콜백) 안에서만
-    // 호출한다. chatRoomId가 없는 경우도 동일하게 이 함수를 거쳐 비운다.
-    const loadHistory = async () => {
-      if (!chatRoomId) {
-        if (isMounted) {
-          setHistoryMessages([]);
-        }
-        return;
-      }
-
-      try {
-        const data = await getChatRoomMessages(chatRoomId);
-        const currentUserId = getCurrentUserId();
-        const mapped = await mapChatRoomMessagesToChatMessages(data.messages, currentUserId);
-
-        if (isMounted) {
-          setHistoryMessages(mapped);
-        }
-      } catch {
-        if (isMounted) {
-          setHistoryMessages([]);
-        }
-      }
-    };
-
-    void loadHistory();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedRoom?.chatRoomId]);
-
   const requestPhoneVerification = () => {
     onRequirePhoneVerification?.();
     setPhoneVerificationOpen(true);
@@ -210,20 +288,66 @@ export default function PatientChatView({
 
   const handleSettingsOpen = () => {
     if (!phoneVerified) {
-      requestPhoneVerification();
+      if (resolvedPhoneVerificationStatus === 'unverified') {
+        requestPhoneVerification();
+      }
       return;
     }
 
     setSettingsOpen(true);
   };
 
-  const handleRoomSelect = useCallback(
-    (room: ChatRoom) => {
-      setSelectedRoomId(room.id);
-      onRoomSelect?.(room);
-    },
-    [onRoomSelect],
+  // Front Step 17 — room 생성/선택은 prepareRoom 이펙트가 selectedRoom 변화에 반응해
+  // 일괄 처리하므로, 여기서는 selectedRoomId만 갱신한다(명시적 클릭도 자동 기본 선택도
+  // 동일 경로를 탄다). "요청" 카드(icon: 'request')는 실제 채팅 대상이 될 수 없는 UI
+  // 전용 항목이라 애초에 선택 자체를 막는다(selectedRoom fallback의 request 제외와 짝).
+  const handleRoomSelect = (room: ChatRoom) => {
+    if (room.icon === 'request') return;
+
+    setSelectedRoomId(room.id);
+  };
+
+  const handlePreviousRoomPage = () => {
+    if (roomPagination) {
+      roomPagination.onPageChange(Math.max(0, roomPagination.page - 1));
+      return;
+    }
+
+    setListPage((page) => Math.max(0, page - 1));
+  };
+
+  const handleNextRoomPage = () => {
+    if (roomPagination) {
+      roomPagination.onPageChange(roomPagination.page + 1);
+      return;
+    }
+
+    setListPage((page) => Math.min(roomPageCount - 1, page + 1));
+  };
+
+  const canSendMessage = Boolean(
+    phoneVerified &&
+      e2eeStatus === 'ready' &&
+      selectedRoom?.chatRoomId &&
+      (mode !== 'hospital' || selectedRoom.targetUserId),
   );
+  const messageEntryLabel =
+    resolvedPhoneVerificationStatus === 'loading'
+      ? '사용자 정보 확인 중'
+      : resolvedPhoneVerificationStatus === 'error'
+        ? '사용자 정보 확인 실패'
+        : e2eeStatus === 'loading'
+          ? '암호화 키 준비 중'
+          : e2eeStatus === 'error'
+            ? '암호화 키 확인 필요'
+            : selectedRoomPreparation.status === 'loading' ||
+                (selectedRoomPreparation.status === 'ready' && !selectedRoom?.chatRoomId)
+              ? '채팅방 준비 중'
+              : selectedRoomPreparation.status === 'error'
+                ? '채팅방 준비 실패'
+                : selectedRoomPreparation.status === 'unavailable' || !selectedRoom?.chatRoomId
+                  ? '채팅방 선택 필요'
+                  : '메 시 지\u00a0 보 내 기';
 
   const handleEmergencyOpen = () => {
     setCountdown(5);
@@ -249,13 +373,21 @@ export default function PatientChatView({
   // ── Chat → VirtualKeyboard(§10) ──
   const clearTextRef = useRef<() => void>(() => {});
 
+  // canSendMessage(phoneVerified/e2eeStatus/room 준비 상태를 모두 반영)는 매 렌더 재계산되므로,
+  // deps를 최소화한 안정적인 handleMessageSend 콜백 안에서는 ref로 최신값을 읽는다
+  // (selectedRoomRef와 동일한 패턴).
+  const canSendMessageRef = useRef(canSendMessage);
+  useEffect(() => {
+    canSendMessageRef.current = canSendMessage;
+  }, [canSendMessage]);
+
   const handleMessageSend = useCallback(() => {
     if (!phoneVerified) {
       requestPhoneVerification();
       return;
     }
 
-    if (!isMessageEntryEnabled(selectedRoomRef.current)) return;
+    if (!canSendMessageRef.current) return;
 
     setSendError(null);
     setIsKeyboardOpen(true);
@@ -291,17 +423,17 @@ export default function PatientChatView({
         const result =
           mode === 'hospital'
             ? await sendHospitalChatMessage(room.chatRoomId, room.targetUserId ?? '', composedText)
-            : await sendFriendChatMessage(room.chatRoomId, composedText);
+            : await sendSmsChatMessage(room.chatRoomId, composedText);
 
-        setHistoryMessages((prev) => [
-          ...prev,
-          {
-            id: String(result.messageId),
-            text: composedText.trim(),
-            direction: 'sent',
-            createdAt: result.createdAt,
-          },
-        ]);
+        // 서버가 MESSAGE_CREATED 웹소켓 이벤트를 발신자에게도 되돌려주지만, 그 왕복을
+        // 기다리지 않고 즉시 낙관적으로 반영한다(addMessage는 id 기준으로 중복을
+        // 병합하므로 이후 웹소켓 이벤트가 도착해도 같은 메시지가 두 번 보이지 않는다).
+        addMessage({
+          id: String(result.messageId),
+          text: composedText.trim(),
+          direction: 'sent',
+          createdAt: result.createdAt,
+        });
 
         clearTextRef.current();
         setIsKeyboardOpen(false);
@@ -313,7 +445,7 @@ export default function PatientChatView({
         setIsSending(false);
       }
     },
-    [mode],
+    [addMessage, mode],
   );
 
   const { keyboardState, text, handleKeySelect, clearText } = useKeyboardInput({ onConfirm: handleConfirmSend });
@@ -328,12 +460,6 @@ export default function PatientChatView({
   // ── Gaze targets(§13, 실제 존재하는 최소 navigation/action만) ──
   const brandTargetRef = useGazeTarget({ id: 'chat-brand', scope: 'CHAT', onSelect: () => navigate(ROUTES.MAIN) });
   const switchTargetRef = useGazeTarget({ id: 'chat-switch', scope: 'CHAT', onSelect: () => navigate(switchPath) });
-  const searchTargetRef = useGazeTarget({
-    id: 'chat-search',
-    scope: 'CHAT',
-    enabled: phoneVerified,
-    onSelect: () => navigate(searchPath),
-  });
   const prevPageTargetRef = useGazeTarget({
     id: 'chat-page-prev',
     scope: 'CHAT',
@@ -349,7 +475,7 @@ export default function PatientChatView({
   const messageSendTargetRef = useGazeTarget({
     id: 'chat-message-send',
     scope: 'CHAT',
-    enabled: isMessageEntryEnabled(selectedRoom),
+    enabled: canSendMessage,
     onSelect: handleMessageSend,
   });
   const settingsTargetRef = useGazeTarget({ id: 'chat-settings', scope: 'CHAT', onSelect: handleSettingsOpen });
@@ -402,17 +528,6 @@ export default function PatientChatView({
               <Link ref={switchTargetRef} className="patient-chat-link-action" to={switchPath}>
                 {switchLabel}
               </Link>
-              {phoneVerified ? (
-                <Link ref={searchTargetRef} className="patient-chat-search-action" to={searchPath}>
-                  <SearchIcon size={30} />
-                  검색
-                </Link>
-              ) : (
-                <button className="patient-chat-search-action" disabled type="button">
-                  <SearchIcon size={30} />
-                  검색
-                </button>
-              )}
             </div>
           </header>
 
@@ -451,18 +566,28 @@ export default function PatientChatView({
             <button
               ref={prevPageTargetRef}
               className="patient-chat-pagination-button"
-              disabled={!phoneVerified || listPage === 0}
+              disabled={
+                !phoneVerified ||
+                (roomPagination
+                  ? Boolean(roomPagination.isLoading || !canGoToPreviousRoomPage)
+                  : listPage === 0)
+              }
               type="button"
-              onClick={() => setListPage((page) => Math.max(0, page - 1))}
+              onClick={handlePreviousRoomPage}
             >
               이전
             </button>
             <button
               ref={nextPageTargetRef}
               className="patient-chat-pagination-button"
-              disabled={!phoneVerified || listPage >= roomPageCount - 1}
+              disabled={
+                !phoneVerified ||
+                (roomPagination
+                  ? Boolean(roomPagination.isLoading || !canGoToNextRoomPage)
+                  : listPage >= roomPageCount - 1)
+              }
               type="button"
-              onClick={() => setListPage((page) => Math.min(roomPageCount - 1, page + 1))}
+              onClick={handleNextRoomPage}
             >
               다음
             </button>
@@ -471,7 +596,7 @@ export default function PatientChatView({
 
         <section className="patient-chat-panel" aria-label={title}>
           <header className="patient-chat-header">
-            <h2 className="patient-chat-current-title">{selectedRoom?.name ?? ''}</h2>
+            <h2 className="patient-chat-current-title">{selectedRoomName}</h2>
             <div className="patient-chat-header-actions">
               <button
                 ref={emergencyTargetRef}
@@ -490,9 +615,50 @@ export default function PatientChatView({
               ref={messageListRef}
               className="patient-chat-message-list"
               aria-live="polite"
-              aria-label={`${selectedRoom?.name ?? ''} 메시지`}
+              aria-label={`${selectedRoomName} 메시지`}
             >
-              {historyMessages.map((message) => {
+              {resolvedPhoneVerificationStatus === 'loading' && (
+                <p role="status">사용자 인증 정보를 확인하고 있습니다.</p>
+              )}
+              {resolvedPhoneVerificationStatus === 'error' && (
+                <div role="alert">
+                  <p>사용자 인증 정보를 불러오지 못했습니다.</p>
+                  {onRetryPhoneVerification && (
+                    <button type="button" onClick={onRetryPhoneVerification}>
+                      다시 시도
+                    </button>
+                  )}
+                </div>
+              )}
+              {resolvedPhoneVerificationStatus === 'unverified' && (
+                <p role="status">친구 채팅을 사용하려면 전화번호 인증이 필요합니다.</p>
+              )}
+              {e2eeStatus === 'loading' && (
+                <p role="status">암호화 키를 준비하고 있습니다.</p>
+              )}
+              {e2eeStatus === 'error' && (
+                <div role="alert">
+                  <p>{e2eeError}</p>
+                  <button type="button" onClick={retryE2ee}>
+                    다시 시도
+                  </button>
+                </div>
+              )}
+              {selectedRoomPreparation.status === 'loading' && (
+                <p role="status">채팅방을 준비하고 있습니다.</p>
+              )}
+              {selectedRoomPreparation.status === 'error' && selectedRoom && (
+                <div role="alert">
+                  <p>{selectedRoomPreparation.error}</p>
+                  <button type="button" onClick={() => void prepareRoom(selectedRoom)}>
+                    다시 시도
+                  </button>
+                </div>
+              )}
+              {selectedRoomPreparation.status === 'unavailable' && (
+                <p role="status">메시지를 보낼 채팅방을 선택해주세요.</p>
+              )}
+              {selectedRoomMessages.map((message) => {
                 const formattedTime = formatChatTime(message.createdAt);
 
                 return (
@@ -537,11 +703,11 @@ export default function PatientChatView({
               ref={messageSendTargetRef}
               aria-label="메시지 보내기"
               className="patient-chat-message-entry"
-              disabled={!isMessageEntryEnabled(selectedRoom)}
+              disabled={!canSendMessage}
               type="button"
               onClick={handleMessageSend}
             >
-              <span>메 시 지&nbsp; 보 내 기</span>
+              <span>{messageEntryLabel}</span>
             </button>
             <button
               ref={settingsTargetRef}

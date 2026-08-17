@@ -7,6 +7,7 @@ export interface ChatMessage {
   text: string;
   direction: ChatMessageDirection;
   createdAt: string | null;
+  senderDisplayName?: string;
 }
 
 export interface ChatRoom {

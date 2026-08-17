@@ -145,13 +145,12 @@
 
 .patient-chat-sidebar-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.patient-chat-link-action,
-.patient-chat-search-action {
+.patient-chat-link-action {
   display: flex;
+  width: 100%;
   min-height: 72px;
   align-items: center;
   justify-content: center;
@@ -168,12 +167,6 @@
   text-decoration: none;
 }
 
-.patient-chat-search-action {
-  border-color: #d1d5db;
-  background: #d9d9d9;
-  color: #4b5563;
-}
-
 .patient-chat-link-action {
   background: #ffffff;
 }
@@ -183,20 +176,7 @@
   background: #f2f2f2;
 }
 
-.patient-chat-search-action:hover {
-  background: #c7c7c7;
-}
-
-.patient-chat-search-action:disabled {
-  border-color: #d1d5db;
-  background: #d9d9d9;
-  color: #6b7280;
-  cursor: not-allowed;
-  opacity: 1;
-}
-
 .patient-chat-link-action:focus-visible,
-.patient-chat-search-action:focus-visible,
 .patient-chat-room-card:focus-visible,
 .patient-chat-pagination-button:focus-visible,
 .patient-chat-emergency-button:focus-visible,
@@ -569,12 +549,7 @@
     width: 185px;
   }
 
-  .patient-chat-sidebar-actions {
-    gap: 10px;
-  }
-
-  .patient-chat-link-action,
-  .patient-chat-search-action {
+  .patient-chat-link-action {
     min-height: 64px;
     font-size: 19px;
   }
@@ -658,10 +633,6 @@
   .patient-chat-composer {
     padding-right: 20px;
     padding-left: 20px;
-  }
-
-  .patient-chat-sidebar-actions {
-    grid-template-columns: 1fr;
   }
 
   .patient-chat-composer {

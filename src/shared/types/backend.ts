@@ -118,6 +118,7 @@ export interface StaffAssignedPatientDto {
   loginId: string;
   name: string | null;
   displayName: string;
+  patientAlias: string | null;
   assignedAt: string;
 }
 
@@ -131,7 +132,7 @@ export interface SmsFriendshipDto {
 // chat room list API
 export interface HospitalChatRoomTargetDto {
   type: string;
-  userId: string;
+  userId: string | null;
   name: string;
   displayName: string | null;
   phone: string | null;
@@ -192,7 +193,7 @@ export interface EncryptedPayloadDto {
 export interface ChatRoomMessageDto {
   messageId: number;
   senderParticipantId: number;
-  senderUserId: string;
+  senderUserId: string | null;
   senderDisplayName: string;
   encryptedPayload: EncryptedPayloadDto;
   messageType: string;
@@ -226,24 +227,47 @@ export interface SendChatRoomMessageDataDto {
   createdAt: string;
 }
 
-// GET /api/e2ee/keys/me (E2EE-002) — MemoPage가 이미 fetch로 직접 호출하던 것과 동일한
-// 계약을 Chat도 재사용한다(Front Step 14).
-export interface E2eeKeyStatusResponseDto {
+export interface CurrentUserDto {
+  userId: string;
+  loginId: string;
+  email: string;
+  name: string | null;
+  displayName: string;
+  phone: string | null;
+  emailVerified: boolean;
+  smsVerified: boolean;
+  role: 'PATIENT' | 'STAFF';
+}
+
+export interface E2eeUserPublicKeyDto {
+  userId: string;
+  keyVersion: number;
+  publicKey: string;
+}
+
+export interface E2eeKeyStatusDto {
   registered: boolean;
   keyVersion: number | null;
   publicKey: string | null;
 }
 
-// POST /api/e2ee/keys (E2EE-001)
-export interface E2eeKeyRegisterResponseDto {
+export interface E2eeKeyRegisterDto {
   keyVersion: number;
 }
 
-// GET /api/e2ee/users/{userId}/public-key (E2EE-003)
-export interface E2eeUserPublicKeyResponseDto {
-  userId: string;
-  keyVersion: number;
-  publicKey: string;
+export interface ChatMessageCreatedEventDataDto {
+  messageId: number;
+  senderParticipantId: number;
+  senderUserId: string;
+  senderDisplayName: string;
+  encryptedPayload: EncryptedPayloadDto;
+  createdAt: string;
+}
+
+export interface ChatWebSocketEventDto {
+  type: 'MESSAGE_CREATED';
+  roomId: number;
+  data: ChatMessageCreatedEventDataDto;
 }
 
 export interface ApiResponse<T> {

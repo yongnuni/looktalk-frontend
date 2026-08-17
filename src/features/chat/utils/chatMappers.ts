@@ -79,7 +79,7 @@ export function mapHospitalChatRoomDtoToChatRoom(room: HospitalChatRoomDto): Cha
     name: room.target.displayName ?? room.target.name ?? `Chat room ${room.roomId}`,
     icon: 'person',
     messages: [],
-    targetUserId: room.target.userId,
+    targetUserId: room.target.userId ?? undefined,
   };
 }
 
@@ -96,7 +96,8 @@ export async function mapChatRoomMessageDtoToChatMessage(
   let text: string;
 
   try {
-    text = await decryptMemo(message.encryptedPayload);
+    if (!currentUserId) throw new Error('currentUserId가 없어 메시지를 복호화할 수 없습니다.');
+    text = await decryptMemo(message.encryptedPayload, currentUserId);
   } catch (error) {
     console.error(`메시지 복호화 실패 messageId=${message.messageId}`, error);
     text = '복호화할 수 없는 메시지입니다.';
