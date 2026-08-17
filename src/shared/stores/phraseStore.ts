@@ -6,9 +6,12 @@ export const MAX_PHRASES = 3;
 
 interface PhraseState {
   phrases: Phrase[];
+
   /** 최대 개수 초과 시 가장 오래된 문장부터 삭제 */
   addPhrase: (text: string) => void;
+
   removePhrase: (id: number) => void;
+
   clearPhrases: () => void;
 }
 
@@ -17,12 +20,18 @@ export const usePhraseStore = create<PhraseState>((set) => ({
 
   addPhrase: (text) =>
     set((state) => {
-      const next = [
-        ...state.phrases,
-        { id: Date.now(), text, createdAt: Date.now() },
-      ];
+      const newPhrase: Phrase = {
+        id: Date.now(),
+        text,
+        category: null,
+        createdAt: new Date().toISOString(),
+      };
 
-      return { phrases: next.slice(-MAX_PHRASES) };
+      const next = [...state.phrases, newPhrase];
+
+      return {
+        phrases: next.slice(-MAX_PHRASES),
+      };
     }),
 
   removePhrase: (id) =>
@@ -30,5 +39,8 @@ export const usePhraseStore = create<PhraseState>((set) => ({
       phrases: state.phrases.filter((phrase) => phrase.id !== id),
     })),
 
-  clearPhrases: () => set({ phrases: [] }),
+  clearPhrases: () =>
+    set({
+      phrases: [],
+    }),
 }));

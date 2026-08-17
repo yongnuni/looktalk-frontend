@@ -1,247 +1,498 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===========================
+   Page
+=========================== */
+
 .analysis-page {
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+
   background: #ffffff;
   color: #171717;
+
+  overflow: hidden;
 }
+
+/* ===========================
+   Shell
+=========================== */
 
 .analysis-shell {
+  width: 100%;
+  height: 100%;
+
   display: flex;
-  width: min(100%, 1440px);
-  min-height: 100vh;
   flex-direction: column;
-  margin: 0 auto;
+
+  background: #ffffff;
+
+  overflow: hidden;
 }
 
+/* ===========================
+   Header
+=========================== */
+
 .analysis-header {
+  height: clamp(80px, 7vw, 95px);
+
   display: flex;
-  min-height: 116px;
-  flex: 0 0 auto;
   align-items: center;
-  gap: clamp(12px, 1.2vw, 20px);
-  padding: 12px clamp(20px, 3vw, 42px);
-  border-bottom: 1px solid #dedede;
+
+  flex-shrink: 0;
+
+  gap: clamp(10px, 1vw, 18px);
+
+  padding: 0 clamp(14px, 1vw, 30px);
+
+  border-bottom: 1px solid #d9d9d9;
+
   background: #ffffff;
 }
+
+/* ===========================
+   Brand
+=========================== */
 
 .analysis-header__brand {
   display: inline-flex;
-  width: clamp(180px, 15vw, 240px);
-  height: 100px;
-  flex: 0 0 auto;
+
+  width: clamp(80px, 3.2vw, 160px);
+  height: auto;
+
+  flex-shrink: 0;
+
   align-items: center;
   justify-content: center;
+
   color: #171717;
+
   text-decoration: none;
 }
 
 .analysis-header__brand-image {
   display: block;
+
   width: 100%;
-  height: 100%;
+  height: auto;
+
   object-fit: contain;
 }
 
+/* ===========================
+   Navigation
+=========================== */
+
 .analysis-header__navigation {
-  display: flex;
   min-width: 0;
-  flex: 1 1 auto;
+
+  display: flex;
+
+  flex: 1;
+
   align-items: center;
-  gap: clamp(10px, 1vw, 20px);
+
+  gap: clamp(10px, 1vw, 18px);
 }
+
+/* ===========================
+   Button Common
+=========================== */
 
 .analysis-icon-button,
 .analysis-header-button,
 .analysis-control-button {
   box-sizing: border-box;
+
   font: inherit;
+
   cursor: pointer;
 }
 
+/* ===========================
+   Icon Button
+=========================== */
+
 .analysis-icon-button {
   display: inline-flex;
-  flex: 0 0 auto;
+
   align-items: center;
   justify-content: center;
+
+  flex-shrink: 0;
+
   padding: 0;
-  border: 0;
+
+  border: none;
+
   background: transparent;
+
+  transition:
+    transform 0.2s,
+    filter 0.2s;
 }
+
+.analysis-icon-button:hover {
+  filter: brightness(0.96);
+
+  transform: scale(1.05);
+}
+
+/* ===========================
+   Setting
+=========================== */
 
 .analysis-icon-button--settings {
-  width: 76px;
-  height: 76px;
+  width: clamp(64px, 4.5vw, 86px);
+  height: clamp(64px, 4.5vw, 86px);
+
+  transform: translateX(-18px);
 }
 
-.analysis-icon-button--emergency {
-  width: 88px;
-  height: 88px;
+.analysis-icon-button--settings:hover {
+  transform: translateX(-20px) scale(1.05);
+}
+
+/* ===========================
+   Emergency
+=========================== */
+
+.analysis-header .emergency-call-button {
   margin-left: auto;
+  margin-right: 50px;
+
+  transform: translateX(40px);
+}
+
+.analysis-header .emergency-call-button:hover {
+  transform: translateX(40px) scale(1.05);
 }
 
 .analysis-icon-button img {
   display: block;
+
   width: 100%;
   height: 100%;
+
+  border-radius: 16px;
+
   object-fit: contain;
 }
 
+/* ===========================
+   Header Button
+=========================== */
+
 .analysis-header-button {
-  min-height: 58px;
-  padding: 12px clamp(16px, 1.5vw, 24px);
-  border: 2px solid #888888;
+  min-height: clamp(48px, 4vw, 60px);
+
+  padding: clamp(9px, 0.8vw, 12px) clamp(14px, 1.2vw, 22px);
+
+  border: 1px solid #888888;
   border-radius: 12px;
+
   background: #ffffff;
+
   color: #222222;
-  font-size: clamp(18px, 1.35vw, 23px);
+
+  font-size: clamp(18px, 1.2vw, 24px);
   font-weight: 700;
+
   letter-spacing: -0.04em;
+
   line-height: 1.2;
+
   white-space: nowrap;
-  transition: border-color 140ms ease, background-color 140ms ease;
+
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    transform 0.2s;
 }
 
 .analysis-header-button:hover {
-  border-color: #4f4f4f;
-  background: #f7fbff;
+  border-color: #6d6d6d;
+
+  background-color: #e0e0e0;
+
+  transform: translateY(-1px);
 }
 
-.analysis-icon-button:hover,
-.analysis-control-button:hover {
-  filter: brightness(0.96);
-}
+/* ===========================
+   Focus
+=========================== */
 
 .analysis-icon-button:focus-visible,
 .analysis-header-button:focus-visible,
 .analysis-control-button:focus-visible {
   outline: 4px solid #2563eb;
+
   outline-offset: 4px;
 }
 
+/* ===========================
+   Intro
+=========================== */
+
 .analysis-intro {
   display: flex;
-  flex: 0 0 auto;
+
+  flex-shrink: 0;
+
   flex-direction: column;
+
   align-items: center;
-  padding: clamp(32px, 3vw, 48px) 24px clamp(24px, 2.5vw, 36px);
+
+  padding: clamp(20px, 2vw, 30px) 20px clamp(10px, 1vw, 18px);
+
   text-align: center;
 }
 
+/* ===========================
+   Recommendation
+=========================== */
+
 .analysis-intro__recommendation {
   display: flex;
+
   align-items: center;
   justify-content: center;
-  gap: clamp(16px, 1.5vw, 26px);
+
+  gap: clamp(10px, 1vw, 18px);
+
   margin: 0;
+
   color: #398ee9;
-  font-size: clamp(28px, 2.25vw, 42px);
+
+  font-size: clamp(28px, 2vw, 38px);
   font-weight: 800;
+
   letter-spacing: -0.055em;
+
   line-height: 1.25;
 }
 
+/* ===========================
+   Robot
+=========================== */
+
 .analysis-intro__robot {
   display: block;
-  width: clamp(58px, 4.5vw, 82px);
-  height: clamp(82px, 6.4vw, 116px);
-  flex: 0 0 auto;
+
+  width: clamp(52px, 4vw, 76px);
+  height: clamp(72px, 5vw, 100px);
+
+  flex-shrink: 0;
+
   object-fit: contain;
 }
 
+/* ===========================
+   Current
+=========================== */
+
 .analysis-intro__current {
-  margin: 8px 0 0;
+  margin-top: 6px;
+
   color: #111111;
-  font-size: clamp(24px, 1.9vw, 34px);
+
+  font-size: clamp(24px, 1.8vw, 34px);
   font-weight: 700;
+
   letter-spacing: -0.045em;
+
   line-height: 1.3;
 }
 
+/* ===========================
+   Metrics
+=========================== */
+
 .analysis-metrics {
+  width: 100%;
+
+  min-height: 0;
+
   display: grid;
-  width: min(100%, 1280px);
+
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: start;
-  gap: clamp(24px, 3vw, 54px);
-  margin: 0 auto;
-  padding: 0 clamp(24px, 3vw, 42px);
+
+  align-items: center;
+
+  gap: clamp(24px, 3vw, 48px);
+
+  flex: 1;
+
+  padding: clamp(22px, 2.2vw, 34px) clamp(24px, 3vw, 40px) 0;
 }
 
+/* ===========================
+   Metric
+=========================== */
+
 .analysis-metric {
-  display: flex;
   min-width: 0;
+  min-height: 0;
+
+  display: flex;
+
   flex-direction: column;
+
   align-items: center;
+  justify-content: center;
 }
+
+/* ===========================
+   Donut
+=========================== */
 
 .analysis-metric-donut {
   --analysis-metric-value: 0%;
+
   position: relative;
-  display: flex;
+
+  width: clamp(150px, 13vw, 220px);
+
   aspect-ratio: 1;
-  width: min(100%, 238px);
+
+  display: flex;
+
   align-items: center;
   justify-content: center;
+
+  flex-shrink: 0;
+
   border-radius: 50%;
+
   background: conic-gradient(#91ddce var(--analysis-metric-value), #e8ecec 0);
 }
 
 .analysis-metric-donut::after {
   position: absolute;
+
   inset: 14%;
+
   border-radius: 50%;
+
   background: #ffffff;
+
   content: '';
 }
 
 .analysis-metric-donut__center {
   position: relative;
+
   z-index: 1;
+
   display: flex;
+
   align-items: center;
   justify-content: center;
 }
 
 .analysis-metric-donut__center strong {
   color: #152238;
-  font-size: clamp(30px, 2.35vw, 42px);
+
+  font-size: clamp(28px, 2vw, 40px);
   font-weight: 800;
+
   letter-spacing: -0.055em;
+
   line-height: 1;
 }
 
+/* ===========================
+   Metric Label
+=========================== */
+
 .analysis-metric-label {
-  margin-top: clamp(18px, 1.5vw, 24px);
+  margin-top: clamp(14px, 1.4vw, 22px);
+
   color: #252525;
-  font-size: clamp(22px, 1.7vw, 30px);
+
+  font-size: clamp(22px, 1.6vw, 30px);
   font-weight: 700;
+
   letter-spacing: -0.05em;
+
   line-height: 1.25;
+
   text-align: center;
+
   white-space: nowrap;
 }
 
+/* ===========================
+   Controls
+=========================== */
+
 .analysis-controls {
-  display: grid;
   width: 100%;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: end;
-  gap: 24px;
-  margin-top: auto;
-  padding: clamp(32px, 3vw, 48px) clamp(20px, 3vw, 42px) clamp(24px, 2vw, 32px);
+
+  height: clamp(80px, 7vw, 110px);
+
+  display: grid;
+
+  grid-template-columns:
+    1fr
+    auto
+    1fr;
+
+  align-items: center;
+
+  flex-shrink: 0;
+
+  gap: clamp(14px, 2vw, 24px);
+
+  padding: 0 clamp(30px, 3vw, 42px);
 }
+
+/* ===========================
+   Control Button
+=========================== */
 
 .analysis-control-button {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   padding: 0;
-  border: 0;
+
+  border: none;
+
   background: transparent;
+
+  transition:
+    transform 0.2s,
+    filter 0.2s;
 }
 
+.analysis-control-button:hover {
+  filter: brightness(0.96);
+
+  transform: scale(1.06);
+}
+
+/* ===========================
+   Arrow
+=========================== */
+
 .analysis-control-button--arrow {
-  width: clamp(68px, 5.6vw, 92px);
-  height: clamp(68px, 5.7vw, 94px);
+  width: clamp(64px, 5vw, 90px);
+  height: clamp(64px, 5vw, 90px);
 }
 
 .analysis-control-button--arrow:first-child {
@@ -252,182 +503,186 @@
   justify-self: end;
 }
 
+/* ===========================
+   Keyboard
+=========================== */
+
 .analysis-control-button--keyboard {
-  width: clamp(190px, 15vw, 250px);
-  height: clamp(89px, 7vw, 117px);
+  width: clamp(160px, 13vw, 220px);
+  height: clamp(70px, 5vw, 90px);
+
   justify-self: center;
 }
 
 .analysis-control-button img {
   display: block;
+
   width: 100%;
   height: 100%;
+
   object-fit: contain;
 }
 
+/* ===========================
+   Modal Supporting Text
+=========================== */
+
 .analysis-modal-supporting-text {
-  margin-top: 24px;
+  margin-top: 20px;
+
   color: #667085;
+
   font-size: 0.78em;
 }
 
+/* ===========================
+   1600px
+=========================== */
+
 @media (max-width: 1600px) {
-  .analysis-header,
-  .analysis-metrics,
-  .analysis-controls {
-    padding-right: 34px;
-    padding-left: 34px;
+  .analysis-intro__recommendation {
+    font-size: 34px;
+  }
+
+  .analysis-intro__current {
+    font-size: 30px;
   }
 
   .analysis-metrics {
-    gap: 44px;
+    gap: 36px;
+
+    padding-top: 28px;
+  }
+
+  .analysis-metric-donut {
+    width: 200px;
+  }
+
+  .analysis-metric-label {
+    font-size: 26px;
   }
 }
+
+/* ===========================
+   1400px
+=========================== */
 
 @media (max-width: 1400px) {
   .analysis-header {
-    gap: 16px;
-  }
-
-  .analysis-intro {
-    padding: 36px 24px 30px;
-  }
-
-  .analysis-metrics {
-    gap: 32px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .analysis-header {
-    min-height: 108px;
-    gap: 12px;
-    padding-inline: 24px;
-  }
-
-  .analysis-header__brand {
-    width: 180px;
     height: 82px;
   }
 
-  .analysis-header__navigation {
-    gap: 10px;
+  .analysis-header__brand {
+    width: 120px;
   }
 
   .analysis-icon-button--settings {
-    width: 64px;
-    height: 64px;
+    width: 72px;
+    height: 72px;
   }
 
   .analysis-icon-button--emergency {
-    width: 74px;
-    height: 74px;
+    width: 72px;
+    height: 72px;
   }
 
   .analysis-header-button {
-    min-height: 52px;
-    padding: 10px 16px;
+    min-height: 50px;
+
+    padding: 9px 15px;
+
     font-size: 18px;
   }
 
-  .analysis-metrics {
-    gap: 24px;
-    padding-inline: 32px;
+  .analysis-intro {
+    padding: 18px 18px 10px;
   }
 
-  .analysis-controls {
-    padding-right: 28px;
-    padding-left: 28px;
+  .analysis-intro__recommendation {
+    font-size: 30px;
+  }
+
+  .analysis-intro__robot {
+    width: 52px;
+    height: 72px;
+  }
+
+  .analysis-intro__current {
+    font-size: 27px;
+  }
+
+  .analysis-metrics {
+    gap: 28px;
+
+    padding: 24px 30px 0;
+  }
+
+  .analysis-metric-donut {
+    width: 180px;
+  }
+
+  .analysis-metric-label {
+    margin-top: 14px;
+
+    font-size: 24px;
+  }
+
+  .analysis-control-button--arrow {
+    width: 72px;
+    height: 72px;
+  }
+
+  .analysis-control-button--keyboard {
+    width: 190px;
+    height: 76px;
   }
 }
 
-@media (max-width: 1024px) {
-  .analysis-header {
-    min-height: 96px;
-    gap: 10px;
-    padding: 10px 20px;
-  }
+/* ===========================
+   1200px
+=========================== */
 
-  .analysis-header__brand {
-    width: 160px;
+@media (max-width: 1200px) {
+  .analysis-header {
     height: 76px;
   }
 
+  .analysis-header__brand {
+    width: 90px;
+  }
+
+  .analysis-header__navigation {
+    gap: 8px;
+  }
+
   .analysis-icon-button--settings {
-    width: 56px;
-    height: 56px;
+    width: 68px;
+    height: 68px;
   }
 
   .analysis-icon-button--emergency {
     width: 68px;
     height: 68px;
+
+    margin-right: 16px;
   }
 
   .analysis-header-button {
-    min-height: 48px;
-    padding: 10px clamp(10px, 1.2vw, 14px);
-    font-size: clamp(15px, 1.7vw, 17px);
+    min-height: 46px;
+
+    padding: 8px 12px;
+
+    font-size: 16px;
   }
 
   .analysis-intro {
-    padding-top: 28px;
+    padding: 16px 16px 8px;
   }
 
   .analysis-intro__recommendation {
-    gap: 12px;
-    font-size: clamp(24px, 4vw, 36px);
-  }
-
-  .analysis-intro__current {
-    font-size: clamp(20px, 3vw, 28px);
-  }
-
-  .analysis-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 44px 28px;
-    padding-inline: 26px;
-  }
-
-  .analysis-metric-donut {
-    width: min(100%, 210px);
-  }
-
-  .analysis-controls {
-    padding-inline: 24px;
-  }
-}
-
-@media (max-width: 680px) {
-  .analysis-header {
-    flex-wrap: wrap;
-    padding: 10px 16px 16px;
-  }
-
-  .analysis-header__brand {
-    width: 168px;
-  }
-
-  .analysis-header__navigation {
-    order: 3;
-    flex-basis: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .analysis-icon-button--settings {
-    align-self: center;
-  }
-
-  .analysis-header-button {
-    width: 100%;
-    font-size: 16px;
-    white-space: normal;
-  }
-
-  .analysis-intro__recommendation {
-    align-items: center;
     gap: 8px;
-    font-size: clamp(22px, 5.6vw, 28px);
+
+    font-size: 28px;
   }
 
   .analysis-intro__robot {
@@ -435,37 +690,428 @@
     height: 68px;
   }
 
+  .analysis-intro__current {
+    font-size: 24px;
+  }
+
   .analysis-metrics {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 40px;
-    padding-inline: 18px;
+    gap: 20px;
+
+    padding: 20px 24px 0;
   }
 
   .analysis-metric-donut {
-    width: min(100%, 210px);
+    width: 160px;
   }
 
   .analysis-metric-donut__center strong {
-    font-size: 27px;
+    font-size: 30px;
   }
 
   .analysis-metric-label {
-    margin-top: 14px;
+    margin-top: 12px;
+
+    font-size: 21px;
+  }
+
+  .analysis-controls {
+    height: 90px;
+
+    padding: 0 24px;
+  }
+
+  .analysis-control-button--arrow {
+    width: 64px;
+    height: 64px;
+  }
+
+  .analysis-control-button--keyboard {
+    width: 180px;
+    height: 70px;
+  }
+}
+
+/* ===========================
+   1024px
+=========================== */
+
+@media (max-width: 1024px) {
+  .analysis-header {
+    height: 72px;
+  }
+
+  .analysis-header__brand {
+    width: 80px;
+  }
+
+  .analysis-header__navigation {
+    gap: 6px;
+  }
+
+  .analysis-icon-button--settings {
+    width: 60px;
+    height: 60px;
+  }
+
+  .analysis-icon-button--emergency {
+    width: 60px;
+    height: 60px;
+
+    margin-right: 10px;
+  }
+
+  .analysis-header-button {
+    min-height: 42px;
+
+    padding: 7px 9px;
+
+    font-size: 14px;
+  }
+
+  .analysis-intro {
+    padding: 14px 12px 8px;
+  }
+
+  .analysis-intro__recommendation {
+    gap: 7px;
+
+    font-size: 24px;
+  }
+
+  .analysis-intro__robot {
+    width: 44px;
+    height: 62px;
+  }
+
+  .analysis-intro__current {
+    font-size: 21px;
+  }
+
+  .analysis-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 16px;
+
+    padding: 16px 20px 0;
+  }
+
+  .analysis-metric-donut {
+    width: 140px;
+  }
+
+  .analysis-metric-donut__center strong {
+    font-size: 26px;
+  }
+
+  .analysis-metric-label {
+    margin-top: 12px;
+
+    font-size: 18px;
+  }
+
+  .analysis-controls {
+    height: 88px;
+
+    padding: 0 20px;
+  }
+
+  .analysis-control-button--arrow {
+    width: 56px;
+    height: 56px;
+  }
+
+  .analysis-control-button--keyboard {
+    width: 155px;
+    height: 66px;
+  }
+}
+
+/* ===========================
+   Tablet
+=========================== */
+
+@media (max-width: 768px) {
+  .analysis-page {
+    height: auto;
+
+    min-height: 100vh;
+
+    overflow-y: auto;
+  }
+
+  .analysis-shell {
+    height: auto;
+
+    min-height: 100vh;
+
+    overflow: visible;
+  }
+
+  .analysis-header {
+    height: auto;
+
+    min-height: 72px;
+
+    flex-wrap: wrap;
+
+    padding: 10px 14px;
+  }
+
+  .analysis-header__brand {
+    width: 90px;
+  }
+
+  .analysis-icon-button--settings {
+    width: 60px;
+    height: 60px;
+  }
+
+  .analysis-icon-button--emergency {
+    width: 64px;
+    height: 64px;
+
+    margin-right: 0;
+  }
+
+  .analysis-header__navigation {
+    order: 3;
+
+    width: 100%;
+
+    flex-basis: 100%;
+
+    justify-content: center;
+
+    flex-wrap: wrap;
+  }
+
+  .analysis-header-button {
+    flex: 1 1 30%;
+
+    min-width: 110px;
+
+    white-space: normal;
+
+    font-size: 15px;
+  }
+
+  .analysis-intro {
+    padding: 18px 14px 12px;
+  }
+
+  .analysis-intro__recommendation {
+    font-size: 23px;
+  }
+
+  .analysis-intro__current {
+    font-size: 20px;
+  }
+
+  .analysis-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 32px 20px;
+
+    flex: none;
+
+    padding: 24px 20px;
+  }
+
+  .analysis-metric-donut {
+    width: 170px;
+  }
+
+  .analysis-metric-label {
     font-size: 20px;
   }
 
   .analysis-controls {
-    gap: 10px;
-    padding: 36px 16px 24px;
+    height: 100px;
+
+    margin-top: 20px;
+  }
+}
+
+/* ===========================
+   Mobile
+=========================== */
+
+@media (max-width: 560px) {
+  .analysis-header {
+    gap: 8px;
+
+    padding: 10px 12px;
+  }
+
+  .analysis-header__brand {
+    width: 78px;
+  }
+
+  .analysis-icon-button--settings {
+    width: 52px;
+    height: 52px;
+  }
+
+  .analysis-icon-button--emergency {
+    width: 56px;
+    height: 56px;
+  }
+
+  .analysis-header__navigation {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .analysis-header-button {
+    width: 100%;
+
+    min-width: 0;
+
+    font-size: 15px;
+  }
+
+  .analysis-intro {
+    padding: 16px 12px 10px;
+  }
+
+  .analysis-intro__recommendation {
+    gap: 6px;
+
+    font-size: 21px;
+  }
+
+  .analysis-intro__robot {
+    width: 42px;
+    height: 58px;
+  }
+
+  .analysis-intro__current {
+    font-size: 18px;
+  }
+
+  .analysis-metrics {
+    grid-template-columns: 1fr;
+
+    gap: 34px;
+
+    padding: 22px 16px;
+  }
+
+  .analysis-metric-donut {
+    width: 180px;
+  }
+
+  .analysis-metric-donut__center strong {
+    font-size: 28px;
+  }
+
+  .analysis-metric-label {
+    margin-top: 12px;
+
+    font-size: 20px;
+  }
+
+  .analysis-controls {
+    height: 90px;
+
+    gap: 8px;
+
+    padding: 0 14px;
   }
 
   .analysis-control-button--arrow {
-    width: 58px;
-    height: 59px;
+    width: 50px;
+    height: 50px;
   }
 
   .analysis-control-button--keyboard {
-    width: 154px;
-    height: 72px;
+    width: 140px;
+    height: 62px;
+  }
+}
+
+/* ===========================
+   Ultra Wide
+=========================== */
+
+@media (min-width: 2200px) {
+  .analysis-header {
+    height: 110px;
+  }
+
+  .analysis-header__brand {
+    width: 180px;
+  }
+
+  .analysis-icon-button--settings {
+    width: 95px;
+    height: 95px;
+  }
+
+  .analysis-icon-button--emergency {
+    width: 95px;
+    height: 95px;
+  }
+
+  .analysis-header-button {
+    min-height: 68px;
+
+    padding: 14px 26px;
+
+    font-size: 28px;
+  }
+
+  .analysis-intro {
+    padding: 30px 24px 18px;
+  }
+
+  .analysis-intro__recommendation {
+    font-size: 46px;
+  }
+
+  .analysis-intro__robot {
+    width: 86px;
+    height: 118px;
+  }
+
+  .analysis-intro__current {
+    font-size: 36px;
+  }
+
+  .analysis-metrics {
+    gap: 60px;
+
+    padding: 40px 60px 0;
+  }
+
+  .analysis-metric-donut {
+    width: 260px;
+  }
+
+  .analysis-metric-donut__center strong {
+    font-size: 48px;
+  }
+
+  .analysis-metric-label {
+    margin-top: 24px;
+
+    font-size: 34px;
+  }
+
+  .analysis-controls {
+    height: 150px;
+
+    padding: 0 60px;
+  }
+
+  .analysis-control-button--arrow {
+    width: 90px;
+    height: 90px;
+  }
+
+  .analysis-control-button--keyboard {
+    width: 260px;
+    height: 110px;
   }
 }
