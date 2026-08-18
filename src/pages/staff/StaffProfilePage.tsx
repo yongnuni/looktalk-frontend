@@ -1,25 +1,53 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import PageHeader from '../../shared/components/layout/PageHeader';
 import StaffHeaderActions from '../../shared/components/layout/StaffHeaderActions';
 import StaffEmergencyAlert from '../../features/emergency/components/StaffEmergencyAlert';
 import { AlertModal, InputModal } from '../../shared/components/modal';
+import { getStaffMe } from '../../features/mypage/api/staffProfile';
+import { updateMyName } from '../../features/mypage/api/user';
 import { useStaffProfileStore } from '../../shared/stores/staffProfileStore';
 import { ROUTES } from '../../shared/constants/routes';
 
 import './StaffProfilePage.css';
 
-type NameModal = 'none' | 'edit' | 'done';
+type NameModal = 'none' | 'edit' | 'done' | 'error';
 
 export default function StaffProfilePage() {
   const name = useStaffProfileStore((state) => state.name);
   const email = useStaffProfileStore((state) => state.email);
   const hospitalName = useStaffProfileStore((state) => state.hospitalName);
   const roleLabel = useStaffProfileStore((state) => state.roleLabel);
-  const setName = useStaffProfileStore((state) => state.setName);
+  const setProfile = useStaffProfileStore((state) => state.setProfile);
 
   const [modal, setModal] = useState<NameModal>('none');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      try {
+        const me = await getStaffMe();
+
+        if (!isMounted) return;
+
+        setProfile({
+          name: me.name ?? me.displayName,
+          email: me.email,
+          hospitalName: me.hospital.hospitalName,
+        });
+      } catch (error) {
+        console.error('의료진 정보 조회 실패:', error);
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setProfile]);
 
   return (
     <div className="staff-profile-page">
@@ -74,9 +102,22 @@ export default function StaffProfilePage() {
         confirmLabel="변경하기"
         fields={[{ name: 'name', placeholder: name, initialValue: name }]}
         onConfirm={(values) => {
-          // TODO : 의료진 이름 변경 API 호출
-          setName(values.name.trim());
-          setModal('done');
+          void (async () => {
+            try {
+              const updated = await updateMyName(values.name.trim());
+
+              setProfile({
+                name: updated.name ?? updated.displayName,
+                email,
+                hospitalName,
+              });
+
+              setModal('done');
+            } catch (error) {
+              console.error('이름 변경 실패:', error);
+              setModal('error');
+            }
+          })();
         }}
         onCancel={() => setModal('none')}
       />
@@ -84,6 +125,12 @@ export default function StaffProfilePage() {
       <AlertModal
         isOpen={modal === 'done'}
         message="이름이 변경되었습니다."
+        onConfirm={() => setModal('none')}
+      />
+
+      <AlertModal
+        isOpen={modal === 'error'}
+        message="이름 변경에 실패했습니다. 잠시 후 다시 시도해 주세요."
         onConfirm={() => setModal('none')}
       />
 

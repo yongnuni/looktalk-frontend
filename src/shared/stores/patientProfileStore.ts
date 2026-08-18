@@ -12,9 +12,8 @@ interface PatientProfileState {
   resetPhoneVerification: () => void;
 }
 
-// TODO : 로그인 시 서버 프로필 조회 결과로 초기화
 export const usePatientProfileStore = create<PatientProfileState>((set) => ({
-  hospitalNickname: '202호 - 김민준 환자',
+  hospitalNickname: '',
   phone: '',
   isPhoneVerified: false,
 

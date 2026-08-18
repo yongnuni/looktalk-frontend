@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { logout as logoutApi } from '../api/auth';
+import { deleteMyAccount } from '../api/user';
 import { useAuthStore } from '../../../shared/stores/authStore';
 
 type AccountModal =
@@ -34,16 +36,28 @@ export function useAccountModals({ redirectTo }: UseAccountModalsOptions) {
     openWithdraw: () => setModal('withdraw-confirm'),
     close,
 
-    confirmLogout: () => {
-      // TODO : 로그아웃 API 호출
+    confirmLogout: async () => {
+      try {
+        await logoutApi();
+      } catch (error) {
+        // Refresh Token 만료 등으로 로그아웃 API가 실패해도 클라이언트 세션은 정리한다.
+        console.error('로그아웃 실패:', error);
+      }
+
       logout();
       setModal('logout-done');
     },
 
-    confirmWithdraw: () => {
-      // TODO : 회원탈퇴 API 호출
-      logout();
-      setModal('withdraw-done');
+    confirmWithdraw: async () => {
+      try {
+        await deleteMyAccount();
+        logout();
+        setModal('withdraw-done');
+      } catch (error) {
+        console.error('회원탈퇴 실패:', error);
+        alert('회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        close();
+      }
     },
 
     finish: () => {
