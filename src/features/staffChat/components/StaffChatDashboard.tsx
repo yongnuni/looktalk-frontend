@@ -19,8 +19,9 @@ import { formatChatTime } from '../../chat/utils/formatChatTime';
 
 import StaffEmergencyAlert from '../../emergency/components/StaffEmergencyAlert';
 
+import { useStaffProfile } from '../../mypage/hooks/useStaffProfile';
+
 import { getMyAssignedPatients } from '../api/staffPatients';
-import { staffProfile } from '../mock/staffChatMock';
 import type { StaffPatientChat } from '../types/staffChat';
 
 import './StaffChatDashboard.css';
@@ -53,6 +54,8 @@ function toStaffPatientChat(
 
 export default function StaffChatDashboard() {
   const navigate = useNavigate();
+
+  const { name: staffName } = useStaffProfile();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -386,9 +389,7 @@ export default function StaffChatDashboard() {
             </div>
 
             <div className="staff-chat-profile">
-              <p>
-                {staffProfile.teamName}_{staffProfile.userName}
-              </p>
+              <p>{staffName}</p>
 
               <button
                 className="staff-chat-logout"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import PageHeader from '../../shared/components/layout/PageHeader';
@@ -12,12 +12,13 @@ import EmergencyButton from '../../features/emergency/components/EmergencyButton
 import { usePageScope } from '../../features/gazeInteraction/usePageScope';
 import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
 import { useAccountModals } from '../../features/mypage/hooks/useAccountModals';
+import { getMe, updateMyName } from '../../features/mypage/api/user';
 import { usePatientProfileStore } from '../../shared/stores/patientProfileStore';
 import { ROUTES } from '../../shared/constants/routes';
 
 import './MyPage.css';
 
-type NicknameModal = 'none' | 'edit' | 'done';
+type NicknameModal = 'none' | 'edit' | 'done' | 'error';
 
 export default function MyPage() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function MyPage() {
   const setHospitalNickname = usePatientProfileStore(
     (state) => state.setHospitalNickname,
   );
+  const verifyPhone = usePatientProfileStore((state) => state.verifyPhone);
   const isPhoneVerified = usePatientProfileStore(
     (state) => state.isPhoneVerified,
   );
@@ -37,6 +39,32 @@ export default function MyPage() {
   const [showPhoneRequired, setShowPhoneRequired] = useState(false);
 
   const account = useAccountModals({ redirectTo: ROUTES.LOGIN });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      try {
+        const me = await getMe();
+
+        if (!isMounted) return;
+
+        setHospitalNickname(me.name ?? me.displayName);
+
+        if (me.smsVerified && me.phone) {
+          verifyPhone(me.phone);
+        }
+      } catch (error) {
+        console.error('내 정보 조회 실패:', error);
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setHospitalNickname, verifyPhone]);
 
   const handleFriendListClick = () => {
     if (!isPhoneVerified) {
@@ -170,9 +198,17 @@ export default function MyPage() {
           },
         ]}
         onConfirm={(values) => {
-          // TODO : 병원 내 이름 변경 API 호출
-          setHospitalNickname(values.nickname.trim());
-          setNicknameModal('done');
+          void (async () => {
+            try {
+              const updated = await updateMyName(values.nickname.trim());
+
+              setHospitalNickname(updated.name ?? updated.displayName);
+              setNicknameModal('done');
+            } catch (error) {
+              console.error('이름 변경 실패:', error);
+              setNicknameModal('error');
+            }
+          })();
         }}
         onCancel={() => setNicknameModal('none')}
       />
@@ -180,6 +216,12 @@ export default function MyPage() {
       <AlertModal
         isOpen={nicknameModal === 'done'}
         message="이름이 변경되었습니다."
+        onConfirm={() => setNicknameModal('none')}
+      />
+
+      <AlertModal
+        isOpen={nicknameModal === 'error'}
+        message="이름 변경에 실패했습니다. 잠시 후 다시 시도해 주세요."
         onConfirm={() => setNicknameModal('none')}
       />
 

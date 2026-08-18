@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 import PageHeader from '../../shared/components/layout/PageHeader';
 import MenuCard from '../../shared/components/card/MenuCard';
@@ -14,6 +15,11 @@ import EmergencyButton from '../../features/emergency/components/EmergencyButton
 import { usePageScope } from '../../features/gazeInteraction/usePageScope';
 import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
 import { useFriendList } from '../../features/friend/hooks/useFriendList';
+import {
+  createSmsFriend,
+  deleteSmsFriend,
+  updateSmsFriend,
+} from '../../features/friend/api/friends';
 import { useFriendStore } from '../../shared/stores/friendStore';
 import { ROUTES } from '../../shared/constants/routes';
 import type { Friend } from '../../shared/types/mypage';
@@ -29,13 +35,25 @@ type FriendModal =
   | 'edit-confirm' // Frame 170
   | 'edited' // Frame 169
   | 'delete-confirm' // Frame 158
-  | 'deleted'; // Frame 159
+  | 'deleted' // Frame 159
+  | 'error';
+
+function getFriendErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const message = error.response?.data?.message;
+
+    if (typeof message === 'string' && message) return message;
+  }
+
+  return fallback;
+}
 
 export default function FriendListPage() {
   const navigate = useNavigate();
   usePageScope('MAIN');
 
-  const { visibleFriends, page, totalPages, goPrev, goNext } = useFriendList();
+  const { visibleFriends, page, totalPages, isLoading, hasError, goPrev, goNext } =
+    useFriendList();
 
   const addFriend = useFriendStore((state) => state.addFriend);
   const updateFriend = useFriendStore((state) => state.updateFriend);
@@ -44,6 +62,7 @@ export default function FriendListPage() {
   const [modal, setModal] = useState<FriendModal>('none');
   const [selected, setSelected] = useState<Friend | null>(null);
   const [pendingName, setPendingName] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const closeModal = () => setModal('none');
 
@@ -92,7 +111,13 @@ export default function FriendListPage() {
       />
 
       <main className="friend-content">
-        {visibleFriends.length === 0 ? (
+        {isLoading ? (
+          <p className="friend-empty">친구 목록을 불러오는 중입니다.</p>
+        ) : hasError ? (
+          <p className="friend-empty" role="alert">
+            친구 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+          </p>
+        ) : visibleFriends.length === 0 ? (
           <p className="friend-empty">
             아직 등록된 친구가 없습니다. 새 친구를 등록해 보세요.
           </p>
@@ -128,9 +153,27 @@ export default function FriendListPage() {
           { name: 'name', placeholder: '이름을 입력하세요.' },
         ]}
         onConfirm={(values) => {
-          // TODO : 친구 등록 API 호출
-          addFriend(values.name.trim(), values.phone.trim());
-          setModal('created');
+          void (async () => {
+            try {
+              const created = await createSmsFriend({
+                name: values.name.trim(),
+                phone: values.phone.trim(),
+              });
+
+              addFriend({
+                id: created.friendshipId,
+                name: created.name,
+                phone: created.phone,
+              });
+
+              setModal('created');
+            } catch (error) {
+              setErrorMessage(
+                getFriendErrorMessage(error, '친구 등록에 실패했습니다.'),
+              );
+              setModal('error');
+            }
+          })();
         }}
         onCancel={closeModal}
       />
@@ -138,6 +181,12 @@ export default function FriendListPage() {
       <AlertModal
         isOpen={modal === 'created'}
         message="새 친구가 등록되었습니다!"
+        onConfirm={closeModal}
+      />
+
+      <AlertModal
+        isOpen={modal === 'error'}
+        message={errorMessage}
         onConfirm={closeModal}
       />
 
@@ -185,9 +234,27 @@ export default function FriendListPage() {
         message="해당 친구를 수정하시겠습니까?"
         confirmLabel="수정하기"
         onConfirm={() => {
-          // TODO : 친구 수정 API 호출
-          if (selected) updateFriend(selected.id, pendingName);
-          setModal('edited');
+          void (async () => {
+            if (!selected) return;
+
+            try {
+              const updated = await updateSmsFriend(selected.id, {
+                name: pendingName,
+              });
+
+              updateFriend(selected.id, {
+                name: updated.name,
+                phone: updated.phone,
+              });
+
+              setModal('edited');
+            } catch (error) {
+              setErrorMessage(
+                getFriendErrorMessage(error, '친구 수정에 실패했습니다.'),
+              );
+              setModal('error');
+            }
+          })();
         }}
         onCancel={closeModal}
       />
@@ -205,9 +272,20 @@ export default function FriendListPage() {
         confirmLabel="삭제하기"
         confirmTone="negative"
         onConfirm={() => {
-          // TODO : 친구 삭제 API 호출
-          if (selected) removeFriend(selected.id);
-          setModal('deleted');
+          void (async () => {
+            if (!selected) return;
+
+            try {
+              await deleteSmsFriend(selected.id);
+              removeFriend(selected.id);
+              setModal('deleted');
+            } catch (error) {
+              setErrorMessage(
+                getFriendErrorMessage(error, '친구 삭제에 실패했습니다.'),
+              );
+              setModal('error');
+            }
+          })();
         }}
         onCancel={closeModal}
       />

@@ -8,14 +8,16 @@ interface StaffProfileState {
   roleLabel: string;
 
   setName: (name: string) => void;
+  setProfile: (profile: { name: string; email: string; hospitalName: string }) => void;
 }
 
-// TODO : 로그인 시 서버 프로필 조회 결과로 초기화
 export const useStaffProfileStore = create<StaffProfileState>((set) => ({
-  name: '환자관리팀_김철수',
-  email: 'cskim32@example.com',
-  hospitalName: '사랑이 가득한 병원',
+  name: '',
+  email: '',
+  hospitalName: '',
   roleLabel: '의료진',
 
   setName: (name) => set({ name }),
+
+  setProfile: ({ name, email, hospitalName }) => set({ name, email, hospitalName }),
 }));
