@@ -69,7 +69,7 @@ body,
 
   color: #222;
 
-  transform: translateX(-10px);
+  transform: translateX(15px);
 }
 
 /* ===========================
@@ -83,7 +83,7 @@ body,
   padding: 0;
 
   border: none;
-  border-radius: 20px;
+  border-radius: 16px;
 
   overflow: hidden;
 
@@ -94,6 +94,18 @@ body,
   margin-right: 22px;
 
   transition: transform 0.2s;
+}
+
+.memo-header .emergency-call-button {
+  transform: translateX(-10px);
+}
+
+.memo-header .emergency-call-button:hover {
+  transform: translateX(-10px) scale(1.05);
+}
+
+.memo-header .emergency-call-button:active {
+  transform: translateX(-10px) scale(0.96);
 }
 
 .emergency-button:hover {

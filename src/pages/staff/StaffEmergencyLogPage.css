@@ -1,5 +1,5 @@
 /* =========================================================
-   StaffEmergencyLogPage (Desktop - 104)
+   StaffEmergencyLogPage
 ========================================================= */
 
 .staff-emergency-page {
@@ -14,16 +14,48 @@
   overflow: hidden;
 }
 
+/* =========================================================
+   Emergency List
+========================================================= */
+
 .staff-emergency-list {
+  width: 100%;
+
   flex: 1;
+
+  min-height: 0;
 
   display: flex;
   flex-direction: column;
 
   overflow-y: auto;
+  overflow-x: hidden;
+
+  background: #ffffff;
 }
 
+/* 스크롤바 */
+.staff-emergency-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.staff-emergency-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+
+  background: #9c9c9c;
+}
+
+.staff-emergency-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* =========================================================
+   Emergency Row
+========================================================= */
+
 .staff-emergency-row {
+  width: 100%;
+
   min-height: clamp(84px, 7vw, 121px);
 
   display: flex;
@@ -35,6 +67,8 @@
 
   border-bottom: 1px solid #d9d9d9;
 
+  background: #ffffff;
+
   color: #1a1a1a;
 
   line-height: 1.4;
@@ -45,4 +79,197 @@
   font-weight: 500;
 
   flex-shrink: 0;
+}
+
+/* 마지막 내역 */
+.staff-emergency-row:last-child {
+  border-bottom: 1px solid #d9d9d9;
+}
+
+/* =========================================================
+   Empty / Loading / Error
+========================================================= */
+
+.staff-emergency-empty {
+  width: 100%;
+
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0;
+
+  padding: clamp(40px, 5vw, 80px);
+
+  color: #8a8a8a;
+
+  text-align: center;
+
+  font-size: clamp(18px, 1.3vw, 24px);
+  font-weight: 500;
+}
+
+/* =========================================================
+   Read Badge
+========================================================= */
+
+.staff-emergency-badge {
+  margin-left: clamp(10px, 1vw, 18px);
+
+  padding: clamp(3px, 0.4vw, 6px) clamp(9px, 1vw, 14px);
+
+  border-radius: 999px;
+
+  color: #ffffff;
+
+  font-size: clamp(12px, 0.9vw, 16px);
+  font-weight: 700;
+
+  line-height: 1.2;
+
+  flex-shrink: 0;
+}
+
+/* 안읽음 */
+
+.staff-emergency-badge.unread {
+  background: #f01c1c;
+}
+
+/* 읽음 */
+
+.staff-emergency-badge.read {
+  background: #9c9c9c;
+}
+
+/* =========================================================
+   1600px 이하
+========================================================= */
+
+@media (max-width: 1600px) {
+  .staff-emergency-row {
+    padding: 16px 32px;
+  }
+}
+
+/* =========================================================
+   1400px 이하
+========================================================= */
+
+@media (max-width: 1400px) {
+  .staff-emergency-row {
+    min-height: 100px;
+
+    padding: 14px 28px;
+
+    font-size: 24px;
+  }
+
+  .staff-emergency-badge {
+    font-size: 14px;
+  }
+}
+
+/* =========================================================
+   1200px 이하
+========================================================= */
+
+@media (max-width: 1200px) {
+  .staff-emergency-row {
+    min-height: 88px;
+
+    padding: 12px 24px;
+
+    font-size: 21px;
+  }
+
+  .staff-emergency-badge {
+    margin-left: 12px;
+
+    padding: 4px 10px;
+
+    font-size: 13px;
+  }
+}
+
+/* =========================================================
+   1024px 이하
+========================================================= */
+
+@media (max-width: 1024px) {
+  .staff-emergency-row {
+    min-height: 76px;
+
+    padding: 10px 20px;
+
+    font-size: 18px;
+  }
+
+  .staff-emergency-badge {
+    margin-left: 10px;
+
+    padding: 3px 9px;
+
+    font-size: 12px;
+  }
+
+  .staff-emergency-empty {
+    padding: 32px 20px;
+
+    font-size: 18px;
+  }
+}
+
+/* =========================================================
+   768px 이하
+========================================================= */
+
+@media (max-width: 768px) {
+  .staff-emergency-page {
+    height: 100vh;
+  }
+
+  .staff-emergency-row {
+    min-height: 72px;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    padding: 12px 16px;
+
+    font-size: 17px;
+  }
+
+  .staff-emergency-badge {
+    margin-left: 4px;
+  }
+}
+
+/* =========================================================
+   Ultra Wide
+========================================================= */
+
+@media (min-width: 2200px) {
+  .staff-emergency-row {
+    min-height: 148px;
+
+    padding: 26px 56px;
+
+    font-size: 36px;
+  }
+
+  .staff-emergency-badge {
+    margin-left: 22px;
+
+    padding: 7px 18px;
+
+    font-size: 20px;
+  }
+
+  .staff-emergency-empty {
+    font-size: 30px;
+  }
 }

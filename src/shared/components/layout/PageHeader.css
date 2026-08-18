@@ -1,10 +1,11 @@
 /* =========================================================
    PageHeader
-   MemoPage.css 의 memo-header 수치를 그대로 따라가 통일성 유지
+   MemoPage.css 의 memo-header 수치를 따라가되
+   로고 크기 조정 + 하단 구분선 적용
 ========================================================= */
 
 .page-header-bar {
-  height: clamp(80px, 7vw, 95px);
+  height: clamp(84px, 7vw, 100px);
 
   display: flex;
   justify-content: space-between;
@@ -13,7 +14,13 @@
   padding: 0 clamp(14px, 1vw, 30px);
 
   flex-shrink: 0;
+
+  background: #ffffff;
 }
+
+/* =========================================================
+   Header Left
+========================================================= */
 
 .page-header-left {
   display: flex;
@@ -24,6 +31,10 @@
   transform: translateX(-10px);
 }
 
+/* =========================================================
+   Logo
+========================================================= */
+
 .page-header-logo-link {
   display: flex;
   align-items: center;
@@ -31,18 +42,28 @@
   text-decoration: none;
 
   cursor: pointer;
+
+  flex-shrink: 0;
 }
 
 .page-header-logo {
-  width: clamp(100px, 4vw, 200px);
+  width: clamp(120px, 6vw, 180px);
 
   height: auto;
+
+  display: block;
+
+  object-fit: contain;
 }
+
+/* =========================================================
+   Title
+========================================================= */
 
 .page-header-title {
   margin: 0;
 
-  color: #222;
+  color: #222222;
 
   white-space: nowrap;
 
@@ -52,12 +73,20 @@
   transform: translateX(-10px);
 }
 
+/* =========================================================
+   Title Actions
+========================================================= */
+
 .page-header-title-actions {
   display: flex;
   align-items: center;
 
   gap: clamp(10px, 1vw, 18px);
 }
+
+/* =========================================================
+   Header Right
+========================================================= */
 
 .page-header-right {
   display: flex;
@@ -68,16 +97,23 @@
   margin-right: clamp(8px, 1vw, 22px);
 }
 
+/* =========================================================
+   Header Divider
+========================================================= */
+
 .page-header-divider {
   width: 100%;
   height: 1px;
 
-  background: #d9d9d9;
+  background-color: #cfcfcf;
 
   flex-shrink: 0;
 }
 
-/* ---------- 헤더용 알약 버튼 (뒤로가기 / 새 친구 등록하기 / 채팅) ---------- */
+/* =========================================================
+   헤더용 알약 버튼
+   뒤로가기 / 새 친구 등록하기 / 채팅
+========================================================= */
 
 .header-pill-button {
   min-width: clamp(140px, 13vw, 200px);
@@ -93,7 +129,7 @@
   border-radius: 10px;
 
   background: #d9d9d9;
-  color: #222;
+  color: #222222;
 
   text-align: center;
   text-decoration: none;
@@ -116,10 +152,15 @@
 
 .header-pill-button:active {
   background: #b8b8b8;
+
   transform: scale(0.97);
 }
 
-/* variant: 강조 (새 친구 등록하기) */
+/* =========================================================
+   Variant: 강조
+   새 친구 등록하기
+========================================================= */
+
 .header-pill-button.accent {
   background: #99e0ff;
 }
@@ -132,9 +173,14 @@
   background: #4ec1f0;
 }
 
-/* variant: 아웃라인 (의료진 채팅 버튼) */
+/* =========================================================
+   Variant: Outline
+   의료진 채팅 버튼
+========================================================= */
+
 .header-pill-button.outline {
   background: #ffffff;
+
   border-color: #c9c9c9;
 }
 
@@ -146,7 +192,10 @@
   background: #e7e7e7;
 }
 
-/* ---------- 헤더용 아이콘 버튼 (설정 등) ---------- */
+/* =========================================================
+   헤더용 아이콘 버튼
+   설정 등
+========================================================= */
 
 .header-icon-button {
   width: clamp(56px, 4.2vw, 76px);
@@ -181,15 +230,53 @@
   object-fit: contain;
 }
 
-/* ---------- 1200px ---------- */
+/* =========================================================
+   1600px 이하
+========================================================= */
 
-@media (max-width: 1200px) {
+@media (max-width: 1600px) {
   .page-header-bar {
-    height: 76px;
+    height: 90px;
   }
 
   .page-header-logo {
-    width: 100px;
+    width: 140px;
+  }
+
+  .page-header-title {
+    font-size: 34px;
+  }
+}
+
+/* =========================================================
+   1400px 이하
+========================================================= */
+
+@media (max-width: 1400px) {
+  .page-header-bar {
+    height: 84px;
+  }
+
+  .page-header-logo {
+    width: 125px;
+  }
+
+  .page-header-title {
+    font-size: 31px;
+  }
+}
+
+/* =========================================================
+   1200px 이하
+========================================================= */
+
+@media (max-width: 1200px) {
+  .page-header-bar {
+    height: 78px;
+  }
+
+  .page-header-logo {
+    width: 110px;
   }
 
   .page-header-title {
@@ -197,11 +284,17 @@
   }
 }
 
-/* ---------- 1024px ---------- */
+/* =========================================================
+   1024px 이하
+========================================================= */
 
 @media (max-width: 1024px) {
   .page-header-bar {
     height: 72px;
+  }
+
+  .page-header-logo {
+    width: 100px;
   }
 
   .page-header-title {
@@ -210,15 +303,95 @@
 
   .header-pill-button {
     min-width: 120px;
+
     font-size: 17px;
   }
 }
 
-/* ---------- Ultra Wide ---------- */
+/* =========================================================
+   768px 이하
+========================================================= */
+
+@media (max-width: 768px) {
+  .page-header-bar {
+    height: 68px;
+
+    padding: 0 14px;
+  }
+
+  .page-header-left {
+    gap: 10px;
+
+    transform: none;
+  }
+
+  .page-header-logo {
+    width: 90px;
+  }
+
+  .page-header-title {
+    font-size: 21px;
+
+    transform: none;
+  }
+
+  .page-header-right {
+    margin-right: 4px;
+  }
+
+  .header-icon-button {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* =========================================================
+   560px 이하
+========================================================= */
+
+@media (max-width: 560px) {
+  .page-header-bar {
+    height: 62px;
+
+    padding: 0 10px;
+  }
+
+  .page-header-logo {
+    width: 80px;
+  }
+
+  .page-header-title {
+    font-size: 19px;
+  }
+
+  .page-header-left {
+    gap: 8px;
+  }
+
+  .header-pill-button {
+    min-width: 100px;
+    height: 46px;
+
+    padding: 0 10px;
+
+    font-size: 15px;
+  }
+
+  .header-icon-button {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* =========================================================
+   Ultra Wide
+========================================================= */
 
 @media (min-width: 2200px) {
   .page-header-bar {
-    height: 110px;
+    height: 120px;
+
+    padding: 0 40px;
   }
 
   .page-header-logo {
@@ -227,5 +400,18 @@
 
   .page-header-title {
     font-size: 46px;
+  }
+
+  .page-header-left {
+    gap: 28px;
+  }
+
+  .page-header-right {
+    margin-right: 28px;
+  }
+
+  .header-icon-button {
+    width: 86px;
+    height: 86px;
   }
 }

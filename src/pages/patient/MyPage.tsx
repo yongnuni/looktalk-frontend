@@ -66,6 +66,7 @@ export default function MyPage() {
         title="마이페이지"
         logoTo={ROUTES.MAIN}
         right={<EmergencyButton />}
+        divider
       />
 
       <main className="mypage-content">

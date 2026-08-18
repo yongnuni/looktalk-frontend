@@ -1,68 +1,441 @@
 /* =========================================================
-   MyPage (Desktop - 75)
+   MyPage
 ========================================================= */
 
 .mypage {
   width: 100vw;
-  min-height: 100vh;
+  height: 100vh;
 
   display: flex;
   flex-direction: column;
 
   background: #ffffff;
 
-  overflow-x: hidden;
+  overflow: hidden;
 }
+
+/* =========================================================
+   Content
+========================================================= */
 
 .mypage-content {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+
   flex: 1;
 
-  display: flex;
-  flex-direction: column;
+  display: grid;
+
+  /*
+    1행 = 첫 번째 버튼 줄
+    2행 = 가운데 버튼 줄
+    3행 = 세 번째 버튼 줄
+  */
+  grid-template-rows:
+    auto
+    minmax(0, 1fr)
+    auto;
+
   align-items: center;
 
-  gap: clamp(28px, 3vw, 56px);
+  padding: clamp(24px, 3vh, 34px) clamp(20px, 2vw, 40px) clamp(18px, 2vh, 28px);
 
-  padding: clamp(24px, 3vw, 56px) clamp(20px, 2vw, 40px) clamp(32px, 3vw, 60px);
+  overflow: hidden;
 }
+
+/* =========================================================
+   공통 Row
+========================================================= */
 
 .mypage-row {
-  width: min(1400px, 96vw);
+  width: min(1450px, 96vw);
 
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  flex-wrap: wrap;
 
-  gap: clamp(24px, 3vw, 52px);
+  justify-content: center;
+  align-items: center;
+
+  flex-wrap: nowrap;
+
+  gap: clamp(30px, 3vw, 52px);
+
+  margin: 0 auto;
+
+  min-width: 0;
 }
+
+/* =========================================================
+   1번째 줄 위치
+========================================================= */
+
+.mypage-content > .mypage-row:nth-child(1) {
+  grid-row: 1;
+
+  align-self: start;
+
+  margin-top: clamp(4px, 0.6vh, 10px);
+}
+
+/* =========================================================
+   2번째 줄 위치
+========================================================= */
+
+.mypage-content > .mypage-row:nth-child(2) {
+  grid-row: 2;
+
+  align-self: center;
+
+  gap: clamp(32px, 3.2vw, 56px);
+}
+
+/* =========================================================
+   3번째 줄 위치
+========================================================= */
+
+.mypage-content > .mypage-row:nth-child(3) {
+  grid-row: 3;
+
+  align-self: end;
+
+  margin-bottom: clamp(4px, 0.6vh, 10px);
+}
+
+/* =========================================================
+   첫 번째 줄
+   병원 채팅 / 친구 채팅 / 분석페이지
+========================================================= */
 
 .mypage-row-wide {
-  gap: clamp(20px, 2.4vw, 44px);
+  gap: clamp(32px, 3.2vw, 54px);
 }
 
-/* ---------- 1400px ---------- */
+/* =========================================================
+   첫 번째 줄 버튼
+========================================================= */
+
+.mypage-row-wide > button,
+.mypage-row-wide > a {
+  box-sizing: border-box;
+
+  width: clamp(260px, 23vw, 370px);
+
+  height: clamp(145px, 18vh, 195px);
+}
+
+/* =========================================================
+   2번째 / 3번째 줄 버튼
+========================================================= */
+
+.mypage-row:not(.mypage-row-wide) > button,
+.mypage-row:not(.mypage-row-wide) > a {
+  box-sizing: border-box;
+
+  width: clamp(190px, 17vw, 255px);
+
+  height: clamp(175px, 22vh, 225px);
+}
+
+/* =========================================================
+   버튼 글씨
+========================================================= */
+
+.mypage-row button,
+.mypage-row a {
+  font-size: clamp(20px, 1.7vw, 28px);
+
+  line-height: 1.35;
+}
+
+/* =========================================================
+   1600px 이하
+========================================================= */
+
+@media (max-width: 1600px) {
+  .mypage-content {
+    padding: clamp(20px, 2.5vh, 28px) 28px clamp(16px, 1.8vh, 24px);
+  }
+
+  .mypage-row {
+    width: 96vw;
+
+    gap: clamp(28px, 2.8vw, 44px);
+  }
+
+  .mypage-content > .mypage-row:nth-child(2) {
+    gap: clamp(30px, 3vw, 48px);
+  }
+
+  .mypage-row-wide {
+    gap: clamp(28px, 2.8vw, 44px);
+  }
+
+  .mypage-row-wide > button,
+  .mypage-row-wide > a {
+    width: clamp(245px, 22vw, 340px);
+
+    height: clamp(135px, 17vh, 180px);
+  }
+
+  .mypage-row:not(.mypage-row-wide) > button,
+  .mypage-row:not(.mypage-row-wide) > a {
+    width: clamp(180px, 16.5vw, 240px);
+
+    height: clamp(160px, 21vh, 205px);
+  }
+}
+
+/* =========================================================
+   1400px 이하
+========================================================= */
 
 @media (max-width: 1400px) {
   .mypage-content {
-    gap: 32px;
+    padding: clamp(18px, 2.3vh, 26px) 24px clamp(14px, 1.7vh, 22px);
   }
 
   .mypage-row {
-    gap: 26px;
+    width: 97vw;
+
+    gap: clamp(24px, 2.5vw, 38px);
+  }
+
+  .mypage-content > .mypage-row:nth-child(2) {
+    gap: clamp(28px, 2.8vw, 42px);
+  }
+
+  .mypage-row-wide {
+    gap: clamp(24px, 2.5vw, 38px);
+  }
+
+  .mypage-row-wide > button,
+  .mypage-row-wide > a {
+    width: clamp(225px, 22vw, 305px);
+
+    height: clamp(125px, 16vh, 165px);
+  }
+
+  .mypage-row:not(.mypage-row-wide) > button,
+  .mypage-row:not(.mypage-row-wide) > a {
+    width: clamp(170px, 16vw, 220px);
+
+    height: clamp(150px, 20vh, 190px);
+  }
+
+  .mypage-row button,
+  .mypage-row a {
+    font-size: clamp(18px, 1.7vw, 25px);
   }
 }
 
-/* ---------- 1200px ---------- */
+/* =========================================================
+   1200px 이하
+========================================================= */
 
 @media (max-width: 1200px) {
   .mypage-content {
-    gap: 26px;
-
-    padding: 22px 20px 32px;
+    padding: clamp(16px, 2vh, 22px) 20px clamp(12px, 1.5vh, 18px);
   }
 
   .mypage-row {
+    width: 97vw;
+
+    gap: clamp(20px, 2.2vw, 32px);
+  }
+
+  .mypage-content > .mypage-row:nth-child(2) {
+    gap: clamp(24px, 2.5vw, 36px);
+  }
+
+  .mypage-row-wide {
+    gap: clamp(20px, 2.2vw, 32px);
+  }
+
+  .mypage-row-wide > button,
+  .mypage-row-wide > a {
+    width: clamp(200px, 22vw, 270px);
+
+    height: clamp(115px, 15vh, 145px);
+  }
+
+  .mypage-row:not(.mypage-row-wide) > button,
+  .mypage-row:not(.mypage-row-wide) > a {
+    width: clamp(155px, 16vw, 200px);
+
+    height: clamp(135px, 18vh, 165px);
+  }
+
+  .mypage-row button,
+  .mypage-row a {
+    font-size: clamp(17px, 1.8vw, 22px);
+  }
+}
+
+/* =========================================================
+   1024px 이하
+========================================================= */
+
+@media (max-width: 1024px) {
+  .mypage-content {
+    padding: 14px 16px 12px;
+  }
+
+  .mypage-row {
+    width: 98vw;
+
+    gap: clamp(16px, 2vw, 26px);
+  }
+
+  .mypage-content > .mypage-row:nth-child(2) {
+    gap: clamp(20px, 2.2vw, 30px);
+  }
+
+  .mypage-row-wide {
+    gap: clamp(16px, 2vw, 26px);
+  }
+
+  .mypage-row-wide > button,
+  .mypage-row-wide > a {
+    width: clamp(180px, 22vw, 230px);
+
+    height: clamp(100px, 14vh, 130px);
+  }
+
+  .mypage-row:not(.mypage-row-wide) > button,
+  .mypage-row:not(.mypage-row-wide) > a {
+    width: clamp(140px, 16vw, 180px);
+
+    height: clamp(120px, 17vh, 150px);
+  }
+
+  .mypage-row button,
+  .mypage-row a {
+    font-size: clamp(15px, 1.8vw, 20px);
+  }
+}
+
+/* =========================================================
+   768px 이하
+========================================================= */
+
+@media (max-width: 768px) {
+  .mypage {
+    height: auto;
+    min-height: 100vh;
+
+    overflow-y: auto;
+  }
+
+  .mypage-content {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 24px;
+
+    padding: 16px 12px 20px;
+
+    overflow: visible;
+  }
+
+  .mypage-row {
+    width: 100%;
+
+    flex-wrap: wrap;
+
+    gap: 22px;
+  }
+
+  .mypage-row-wide {
     gap: 20px;
+  }
+
+  .mypage-row-wide > button,
+  .mypage-row-wide > a,
+  .mypage-row:not(.mypage-row-wide) > button,
+  .mypage-row:not(.mypage-row-wide) > a {
+    width: min(44vw, 250px);
+
+    height: 140px;
+  }
+
+  .mypage-row button,
+  .mypage-row a {
+    font-size: clamp(15px, 2.5vw, 20px);
+  }
+}
+
+/* =========================================================
+   560px 이하
+========================================================= */
+
+@media (max-width: 560px) {
+  .mypage-content {
+    gap: 20px;
+
+    padding: 14px 10px 18px;
+  }
+
+  .mypage-row {
+    gap: 18px;
+  }
+
+  .mypage-row-wide {
+    gap: 16px;
+  }
+
+  .mypage-row-wide > button,
+  .mypage-row-wide > a,
+  .mypage-row:not(.mypage-row-wide) > button,
+  .mypage-row:not(.mypage-row-wide) > a {
+    width: min(46vw, 220px);
+
+    height: 125px;
+  }
+
+  .mypage-row button,
+  .mypage-row a {
+    font-size: clamp(14px, 3vw, 18px);
+  }
+}
+
+/* =========================================================
+   Ultra Wide
+========================================================= */
+
+@media (min-width: 2200px) {
+  .mypage-content {
+    padding: 34px 50px 28px;
+  }
+
+  .mypage-row {
+    width: min(1700px, 94vw);
+
+    gap: 58px;
+  }
+
+  .mypage-content > .mypage-row:nth-child(2) {
+    gap: 62px;
+  }
+
+  .mypage-row-wide {
+    gap: 58px;
+  }
+
+  .mypage-row-wide > button,
+  .mypage-row-wide > a {
+    width: 420px;
+    height: 220px;
+  }
+
+  .mypage-row:not(.mypage-row-wide) > button,
+  .mypage-row:not(.mypage-row-wide) > a {
+    width: 290px;
+    height: 250px;
+  }
+
+  .mypage-row button,
+  .mypage-row a {
+    font-size: 32px;
   }
 }

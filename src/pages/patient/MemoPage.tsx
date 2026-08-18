@@ -1,7 +1,6 @@
 import './MemoPage.css';
 
 import Logo from '../../assets/Logo.png';
-import SosIcon from '../../assets/sos.png';
 import SettingIcon from '../../assets/setting.png';
 import UpArrow from '../../assets/up_arrow.png';
 import DownArrow from '../../assets/down_arrow.png';
@@ -12,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ROUTES } from '../../shared/constants/routes';
 import { useCalibrationStore } from '../../features/calibration/store/calibrationStore';
+import EmergencyButton from '../../features/emergency/components/EmergencyButton';
 import { useGazeInteraction } from '../../features/gazeInteraction/GazeInteractionContext';
 import { usePageScope } from '../../features/gazeInteraction/usePageScope';
 import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
@@ -144,60 +144,63 @@ export default function MemoPage() {
   // 메모 조회
   // GET /api/memos
   // =========================
-  const loadMemos = useCallback(async (userId: string) => {
-    const headers = getAuthHeaders();
+  const loadMemos = useCallback(
+    async (userId: string) => {
+      const headers = getAuthHeaders();
 
-    if (!headers) {
-      handleUnauthorized();
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/memos`, {
-        method: 'GET',
-        headers,
-      });
-
-      if (response.status === 401) {
+      if (!headers) {
         handleUnauthorized();
         return;
       }
 
-      const result: ApiResponse<MemoApiResponse[]> = await response.json();
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/memos`, {
+          method: 'GET',
+          headers,
+        });
 
-      if (!response.ok || !result.success || !result.data) {
-        throw new Error(result.message || '메모 조회에 실패했습니다.');
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        const result: ApiResponse<MemoApiResponse[]> = await response.json();
+
+        if (!response.ok || !result.success || !result.data) {
+          throw new Error(result.message || '메모 조회에 실패했습니다.');
+        }
+
+        const decryptedMemos = await Promise.all(
+          result.data.map(async (memo): Promise<MemoItem> => {
+            try {
+              const text = await decryptMemo(memo.encryptedPayload, userId);
+
+              return {
+                ...memo,
+                text,
+              };
+            } catch (error) {
+              console.error(`메모 복호화 실패 memoId=${memo.memoId}`, error);
+
+              return {
+                ...memo,
+                text: '복호화할 수 없는 메모입니다.',
+              };
+            }
+          }),
+        );
+
+        setMemos(decryptedMemos);
+      } catch (error) {
+        console.error('메모 조회 실패:', error);
+
+        setErrorMessage(
+          error instanceof Error ? error.message : '메모 조회에 실패했습니다.',
+        );
       }
-
-      const decryptedMemos = await Promise.all(
-        result.data.map(async (memo): Promise<MemoItem> => {
-          try {
-            const text = await decryptMemo(memo.encryptedPayload, userId);
-
-            return {
-              ...memo,
-              text,
-            };
-          } catch (error) {
-            console.error(`메모 복호화 실패 memoId=${memo.memoId}`, error);
-
-            return {
-              ...memo,
-              text: '복호화할 수 없는 메모입니다.',
-            };
-          }
-        }),
-      );
-
-      setMemos(decryptedMemos);
-    } catch (error) {
-      console.error('메모 조회 실패:', error);
-
-      setErrorMessage(
-        error instanceof Error ? error.message : '메모 조회에 실패했습니다.',
-      );
-    }
-  }, [getAuthHeaders, handleUnauthorized]);
+    },
+    [getAuthHeaders, handleUnauthorized],
+  );
 
   // =========================
   // 페이지 초기화
@@ -475,9 +478,8 @@ export default function MemoPage() {
           <h1 className="memo-title">개인 메모장</h1>
         </div>
 
-        <button type="button" className="emergency-button">
-          <img src={SosIcon} alt="SOS" className="emergency-icon" />
-        </button>
+        {/* 마이페이지와 동일한 비상호출 */}
+        <EmergencyButton />
       </header>
 
       <div className="memo-divider"></div>
@@ -539,6 +541,7 @@ export default function MemoPage() {
       </div>
 
       {/* 에러 메시지 */}
+
       {errorMessage && <p className="memo-error-message">{errorMessage}</p>}
 
       {/* ===========================

@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useEmergencyStore } from '../../../shared/stores/emergencyStore';
-import { usePatientProfileStore } from '../../../shared/stores/patientProfileStore';
+import { createEmergencyCall } from '../api/emergencyCalls';
 
 /** 카운트다운 시작 값 (초). Figma Frame 125 기준 5초 */
 export const EMERGENCY_COUNTDOWN_SECONDS = 5;
 
-/** "달려오고 있어요!" 안내가 떠 있는 시간 (ms) */
-const SENT_MESSAGE_DURATION_MS = 3000;
+/** "달려오고 있어요!" / 실패 안내가 떠 있는 시간 (ms) */
+const RESULT_MESSAGE_DURATION_MS = 60000;
 
-type EmergencyPhase = 'idle' | 'counting' | 'sent';
+type EmergencyPhase = 'idle' | 'counting' | 'sent' | 'error';
 
 /**
  * 비상호출 흐름 상태 관리
@@ -16,7 +15,7 @@ type EmergencyPhase = 'idle' | 'counting' | 'sent';
  * idle
  *   → (버튼 클릭)
  * counting (5초 카운트다운, 취소 가능)
- *   → sent (전송 완료 안내)
+ *   → sent (전송 완료 안내) | error (전송 실패 안내)
  *   → idle
  */
 export function useEmergencyCall() {
@@ -24,12 +23,6 @@ export function useEmergencyCall() {
   const [remaining, setRemaining] = useState(EMERGENCY_COUNTDOWN_SECONDS);
 
   const timerRef = useRef<number | null>(null);
-
-  const pushCall = useEmergencyStore((state) => state.pushCall);
-
-  const hospitalNickname = usePatientProfileStore(
-    (state) => state.hospitalNickname,
-  );
 
   const clearTimer = () => {
     if (timerRef.current !== null) {
@@ -49,7 +42,7 @@ export function useEmergencyCall() {
     setRemaining(EMERGENCY_COUNTDOWN_SECONDS);
   }, []);
 
-  const closeSentMessage = useCallback(() => {
+  const close = useCallback(() => {
     setPhase('idle');
   }, []);
 
@@ -58,48 +51,49 @@ export function useEmergencyCall() {
     if (phase !== 'counting') return;
 
     timerRef.current = window.setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearTimer();
-
-          // TODO: 비상호출 전송 API 호출
-          // 호실/이름은 "202호 - 김민준 환자" 형태의 병원 내 이름에서 분리
-          const [room = '', patientName = ''] = hospitalNickname.split(' - ');
-
-          pushCall({
-            room: room.trim(),
-            patientName: patientName.replace('환자', '').trim(),
-          });
-
-          setPhase('sent');
-
-          return 0;
-        }
-
-        return prev - 1;
-      });
+      setRemaining((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return clearTimer;
-  }, [phase, hospitalNickname, pushCall]);
+  }, [phase]);
 
-  // 전송 안내 자동 닫기
+  // 카운트다운 종료 → 실제 전송 (POST /api/emergency-calls)
   useEffect(() => {
-    if (phase !== 'sent') return;
+    if (phase !== 'counting' || remaining !== 0) return;
 
-    const timeout = window.setTimeout(
-      closeSentMessage,
-      SENT_MESSAGE_DURATION_MS,
-    );
+    let isCancelled = false;
+
+    void (async () => {
+      try {
+        await createEmergencyCall();
+
+        if (!isCancelled) setPhase('sent');
+      } catch (error) {
+        console.error('비상호출 전송 실패:', error);
+
+        if (!isCancelled) setPhase('error');
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [phase, remaining]);
+
+  // 결과 안내 자동 닫기
+  useEffect(() => {
+    if (phase !== 'sent' && phase !== 'error') return;
+
+    const timeout = window.setTimeout(close, RESULT_MESSAGE_DURATION_MS);
 
     return () => window.clearTimeout(timeout);
-  }, [phase, closeSentMessage]);
+  }, [phase, close]);
 
   return {
     phase,
     remaining,
     start,
     cancel,
-    closeSentMessage,
+    close,
   };
 }

@@ -129,6 +129,152 @@ export interface SmsFriendshipDto {
   phone: string;
 }
 
+// POST /friends
+export interface CreateSmsFriendRequestDto {
+  name: string;
+  phone: string;
+}
+
+// PATCH /friends/{friendshipId}
+export interface UpdateSmsFriendRequestDto {
+  name?: string;
+  phone?: string;
+}
+
+// GET /phrases
+export interface PhraseDto {
+  phraseId: number;
+  category: string | null;
+  encryptedPayload: EncryptedPayloadDto;
+  createdAt: string;
+}
+
+// POST /phrases, PATCH /phrases/{phraseId}
+export interface UpsertPhraseRequestDto {
+  category: string | null;
+  encryptedPayload: EncryptedPayloadDto;
+}
+
+// POST /phrases response
+export interface CreatePhraseResponseDto {
+  phraseId: number;
+  replacedPhraseId: number | null;
+  createdAt: string;
+}
+
+// GET /users/me
+export interface UserMeDto {
+  userId: string;
+  loginId: string;
+  email: string;
+  name: string | null;
+  displayName: string;
+  phone: string | null;
+  emailVerified: boolean;
+  smsVerified: boolean;
+  role: 'PATIENT' | 'STAFF';
+}
+
+// PATCH /users/me
+export interface UpdateUserNameRequestDto {
+  name: string | null;
+}
+
+export interface UpdateUserNameResponseDto {
+  userId: string;
+  name: string | null;
+  displayName: string;
+}
+
+// POST /users/me/phone-verifications
+export interface RequestPhoneVerificationRequestDto {
+  phone: string;
+}
+
+export interface RequestPhoneVerificationResponseDto {
+  expiresInSeconds: number;
+}
+
+// POST /users/me/phone-verifications/confirm
+export interface ConfirmPhoneVerificationRequestDto {
+  phone: string;
+  code: string;
+}
+
+// GET /staff/me
+export interface StaffHospitalDto {
+  hospitalId: number;
+  hospitalName: string;
+}
+
+export interface StaffMeDto {
+  staffId: number;
+  userId: string;
+  loginId: string;
+  email: string;
+  name: string | null;
+  displayName: string;
+  hospital: StaffHospitalDto;
+}
+
+// POST /staff/me/patients
+export interface AddStaffPatientRequestDto {
+  patientLoginId: string;
+}
+
+// PATCH /staff/me/patients/{patientUserId}/alias
+export interface UpdateStaffPatientAliasRequestDto {
+  alias: string | null;
+}
+
+// POST /emergency-calls
+export interface CreateEmergencyCallResponseDto {
+  emergencyCallId: number;
+  calledAt: string;
+}
+
+// GET /emergency-calls
+export interface EmergencyCallListItemDto {
+  emergencyCallId: number;
+  patientUserId: string;
+  patientDisplayName: string;
+  calledAt: string;
+  readAt: string | null;
+  readByStaffId: number | null;
+  unread: boolean;
+}
+
+export interface EmergencyCallPageDto {
+  items: EmergencyCallListItemDto[];
+  page: number;
+  size: number;
+  totalElements: number;
+  hasNext: boolean;
+}
+
+// PATCH /emergency-calls/{emergencyCallId}/read
+export interface MarkEmergencyCallReadResponseDto {
+  emergencyCallId: number;
+  readAt: string;
+  readByStaffId: number;
+}
+
+// GET /e2ee/keys/me
+export interface E2eeKeyStatusDto {
+  registered: boolean;
+  keyVersion: number | null;
+  publicKey: string | null;
+}
+
+// POST /e2ee/keys
+export interface RegisterE2eeKeyRequestDto {
+  publicKey: string;
+}
+
+export interface RegisterE2eeKeyResponseDto {
+  keyVersion: number;
+}
+
 // chat room list API
 export interface HospitalChatRoomTargetDto {
   type: string;
