@@ -5,19 +5,16 @@ import PageHeader from '../../shared/components/layout/PageHeader';
 import StaffHeaderActions from '../../shared/components/layout/StaffHeaderActions';
 import StaffEmergencyAlert from '../../features/emergency/components/StaffEmergencyAlert';
 import { AlertModal, InputModal } from '../../shared/components/modal';
-import { useStaffProfileStore } from '../../shared/stores/staffProfileStore';
+import { updateMyName } from '../../features/mypage/api/user';
+import { useStaffProfile } from '../../features/mypage/hooks/useStaffProfile';
 import { ROUTES } from '../../shared/constants/routes';
 
 import './StaffProfilePage.css';
 
-type NameModal = 'none' | 'edit' | 'done';
+type NameModal = 'none' | 'edit' | 'done' | 'error';
 
 export default function StaffProfilePage() {
-  const name = useStaffProfileStore((state) => state.name);
-  const email = useStaffProfileStore((state) => state.email);
-  const hospitalName = useStaffProfileStore((state) => state.hospitalName);
-  const roleLabel = useStaffProfileStore((state) => state.roleLabel);
-  const setName = useStaffProfileStore((state) => state.setName);
+  const { name, email, hospitalName, roleLabel, setProfile } = useStaffProfile();
 
   const [modal, setModal] = useState<NameModal>('none');
 
@@ -74,9 +71,22 @@ export default function StaffProfilePage() {
         confirmLabel="변경하기"
         fields={[{ name: 'name', placeholder: name, initialValue: name }]}
         onConfirm={(values) => {
-          // TODO : 의료진 이름 변경 API 호출
-          setName(values.name.trim());
-          setModal('done');
+          void (async () => {
+            try {
+              const updated = await updateMyName(values.name.trim());
+
+              setProfile({
+                name: updated.name ?? updated.displayName,
+                email,
+                hospitalName,
+              });
+
+              setModal('done');
+            } catch (error) {
+              console.error('이름 변경 실패:', error);
+              setModal('error');
+            }
+          })();
         }}
         onCancel={() => setModal('none')}
       />
@@ -84,6 +94,12 @@ export default function StaffProfilePage() {
       <AlertModal
         isOpen={modal === 'done'}
         message="이름이 변경되었습니다."
+        onConfirm={() => setModal('none')}
+      />
+
+      <AlertModal
+        isOpen={modal === 'error'}
+        message="이름 변경에 실패했습니다. 잠시 후 다시 시도해 주세요."
         onConfirm={() => setModal('none')}
       />
 
