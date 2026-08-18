@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import './MenuCard.css';
@@ -18,19 +19,18 @@ interface MenuCardProps {
   disabled?: boolean;
 }
 
-export default function MenuCard({
-  label,
-  to,
-  onClick,
-  variant = 'square',
-  locked = false,
-  disabled = false,
-}: MenuCardProps) {
+// Front Step 15 §29/§43 — MyPage/FriendListPage 등에서 useGazeTarget()의 ref callback을
+// 이 카드에 직접 붙일 수 있도록 forwardRef로 감싼다(기존 forwardRef 없는 함수 컴포넌트는
+// ref를 무시해 gaze target 등록이 불가능했다). label/to/onClick 등 기존 동작은 그대로다.
+const MenuCard = forwardRef<HTMLAnchorElement | HTMLButtonElement, MenuCardProps>(function MenuCard(
+  { label, to, onClick, variant = 'square', locked = false, disabled = false },
+  ref,
+) {
   const className = `menu-card menu-card-${variant}${locked ? ' is-locked' : ''}`;
 
   if (to && !locked && !disabled) {
     return (
-      <Link to={to} className={className}>
+      <Link ref={ref as React.Ref<HTMLAnchorElement>} to={to} className={className}>
         <span className="menu-card-label">{label}</span>
       </Link>
     );
@@ -38,6 +38,7 @@ export default function MenuCard({
 
   return (
     <button
+      ref={ref as React.Ref<HTMLButtonElement>}
       type="button"
       className={className}
       disabled={disabled}
@@ -46,4 +47,6 @@ export default function MenuCard({
       <span className="menu-card-label">{label}</span>
     </button>
   );
-}
+});
+
+export default MenuCard;

@@ -5,6 +5,8 @@ import axios from 'axios';
 import Logo from '../../assets/Logo.png';
 import { AlertModal } from '../../shared/components/modal';
 import EmergencyButton from '../../features/emergency/components/EmergencyButton';
+import { usePageScope } from '../../features/gazeInteraction/usePageScope';
+import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
 import {
   confirmPhoneVerification,
   requestPhoneVerification,
@@ -26,6 +28,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export default function PhoneVerifyPage() {
   const navigate = useNavigate();
+  usePageScope('MAIN');
   const verifyPhone = usePatientProfileStore((state) => state.verifyPhone);
 
   const [phone, setPhone] = useState('');
@@ -91,6 +94,18 @@ export default function PhoneVerifyPage() {
     setShowDone(true);
   };
 
+  // §31 — 실제 존재하는 핵심 action만. 텍스트 입력 자체는 이 페이지가 VirtualKeyboard와
+  // 통합되어 있지 않아(기존 native input) gaze target 대상이 아니다.
+  const requestCodeTargetRef = useGazeTarget({ id: 'phone-verify-request', scope: 'MAIN', onSelect: handleRequestCode });
+  const verifyCodeTargetRef = useGazeTarget({ id: 'phone-verify-confirm', scope: 'MAIN', onSelect: handleVerifyCode });
+  const completeTargetRef = useGazeTarget({
+    id: 'phone-verify-complete',
+    scope: 'MAIN',
+    enabled: isComplete,
+    onSelect: handleComplete,
+  });
+  const cancelTargetRef = useGazeTarget({ id: 'phone-verify-cancel', scope: 'MAIN', onSelect: () => navigate(ROUTES.MYPAGE) });
+
   return (
     <div className="phone-page">
       <div className="phone-emergency">
@@ -117,6 +132,7 @@ export default function PhoneVerifyPage() {
               />
 
               <button
+                ref={requestCodeTargetRef}
                 type="button"
                 className="sub-button"
                 disabled={isRequesting}
@@ -143,6 +159,7 @@ export default function PhoneVerifyPage() {
               />
 
               <button
+                ref={verifyCodeTargetRef}
                 type="button"
                 className="sub-button"
                 disabled={isVerifying}
@@ -161,6 +178,7 @@ export default function PhoneVerifyPage() {
 
           <div className="phone-submit">
             <button
+              ref={completeTargetRef}
               type="button"
               className="phone-button"
               disabled={!isComplete}
@@ -170,6 +188,7 @@ export default function PhoneVerifyPage() {
             </button>
 
             <button
+              ref={cancelTargetRef}
               type="button"
               className="phone-button cancel"
               onClick={() => navigate(ROUTES.MYPAGE)}

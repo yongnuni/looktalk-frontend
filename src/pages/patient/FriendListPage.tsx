@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 import PageHeader from '../../shared/components/layout/PageHeader';
@@ -12,6 +12,8 @@ import {
   InputModal,
 } from '../../shared/components/modal';
 import EmergencyButton from '../../features/emergency/components/EmergencyButton';
+import { usePageScope } from '../../features/gazeInteraction/usePageScope';
+import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
 import { useFriendList } from '../../features/friend/hooks/useFriendList';
 import {
   createSmsFriend,
@@ -47,6 +49,9 @@ function getFriendErrorMessage(error: unknown, fallback: string): string {
 }
 
 export default function FriendListPage() {
+  const navigate = useNavigate();
+  usePageScope('MAIN');
+
   const { visibleFriends, page, totalPages, isLoading, hasError, goPrev, goNext } =
     useFriendList();
 
@@ -66,6 +71,19 @@ export default function FriendListPage() {
     setModal('actions');
   };
 
+  // §31 — 실제 존재하는 핵심 navigation/action(뒤로가기, 새 친구 등록, 페이지 이동)만.
+  // 개별 친구 카드는 페이지당 최대 8개까지 가변적이라(§28/§10과 동일한 hooks 규칙 제약)
+  // 이번 범위에서는 제외한다 — Priority 4(list item)라 우선순위도 가장 낮다(§52).
+  const backTargetRef = useGazeTarget({ id: 'friend-list-back', scope: 'MAIN', onSelect: () => navigate(ROUTES.MYPAGE) });
+  const createTargetRef = useGazeTarget({ id: 'friend-list-create', scope: 'MAIN', onSelect: () => setModal('create') });
+  const prevPageTargetRef = useGazeTarget({ id: 'friend-list-page-prev', scope: 'MAIN', enabled: page > 1, onSelect: goPrev });
+  const nextPageTargetRef = useGazeTarget({
+    id: 'friend-list-page-next',
+    scope: 'MAIN',
+    enabled: page < totalPages,
+    onSelect: goNext,
+  });
+
   return (
     <div className="friend-page">
       <PageHeader
@@ -73,11 +91,12 @@ export default function FriendListPage() {
         logoTo={ROUTES.MAIN}
         titleActions={
           <>
-            <Link to={ROUTES.MYPAGE} className="header-pill-button">
+            <Link ref={backTargetRef} to={ROUTES.MYPAGE} className="header-pill-button">
               뒤로가기
             </Link>
 
             <button
+              ref={createTargetRef}
               type="button"
               className="header-pill-button accent"
               onClick={() => setModal('create')}
@@ -120,6 +139,8 @@ export default function FriendListPage() {
         totalPages={totalPages}
         onPrev={goPrev}
         onNext={goNext}
+        prevGazeTargetRef={prevPageTargetRef}
+        nextGazeTargetRef={nextPageTargetRef}
       />
 
       {/* ---------- 새 친구 등록 : Frame 130 → 156 ---------- */}

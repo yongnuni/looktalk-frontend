@@ -546,6 +546,13 @@ Hover
 }
 
 /* ===========================
+   Virtual Keyboard Overlay (MEM-01-01)
+   Front Step 18(Python parity) — 실제 overlay/panel 마크업은 공용
+   FullViewportKeyboardOverlay(features/keyboard)로 옮겨졌다. Chat과 markup을 복제하던
+   것이 §8 root cause였다.
+=========================== */
+
+/* ===========================
    1600px
 =========================== */
 

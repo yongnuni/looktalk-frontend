@@ -1,0 +1,161 @@
+/* §1 — 브라우저 주소창/탭은 그대로 두고, 그 아래 web application viewport 전체를
+   keyboard 화면이 차지한다(document.documentElement.requestFullscreen()은 쓰지
+   않는다). 회색 반투명 backdrop + 중앙/하단의 작은 panel 구조를 쓰지 않는다 — 이 overlay
+   자체가 화면이다.
+
+   세로 구성(위→아래, 전부 flex:0 0 auto — 아무 것도 flex:1로 남는 공간을 자동 배분하지
+   않는다): topbar → 추천 2행(자동완성/자주 쓰는 문장) → 숫자/자모/기능 키보드(고정 높이,
+   VirtualKeyboard.css) → 하단 reserved 고정 영역. 이전 버전은 .fv-keyboard-bottom-reserved에
+   flex:1을 줘서 남는 뷰포트 높이를 전부 흡수했다(min-height는 "최소값"이지 "고정값"이
+   아니므로 flex:1과 같이 쓰면 그 이상 계속 늘어난다) — 지금은 flex:0 0 <fixed>로 완전히
+   고정한다. */
+.fv-keyboard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: clamp(12px, 1.6vh, 20px) clamp(16px, 3vw, 40px);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* §9 — Look-Talk keyboard.py의 input_rect + confirm_rect(208-212행)와 동일하게, 닫기/
+   입력 중인 문장/확인 버튼을 한 줄(grid)에 둔다. */
+.fv-keyboard-topbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: clamp(12px, 1.6vw, 24px);
+  flex: 0 0 auto;
+  height: clamp(64px, 8vh, 96px);
+  margin-bottom: clamp(14px, 1.8vh, 22px);
+}
+
+.fv-keyboard-draft {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(16px, 1.6vw, 28px);
+  border: 1px solid #d0d5dd;
+  border-radius: clamp(12px, 1.2vw, 22px);
+  background: #f9fafb;
+  font-size: clamp(20px, 2.1vw, 30px);
+  font-weight: 600;
+  color: #111827;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+/* 확인 = primary action. */
+.fv-keyboard-topbar .keyboard-key {
+  width: auto;
+  min-width: clamp(96px, 9vw, 180px);
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.fv-keyboard-topbar .keyboard-key:hover {
+  background: #1d4ed8;
+}
+
+/* §4/§9 — 닫기 = secondary action. */
+.fv-keyboard-close {
+  min-width: 0;
+  padding: 0 clamp(18px, 1.6vw, 28px);
+  border: 1px solid #d1d5db;
+  border-radius: clamp(12px, 1.2vw, 22px);
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+  font-size: clamp(15px, 1.1vw, 18px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fv-keyboard-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fv-keyboard-error {
+  flex: 0 0 auto;
+  margin: 0 0 8px;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.fv-keyboard-status {
+  flex: 0 0 auto;
+  margin: 0 0 8px;
+  color: #6b7280;
+}
+
+/* §4 — 추천 6슬롯(자동완성 3 + 자주 쓰는 문장 3), 2행. 문자 keyboard와 같은 폭
+   기준선(min(92vw,1500px))을 쓴다. */
+.fv-keyboard-recommend-group {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1vh, 12px);
+  margin-bottom: clamp(14px, 1.8vh, 22px);
+}
+
+.fv-keyboard-recommend-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(10px, 1.2vw, 20px);
+  width: min(92vw, 1500px);
+  margin-inline: auto;
+}
+
+/* 일반 keycap과 동일한 높이 bound를 써서 gaze/dwell target 크기를 유지한다 — 작은
+   chip으로 만들지 않는다(§4). */
+.fv-keyboard-recommend-button {
+  min-width: 0;
+  height: clamp(88px, 10vh, 104px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 clamp(12px, 1.2vw, 24px);
+  border: 1px solid #cdced2;
+  border-radius: clamp(12px, 1.2vw, 22px);
+  background: #ebecf0;
+  color: #1e293b;
+  font-size: clamp(18px, 1.6vw, 26px);
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fv-keyboard-recommend-button:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.fv-keyboard-recommend-button[data-gaze-hovered='true'] {
+  border-color: #2563eb;
+  border-width: 2px;
+}
+
+/* 자동완성(실제 데이터 소스 없음, §4)과 등록되지 않은 "자주 쓰는 문장" slot 둘 다 이
+   상태 — 자리만 예약하고 클릭/gaze 불가능, mock 텍스트 없음. */
+.fv-keyboard-recommend-button--empty {
+  background: #f3f4f6;
+  border-style: dashed;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* §1 — 남는 세로 공간을 keyboard row 사이나 여기로 자동 배분하지 않는다. Studio/
+   입력방식/Dwell·Fixation 등 향후 상태 표시를 위해 고정 높이만 예약한다. */
+.fv-keyboard-bottom-reserved {
+  flex: 0 0 clamp(60px, 8vh, 85px);
+  height: clamp(60px, 8vh, 85px);
+}

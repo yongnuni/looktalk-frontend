@@ -13,13 +13,19 @@ export interface UserDto {
 }
 
 // user_setting
+// 실제 백엔드 계약(UserController/UserSettingResponse/UserSettingUpdateRequest, PATIENT 전용,
+// GET/PATCH /api/users/me/settings)과 일치시킨 camelCase 타입. 과거 snake_case 버전은
+// DB 컬럼명을 그대로 옮긴 것으로 실제 API 응답과 다른 stale 정의였다(Front Step 4).
+export type InputMethod = 'EYE_TRACKING' | 'BLINK' | 'MOUTH';
+
 export interface UserSettingDto {
-  user_id: string;
-  keyboard_layout: string | null;
-  is_key_enlarged: boolean | null;
-  current_input_method: string | null;
-  updated_at: string | null;
+  keyboardLayout: string;
+  keyEnlarged: boolean;
+  currentInputMethod: InputMethod;
 }
+
+// PATCH 요청 바디: 모든 필드가 optional(partial update)
+export type UserSettingUpdateRequestDto = Partial<UserSettingDto>;
 
 // phrase
 export interface PhraseDto {
@@ -353,6 +359,9 @@ export interface ChatRoomMessageCiphertextDto {
   ciphertext: string;
 }
 
+// ChatSendMessageRequest.java(Backend) — HOSPITAL/SMS가 하나의 Request 구조를 공유한다.
+// ciphertexts는 HOSPITAL 전용, content는 SMS 전용이며 Backend가 room type별로 정확히
+// 하나만 채워졌는지 검증한다(Front Step 14 §20 — 실제 Backend를 확인해 필드를 완성했다).
 export interface SendChatRoomMessageRequestDto {
   messageType: 'TEXT';
   ciphertexts?: ChatRoomMessageCiphertextDto[];
@@ -412,6 +421,21 @@ export interface ApiResponse<T> {
   code: string;
   message: string;
   data: T;
+}
+
+// calibration (CAL-001/CAL-002, POST/GET /api/calibrations) — CalibrationController/
+// CalibrationCreateRequest/CalibrationResponse와 일치. calibrationData 자체의 구조는
+// features/calibration/types.ts의 GazeCalibrationResult(§7.7)를 따른다(Front Step 5).
+export interface CalibrationCreateRequestDto {
+  algorithmVersion: string;
+  calibrationData: unknown;
+}
+
+export interface CalibrationResponseDto {
+  calibrationId: string;
+  algorithmVersion: string;
+  calibrationData: unknown;
+  createdAt: string;
 }
 
 // auth — AuthController/AuthService(AUTH-001/002/004)와 일치. purpose="SIGNUP"만 이번

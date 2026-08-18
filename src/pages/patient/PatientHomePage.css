@@ -1,0 +1,40 @@
+.patient-home-gaze-status {
+  margin: 12px 0;
+}
+
+.patient-home-compatibility-banner {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Front Step 18(Python parity) — keyboard.py의 confirm_rect처럼 확인 키를 입력창
+   옆에 둔다(QA route 전용 최소 스타일, 실제 서비스는 FullViewportKeyboardOverlay.css). */
+.patient-home-draft-row {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(12px, 1.6vw, 24px);
+}
+
+.patient-home-draft-row .message-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.patient-home-draft-row .keyboard-key {
+  width: auto;
+  min-width: clamp(96px, 9vw, 180px);
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.patient-home-hidden-video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}

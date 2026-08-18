@@ -1,0 +1,85 @@
+.measurement-result-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2001;
+  padding: 24px 28px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+  text-align: center;
+  max-width: min(560px, 90vw);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.measurement-result-modal__title {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.measurement-result-modal__methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.measurement-result-modal__method-button {
+  padding: 12px 18px;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  background: #1e293b;
+  color: #f8fafc;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.measurement-result-modal__method-button:hover:not(:disabled) {
+  background: #334155;
+}
+
+.measurement-result-modal__method-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.measurement-result-modal__method-note {
+  font-weight: 400;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.measurement-result-modal__error {
+  margin-bottom: 12px;
+  color: #fca5a5;
+}
+
+.measurement-result-modal__rmse-warning {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  font-size: 14px;
+}
+
+.measurement-result-modal__retest-button {
+  display: block;
+  margin: 0 auto 16px;
+  padding: 10px 18px;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  background: transparent;
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.measurement-result-modal__retest-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

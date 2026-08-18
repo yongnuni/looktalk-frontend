@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode, RefCallback } from 'react';
 import { createPortal } from 'react-dom';
 import './BaseModal.css';
 
@@ -8,6 +8,9 @@ export interface ModalAction {
   onClick: () => void;
   tone?: 'positive' | 'negative' | 'neutral';
   disabled?: boolean;
+  /** Front Step 16 §34 — MODAL scope에서 gaze로 이 action을 선택 가능하게 하려는 호출부만
+   * 채운다. 기존 호출부는 이 필드를 몰라도 동작이 전혀 바뀌지 않는다(추가 전용 확장). */
+  gazeTargetRef?: RefCallback<HTMLButtonElement>;
 }
 
 export interface BaseModalProps {
@@ -111,7 +114,12 @@ export default function BaseModal({
             {visibleActions.map((action, index) => (
               <button
                 key={`${action.label}-${index}`}
-                ref={index === 0 ? firstActionRef : undefined}
+                ref={(node) => {
+                  if (index === 0) {
+                    firstActionRef.current = node;
+                  }
+                  action.gazeTargetRef?.(node);
+                }}
                 type="button"
                 className={`base-modal-action base-modal-action--${action.tone ?? 'neutral'}`}
                 onClick={action.onClick}

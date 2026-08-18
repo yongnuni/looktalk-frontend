@@ -9,6 +9,8 @@ import {
   InputModal,
 } from '../../shared/components/modal';
 import EmergencyButton from '../../features/emergency/components/EmergencyButton';
+import { usePageScope } from '../../features/gazeInteraction/usePageScope';
+import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
 import { useAccountModals } from '../../features/mypage/hooks/useAccountModals';
 import { getMe, updateMyName } from '../../features/mypage/api/user';
 import { usePatientProfileStore } from '../../shared/stores/patientProfileStore';
@@ -20,6 +22,7 @@ type NicknameModal = 'none' | 'edit' | 'done' | 'error';
 
 export default function MyPage() {
   const navigate = useNavigate();
+  usePageScope('MAIN');
 
   const hospitalNickname = usePatientProfileStore(
     (state) => state.hospitalNickname,
@@ -72,6 +75,19 @@ export default function MyPage() {
     navigate(ROUTES.MYPAGE_FRIENDS);
   };
 
+  // §31 — 실제 존재하는 9개 메뉴 카드를 gaze target으로 만든다. Mouse handler(Link의 to,
+  // onClick)를 그대로 재사용한다(§24/§43).
+  const hospitalChatTargetRef = useGazeTarget({ id: 'mypage-chat-hospital', scope: 'MAIN', onSelect: () => navigate(ROUTES.CHAT_HOSPITAL) });
+  const friendChatTargetRef = useGazeTarget({ id: 'mypage-chat-friend', scope: 'MAIN', onSelect: () => navigate(ROUTES.CHAT_FRIEND) });
+  const analysisTargetRef = useGazeTarget({ id: 'mypage-analysis', scope: 'MAIN', onSelect: () => navigate(ROUTES.ANALYSIS) });
+  const nicknameTargetRef = useGazeTarget({ id: 'mypage-nickname', scope: 'MAIN', onSelect: () => setNicknameModal('edit') });
+  const passwordResetTargetRef = useGazeTarget({ id: 'mypage-password-reset', scope: 'MAIN', onSelect: () => navigate(ROUTES.PASSWORD_RESET) });
+  const phoneVerifyTargetRef = useGazeTarget({ id: 'mypage-phone-verify', scope: 'MAIN', onSelect: () => navigate(ROUTES.MYPAGE_PHONE_VERIFY) });
+  const friendListTargetRef = useGazeTarget({ id: 'mypage-friend-list', scope: 'MAIN', onSelect: handleFriendListClick });
+  const phrasesTargetRef = useGazeTarget({ id: 'mypage-phrases', scope: 'MAIN', onSelect: () => navigate(ROUTES.MYPAGE_PHRASES) });
+  const logoutTargetRef = useGazeTarget({ id: 'mypage-logout', scope: 'MAIN', onSelect: account.openLogout });
+  const withdrawTargetRef = useGazeTarget({ id: 'mypage-withdraw', scope: 'MAIN', onSelect: account.openWithdraw });
+
   return (
     <div className="mypage">
       <PageHeader
@@ -85,16 +101,19 @@ export default function MyPage() {
         {/* 상단 줄 : 다른 페이지로 이동 */}
         <section className="mypage-row mypage-row-wide">
           <MenuCard
+            ref={hospitalChatTargetRef}
             variant="wide"
             label="병원 채팅으로 이동"
             to={ROUTES.CHAT_HOSPITAL}
           />
           <MenuCard
+            ref={friendChatTargetRef}
             variant="wide"
             label="친구 채팅으로 이동"
             to={ROUTES.CHAT_FRIEND}
           />
           <MenuCard
+            ref={analysisTargetRef}
             variant="wide"
             label="분석페이지로 이동"
             to={ROUTES.ANALYSIS}
@@ -104,6 +123,7 @@ export default function MyPage() {
         {/* 중간 줄 : 설정 */}
         <section className="mypage-row">
           <MenuCard
+            ref={nicknameTargetRef}
             label={
               <>
                 병원 내
@@ -115,6 +135,7 @@ export default function MyPage() {
           />
 
           <MenuCard
+            ref={passwordResetTargetRef}
             label={
               <>
                 비밀번호
@@ -126,6 +147,7 @@ export default function MyPage() {
           />
 
           <MenuCard
+            ref={phoneVerifyTargetRef}
             label={
               <>
                 전화번호 인증
@@ -137,6 +159,7 @@ export default function MyPage() {
           />
 
           <MenuCard
+            ref={friendListTargetRef}
             label="친구 목록 관리"
             locked={!isPhoneVerified}
             onClick={handleFriendListClick}
@@ -146,6 +169,7 @@ export default function MyPage() {
         {/* 하단 줄 : 문장 관리 / 계정 */}
         <section className="mypage-row">
           <MenuCard
+            ref={phrasesTargetRef}
             label={
               <>
                 자주 쓰는
@@ -156,8 +180,8 @@ export default function MyPage() {
             to={ROUTES.MYPAGE_PHRASES}
           />
 
-          <MenuCard label="로그아웃" onClick={account.openLogout} />
-          <MenuCard label="회원탈퇴" onClick={account.openWithdraw} />
+          <MenuCard ref={logoutTargetRef} label="로그아웃" onClick={account.openLogout} />
+          <MenuCard ref={withdrawTargetRef} label="회원탈퇴" onClick={account.openWithdraw} />
         </section>
       </main>
 

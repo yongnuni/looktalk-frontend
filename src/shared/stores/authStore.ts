@@ -76,6 +76,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     disconnectAllChatWebSockets();
     clearStoredAuthTokens();
 
+    // clearStoredAuthTokens()는 accessToken 계열만 지운다. PatientRouteGuard 등이
+    // 참조하는 'tokenType'/'userRole'도 함께 지워야 로그아웃 후 세션 정보가 남지 않는다.
+    localStorage.removeItem('tokenType');
+    localStorage.removeItem('userRole');
+
     set({
       user: null,
       accessToken: null,

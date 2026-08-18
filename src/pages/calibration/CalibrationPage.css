@@ -56,3 +56,167 @@
   outline: 4px solid #111827;
   outline-offset: 3px;
 }
+
+.calibration-error {
+  color: #dc2626;
+}
+
+.calibration-start-button {
+  display: block;
+  margin: 20px auto 0;
+  padding: 14px 24px;
+  border: 0;
+  border-radius: 12px;
+  background: #16a34a;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.calibration-start-button:hover {
+  background: #15803d;
+}
+
+/* 측정 시작 후 document.body에 portal로 렌더링되는 full-viewport 레이어.
+   Python Look-Talk의 cv2 전체화면 창과 동일하게, 카드/제목/뒤로가기 등 기존 UI가
+   이 영역을 차지하거나 축소시키지 않는다 — 완전히 독립된 레이어로 화면 전체를 덮는다. */
+.calibration-measurement-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2000;
+  background: #0f172a;
+}
+
+.calibration-target {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+}
+
+.calibration-target-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid #60a5fa;
+  transform: scale(calc(0.35 + var(--calibration-progress, 0) * 0.65));
+  transition: transform 60ms linear;
+}
+
+.calibration-target--collecting .calibration-target-ring {
+  border-color: #34d399;
+}
+
+.calibration-target-dot {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.calibration-cursor {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #facc15;
+  border: 2px solid #0f172a;
+  transform: translate(-50%, -50%);
+  transition: left 40ms linear, top 40ms linear;
+}
+
+/* document.body에 portal로 렌더링 — cursorNormalized는 진짜 viewport 좌표이므로
+   position:fixed + viewport CSS px로 그려야 카드 위치/스크롤과 무관하게 정확하다. */
+.calibration-cursor--viewport {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.calibration-overlay-status {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  z-index: 2001;
+  padding: 16px 24px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  text-align: center;
+  max-width: min(560px, 90vw);
+}
+
+.calibration-overlay-status--result {
+  bottom: auto;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.calibration-diagnostics {
+  margin-top: 12px;
+  text-align: left;
+}
+
+.calibration-diagnostics summary {
+  cursor: pointer;
+  color: #93c5fd;
+  text-align: center;
+}
+
+.calibration-diagnostics-table {
+  margin-top: 8px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calibration-diagnostics-table th,
+.calibration-diagnostics-table td {
+  padding: 3px 8px;
+  text-align: right;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  white-space: nowrap;
+}
+
+.calibration-diagnostics-table th:first-child,
+.calibration-diagnostics-table td:first-child {
+  text-align: left;
+}
+
+.calibration-warning {
+  color: #fbbf24;
+}
+
+.calibration-rmse {
+  color: #cbd5e1;
+  font-variant-numeric: tabular-nums;
+}
+
+.calibration-overlay-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.calibration-overlay-actions .calibration-back-button {
+  margin: 0;
+}
+
+.calibration-hidden-video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}

@@ -1,0 +1,172 @@
+import { useState } from 'react';
+import type { InputMethod } from '../../../shared/types/backend';
+import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
+import { createCalibration } from '../api/calibrationApi';
+import { CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED } from '../constants';
+import { useCalibrationStore } from '../store/calibrationStore';
+import type { GazeCalibrationResult } from '../types';
+import type { HomographyPointDiagnostic } from '../homography';
+import './MeasurementResultModal.css';
+
+type ModalState = 'SELECTING' | 'SAVING' | 'ERROR';
+
+interface MethodOption {
+  method: InputMethod;
+  label: string;
+  disabled?: boolean;
+  disabledReason?: string;
+}
+
+// Integration Plan §10.2 — BLINK는 Look-Talk Python에 참조 구현이 없고 Web 쪽 confirm
+// UX 계약도 아직 없어(Front Step 9) 선택은 노출하되 비활성화한다. 실제 Look-Talk에
+// 없는 기능을 새로 만들어 넣지 않는다는 원칙(Front Step 2-9 지침)에 따른 것이다.
+const METHOD_OPTIONS: MethodOption[] = [
+  { method: 'EYE_TRACKING', label: '시선(gaze)' },
+  { method: 'BLINK', label: '눈 깜빡임(blink)', disabled: true, disabledReason: '준비 중' },
+  { method: 'MOUTH', label: '입 움직임(mouth)' },
+];
+
+interface MeasurementResultModalProps {
+  candidate: GazeCalibrationResult;
+  pointDiagnostics: HomographyPointDiagnostic[] | null;
+  onRetest: () => void;
+  onApplied: (method: InputMethod) => void;
+}
+
+// Integration Plan §10 측정 결과 모달. X/닫기 버튼 없음, background click으로 닫히지 않음,
+// ESC로 닫히지 않음 — 이 컴포넌트에는 애초에 그런 닫기 트리거 자체가 없다(§10.1).
+// 실제 Recommendation API가 없으므로(§10.2) recommendedInputMethod 관련 문구는 렌더링하지 않는다.
+export default function MeasurementResultModal({
+  candidate,
+  pointDiagnostics,
+  onRetest,
+  onApplied,
+}: MeasurementResultModalProps) {
+  const [modalState, setModalState] = useState<ModalState>('SELECTING');
+  const [pendingMethod, setPendingMethod] = useState<InputMethod | null>(null);
+  const [savedCalibrationId, setSavedCalibrationId] = useState<string | null>(null);
+
+  const setActiveCalibration = useCalibrationStore((state) => state.setActive);
+  const { updateSettings } = useUserSettings();
+
+  const handleSelect = async (method: InputMethod) => {
+    if (modalState === 'SAVING') {
+      return;
+    }
+
+    setPendingMethod(method);
+    setModalState('SAVING');
+
+    try {
+      // §10.3 권장 순서: Calibration POST 성공 후에만 UserSetting PATCH. 이미 성공한
+      // POST는 재시도 시 다시 보내지 않는다(savedCalibrationId가 있으면 건너뜀) — 부분
+      // 실패(POST 성공 + PATCH 실패) 복구 시 calibration을 중복 저장하지 않기 위함이다.
+      let calibrationId = savedCalibrationId;
+
+      if (!calibrationId) {
+        const persisted = await createCalibration(candidate);
+        calibrationId = persisted.calibrationId;
+        setSavedCalibrationId(calibrationId);
+        setActiveCalibration(persisted.calibrationId, persisted.result);
+      }
+
+      await updateSettings({ currentInputMethod: method });
+
+      onApplied(method);
+    } catch {
+      setModalState('ERROR');
+    }
+  };
+
+  const isSaving = modalState === 'SAVING';
+  const rmseTooHigh = candidate.reprojectionRmseNormalized > CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED;
+
+  return (
+    <div className="measurement-result-modal" role="dialog" aria-modal="true">
+      <p className="measurement-result-modal__title">&lt;측정 결과&gt;</p>
+      <p>사용하고 싶은 입력 방식을 선택해주세요.</p>
+
+      {/* Final C — Look-Talk 원본(calibration.py 643행)의 RMSE 하드 게이트에 대응하는
+          비침습적 경고. Python처럼 말없이 이전 값으로 자동 대체하지 않고 사용자가 직접
+          재측정할지 그대로 적용할지 선택하게 한다(§8.5와 동일한 원칙). */}
+      {rmseTooHigh && (
+        <p className="measurement-result-modal__rmse-warning">
+          이번 측정의 오차가 평소보다 큽니다. 재측정을 권장하지만, 그래도 아래에서 입력
+          방식을 선택해 적용할 수 있습니다.
+        </p>
+      )}
+
+      <div className="measurement-result-modal__methods">
+        {METHOD_OPTIONS.map((option) => (
+          <button
+            key={option.method}
+            type="button"
+            className="measurement-result-modal__method-button"
+            disabled={option.disabled || isSaving}
+            onClick={() => void handleSelect(option.method)}
+          >
+            {option.label}
+            {option.disabledReason && (
+              <span className="measurement-result-modal__method-note"> ({option.disabledReason})</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {modalState === 'ERROR' && (
+        <div className="measurement-result-modal__error" aria-live="assertive">
+          <p>저장에 실패했습니다. 다시 시도해주세요.</p>
+          {pendingMethod && (
+            <button type="button" onClick={() => void handleSelect(pendingMethod)}>
+              다시 시도
+            </button>
+          )}
+        </div>
+      )}
+
+      <button type="button" className="measurement-result-modal__retest-button" disabled={isSaving} onClick={onRetest}>
+        재측정
+      </button>
+
+      <p className="calibration-rmse">재투영 오차(RMSE, normalized): {candidate.reprojectionRmseNormalized.toFixed(4)}</p>
+      <p className="calibration-rmse">
+        viewport: {candidate.calibratedViewport.widthPx}×{candidate.calibratedViewport.heightPx}px / mirror:{' '}
+        {candidate.mirrorStrategy}
+      </p>
+
+      {pointDiagnostics && (
+        <details className="calibration-diagnostics">
+          <summary>점별 오차 보기 ({pointDiagnostics.length}점)</summary>
+          <table className="calibration-diagnostics-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>iris(src)</th>
+                <th>target</th>
+                <th>predicted</th>
+                <th>error</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pointDiagnostics.map((d) => (
+                <tr key={d.index}>
+                  <td>{d.index + 1}</td>
+                  <td>
+                    {d.source.x.toFixed(4)}, {d.source.y.toFixed(4)}
+                  </td>
+                  <td>
+                    {d.target.x.toFixed(2)}, {d.target.y.toFixed(2)}
+                  </td>
+                  <td>
+                    {d.predicted.x.toFixed(3)}, {d.predicted.y.toFixed(3)}
+                  </td>
+                  <td>{d.errorNormalized.toFixed(4)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
+    </div>
+  );
+}

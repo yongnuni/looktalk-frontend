@@ -24,6 +24,21 @@ textarea {
   font: inherit;
 }
 
+/* Front Step 15/16 §42 — GazeInteractionProvider가 hover 중인 target element에 직접
+   붙이는 data-gaze-hovered/--gaze-progress(§23, MainPage.css의 [data-gaze-hovered] 패턴과
+   동일한 계약)에 대한 전역 기본 시각 피드백이다. 페이지별로 더 구체적인 선택자
+   (`.foo[data-gaze-hovered='true']`)를 이미 정의해 뒀다면 그쪽이 우선 적용된다 — 이 규칙은
+   그런 page-specific 스타일이 없는 target(Chat/Memo/Phrase/MyPage/Analysis 등 이번 Step에서
+   새로 추가한 target 다수)이 최소한 "지금 시선이 여기 머물고 있다"는 진행률을 보여주기
+   위한 안전한 기본값이다. outline은 요소의 position/padding 여부와 무관하게 항상 그려지므로
+   레이아웃을 깨지 않는다. */
+[data-gaze-hovered='true'] {
+  outline: 3px solid rgba(37, 99, 235, 0.85);
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 999px rgba(37, 99, 235, calc(var(--gaze-progress, 0) * 0.18));
+  transition: box-shadow 60ms linear;
+}
+
 a {
   color: #2563eb;
   text-decoration: none;

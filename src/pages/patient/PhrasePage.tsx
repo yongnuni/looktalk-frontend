@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import PageHeader from '../../shared/components/layout/PageHeader';
 import { AlertModal, ConfirmModal, InputModal } from '../../shared/components/modal';
 import EmergencyButton from '../../features/emergency/components/EmergencyButton';
+import { usePageScope } from '../../features/gazeInteraction/usePageScope';
+import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
 import { usePhrases } from '../../features/phrase/hooks/usePhrases';
 import { ROUTES } from '../../shared/constants/routes';
 import type { Phrase } from '../../shared/types/mypage';
@@ -13,6 +15,9 @@ import './PhrasePage.css';
 type PhraseModal = 'none' | 'create' | 'created' | 'delete-confirm' | 'deleted';
 
 export default function PhrasePage() {
+  const navigate = useNavigate();
+  usePageScope('MAIN');
+
   const {
     phrases,
     maxPhrases,
@@ -34,13 +39,27 @@ export default function PhrasePage() {
     setModal('delete-confirm');
   };
 
+  const openRegisterModal = () => {
+    setRegisterError(false);
+    setModal('create');
+  };
+
+  // §29 — 실제 존재하는 핵심 navigation/action(뒤로가기, 문장 등록)만. 개별 문장 삭제는
+  // 목록 길이가 가변적이라(§28과 동일한 hooks 규칙 제약) 이번 범위에서는 제외한다.
+  const backTargetRef = useGazeTarget({ id: 'phrase-back', scope: 'MAIN', onSelect: () => navigate(ROUTES.MYPAGE) });
+  const registerTargetRef = useGazeTarget({
+    id: 'phrase-register',
+    scope: 'MAIN',
+    onSelect: openRegisterModal,
+  });
+
   return (
     <div className="phrase-page">
       <PageHeader
         title="자주 쓰는 문장 관리"
         logoTo={ROUTES.MAIN}
         titleActions={
-          <Link to={ROUTES.MYPAGE} className="header-pill-button">
+          <Link ref={backTargetRef} to={ROUTES.MYPAGE} className="header-pill-button">
             뒤로가기
           </Link>
         }
@@ -49,12 +68,10 @@ export default function PhrasePage() {
 
       <div className="phrase-toolbar">
         <button
+          ref={registerTargetRef}
           type="button"
           className="phrase-register-button"
-          onClick={() => {
-            setRegisterError(false);
-            setModal('create');
-          }}
+          onClick={openRegisterModal}
         >
           문장 등록하기
         </button>
