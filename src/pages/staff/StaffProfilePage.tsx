@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import PageHeader from '../../shared/components/layout/PageHeader';
 import StaffHeaderActions from '../../shared/components/layout/StaffHeaderActions';
 import StaffEmergencyAlert from '../../features/emergency/components/StaffEmergencyAlert';
 import { AlertModal, InputModal } from '../../shared/components/modal';
-import { getStaffMe } from '../../features/mypage/api/staffProfile';
 import { updateMyName } from '../../features/mypage/api/user';
-import { useStaffProfileStore } from '../../shared/stores/staffProfileStore';
+import { useStaffProfile } from '../../features/mypage/hooks/useStaffProfile';
 import { ROUTES } from '../../shared/constants/routes';
 
 import './StaffProfilePage.css';
@@ -15,39 +14,9 @@ import './StaffProfilePage.css';
 type NameModal = 'none' | 'edit' | 'done' | 'error';
 
 export default function StaffProfilePage() {
-  const name = useStaffProfileStore((state) => state.name);
-  const email = useStaffProfileStore((state) => state.email);
-  const hospitalName = useStaffProfileStore((state) => state.hospitalName);
-  const roleLabel = useStaffProfileStore((state) => state.roleLabel);
-  const setProfile = useStaffProfileStore((state) => state.setProfile);
+  const { name, email, hospitalName, roleLabel, setProfile } = useStaffProfile();
 
   const [modal, setModal] = useState<NameModal>('none');
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadProfile = async () => {
-      try {
-        const me = await getStaffMe();
-
-        if (!isMounted) return;
-
-        setProfile({
-          name: me.name ?? me.displayName,
-          email: me.email,
-          hospitalName: me.hospital.hospitalName,
-        });
-      } catch (error) {
-        console.error('의료진 정보 조회 실패:', error);
-      }
-    };
-
-    void loadProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [setProfile]);
 
   return (
     <div className="staff-profile-page">
