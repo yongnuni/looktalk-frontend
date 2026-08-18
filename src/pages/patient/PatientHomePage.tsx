@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import VirtualKeyboard from '../../features/keyboard/components/VirtualKeyboard';
+import KeyboardKey from '../../features/keyboard/components/KeyboardKey';
+import { FUNCTION_KEY_CONFIRM } from '../../features/keyboard/layouts/qwertyLayouts';
 import { useKeyboardInput } from '../../features/keyboard/hooks/useKeyboardInput';
 import { useKeyboardGazeTargets } from '../../features/keyboard/useKeyboardGazeTargets';
 import { useGazeRuntime } from '../../features/gazeRuntime/GazeRuntimeContext';
@@ -110,14 +112,26 @@ export default function PatientHomePage() {
           )}
         </div>
 
-        <textarea
-          className="message-box"
-          value={text}
-          readOnly
-          placeholder="가상키보드로 문장을 입력하세요."
-        />
-
+        {/* Front Step 18(Python parity) — VirtualKeyboard는 더 이상 확인 키를 렌더링하지
+            않는다(keyboard.py의 confirm_rect처럼 입력창 옆에 둔다). 실제 서비스 화면은
+            FullViewportKeyboardOverlay를 쓰지만, 이 QA route는 페이지 전체가 이미 키보드
+            화면이라 별도 overlay 없이 텍스트 영역 옆에 확인 키만 추가한다. */}
         <div ref={keyboardContainerRef}>
+          <div className="patient-home-draft-row">
+            <textarea
+              className="message-box"
+              value={text}
+              readOnly
+              placeholder="가상키보드로 문장을 입력하세요."
+            />
+            <KeyboardKey
+              value={FUNCTION_KEY_CONFIRM}
+              hovered={hoveredKeyValue === FUNCTION_KEY_CONFIRM}
+              dwellProgress={hoveredKeyValue === FUNCTION_KEY_CONFIRM ? dwellProgress : 0}
+              onSelect={handleKeySelect}
+            />
+          </div>
+
           <VirtualKeyboard
             keyboardState={keyboardState}
             hoveredKeyId={hoveredKeyValue}

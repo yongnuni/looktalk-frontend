@@ -535,75 +535,10 @@ Hover
 
 /* ===========================
    Virtual Keyboard Overlay (MEM-01-01)
-   PatientChatView의 patient-chat-keyboard-overlay와 동일한 패턴을 재사용한다.
+   Front Step 18(Python parity) — 실제 overlay/panel 마크업은 공용
+   FullViewportKeyboardOverlay(features/keyboard)로 옮겨졌다. Chat과 markup을 복제하던
+   것이 §8 root cause였다.
 =========================== */
-
-.memo-keyboard-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(17, 24, 39, 0.55);
-}
-
-.memo-keyboard-panel {
-  width: 100%;
-  max-width: 1024px;
-  max-height: 92vh;
-  overflow-y: auto;
-  padding: 24px clamp(16px, 4vw, 40px) 32px;
-  border-radius: 24px 24px 0 0;
-  background: #ffffff;
-  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.25);
-}
-
-.memo-keyboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.memo-keyboard-draft {
-  flex: 1;
-  min-height: 32px;
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
-  word-break: break-word;
-}
-
-.memo-keyboard-close {
-  flex-shrink: 0;
-  padding: 8px 18px;
-  border: 1px solid #d1d5db;
-  border-radius: 999px;
-  background: #f3f4f6;
-  color: #374151;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.memo-keyboard-close:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.memo-keyboard-error {
-  margin: 12px 0 0;
-  color: #dc2626;
-  font-weight: 600;
-}
-
-.memo-keyboard-status {
-  margin: 12px 0 0;
-  color: #6b7280;
-}
 
 /* ===========================
    1600px

@@ -1,33 +1,52 @@
+/* Look-Talk ui.py IDLE_BG/IDLE_BORDER/HOVER_BG/HOVER_BORDER/KEY_TEXT_COLOR(385-393행)를
+   그대로 옮긴 색상이다.
+   width는 여기서 값을 정하지 않는다 — VirtualKeyboard.css의 .keyboard-row--10/--9/
+   --function이 실제 Grid 컬럼(width:100%)으로 강제한다(이전엔 calc()로 유도한
+   --char-key-width 커스텀 프로퍼티를 썼는데, 실제 렌더 결과가 계산값과 맞지 않아 —
+   원인을 확정하지 못한 채 — 더 이상 그 방식에 의존하지 않기로 했다. Grid는 부모가
+   실제로 렌더된 폭을 컬럼 수로 나누는 것이라 중간에 깨질 여지가 없다). 여기 width는
+   Grid로 감싸지 않은 예외적 컨텍스트(topbar 확인 키 등, 각자 더 구체적인 selector로
+   override함)를 위한 최소 fallback일 뿐이다.
+   height는 고정 clamp() 값이다(row 자체가 flex:1로 남는 공간을 나눠 갖지 않기 때문에
+   row 높이 = key 높이가 되어, row 사이에 의도치 않은 큰 공백이 생기지 않는다). */
 .keyboard-key {
   position: relative;
-  min-width: 64px;
-  min-height: 56px;
-  padding: 12px 16px;
-  border: 1px solid #d0d5dd;
-  border-radius: 12px;
-  background: #ffffff;
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(78px, 8vw, 140px);
+  height: clamp(88px, 10vh, 104px);
+  padding: 0 10px;
+  border: 1px solid #cdced2;
+  border-radius: clamp(12px, 1.2vw, 22px);
+  background: #ebecf0;
+  font-size: clamp(28px, 2.2vw, 40px);
   font-weight: 600;
+  color: #1e293b;
   cursor: pointer;
   overflow: hidden;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .keyboard-key:hover {
-  background: #f2f4f7;
+  background: #dbeafe;
+  border-color: #93c5fd;
 }
 
 .keyboard-key:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .keyboard-key--active {
   border-color: #2563eb;
+  border-width: 2px;
   color: #2563eb;
 }
 
-.keyboard-key--wide {
-  flex: 1 1 auto;
-}
+/* Space가 가장 넓은 것은 VirtualKeyboard.css의 .keyboard-row--function grid-template-columns
+   (Shift 1.1fr / 한영 1.1fr / Space 4.5fr / 뒤돌리기 1.4fr)가 담당한다 — .keyboard-key--wide
+   자체는 더 이상 폭을 정하지 않는다(마킹용 클래스로만 남는다). */
 
 /* gaze dwell hover 상태 — 진행률을 아래에서 차오르는 바로 표시한다. */
 .keyboard-key--hovered {

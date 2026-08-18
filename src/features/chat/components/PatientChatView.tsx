@@ -10,9 +10,8 @@ import { ROUTES } from '../../../shared/constants/routes';
 import { useGazeInteraction } from '../../gazeInteraction/GazeInteractionContext';
 import { usePageScope } from '../../gazeInteraction/usePageScope';
 import { useGazeTarget } from '../../gazeInteraction/useGazeTarget';
-import VirtualKeyboard from '../../keyboard/components/VirtualKeyboard';
+import FullViewportKeyboardOverlay from '../../keyboard/components/FullViewportKeyboardOverlay';
 import { useKeyboardInput } from '../../keyboard/hooks/useKeyboardInput';
-import { useKeyboardGazeTargets } from '../../keyboard/useKeyboardGazeTargets';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
 import { sendHospitalChatMessage, sendSmsChatMessage } from '../api/chatMessages';
 import { isSendableMessage } from '../chatSend';
@@ -83,7 +82,6 @@ export default function PatientChatView({
     phoneVerificationStatus ?? (phoneVerifiedProp ? 'verified' : 'unverified');
   const phoneVerified = resolvedPhoneVerificationStatus === 'verified';
   const messageListRef = useRef<HTMLDivElement>(null);
-  const keyboardContainerRef = useRef<HTMLDivElement | null>(null);
   const hasShownPhoneVerification = useRef(
     resolvedPhoneVerificationStatus === 'unverified',
   );
@@ -454,9 +452,6 @@ export default function PatientChatView({
     clearTextRef.current = clearText;
   }, [clearText]);
 
-  const layoutSignature = `${keyboardState.isKorean}-${keyboardState.isShift}`;
-  useKeyboardGazeTargets(keyboardContainerRef, handleKeySelect, layoutSignature, isKeyboardOpen);
-
   // ── Gaze targets(§13, 실제 존재하는 최소 navigation/action만) ──
   const brandTargetRef = useGazeTarget({ id: 'chat-brand', scope: 'CHAT', onSelect: () => navigate(ROUTES.MAIN) });
   const switchTargetRef = useGazeTarget({ id: 'chat-switch', scope: 'CHAT', onSelect: () => navigate(switchPath) });
@@ -726,36 +721,18 @@ export default function PatientChatView({
           채팅 뒤쪽 UI는 이 레이어 아래에 가려져 mouse로도 눌리지 않고, activeScope도
           KEYBOARD로 전환되어 gaze로도 선택되지 않는다(§12). */}
       {isKeyboardOpen && (
-        <div className="patient-chat-keyboard-overlay" role="dialog" aria-modal="true" aria-label="메시지 입력">
-          <div className="patient-chat-keyboard-panel">
-            <header className="patient-chat-keyboard-header">
-              <p className="patient-chat-keyboard-draft">{text || '문장을 입력하세요.'}</p>
-              <button
-                type="button"
-                className="patient-chat-keyboard-close"
-                onClick={handleKeyboardClose}
-                disabled={isSending}
-              >
-                닫기
-              </button>
-            </header>
-
-            {sendError && (
-              <p className="patient-chat-keyboard-error" role="alert">
-                {sendError}
-              </p>
-            )}
-            {isSending && <p className="patient-chat-keyboard-status">전송 중입니다…</p>}
-
-            <div ref={keyboardContainerRef}>
-              <VirtualKeyboard
-                keyboardState={keyboardState}
-                onKeySelect={handleKeySelect}
-                keyEnlarged={settings?.keyEnlarged ?? false}
-              />
-            </div>
-          </div>
-        </div>
+        <FullViewportKeyboardOverlay
+          ariaLabel="메시지 입력"
+          draftText={text}
+          draftPlaceholder="문장을 입력하세요."
+          errorMessage={sendError}
+          statusMessage={isSending ? '전송 중입니다…' : null}
+          onClose={handleKeyboardClose}
+          closeDisabled={isSending}
+          keyboardState={keyboardState}
+          onKeySelect={handleKeySelect}
+          keyEnlarged={settings?.keyEnlarged ?? false}
+        />
       )}
 
       <BaseModal

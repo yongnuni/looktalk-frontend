@@ -15,9 +15,8 @@ import { useCalibrationStore } from '../../features/calibration/store/calibratio
 import { useGazeInteraction } from '../../features/gazeInteraction/GazeInteractionContext';
 import { usePageScope } from '../../features/gazeInteraction/usePageScope';
 import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
-import VirtualKeyboard from '../../features/keyboard/components/VirtualKeyboard';
+import FullViewportKeyboardOverlay from '../../features/keyboard/components/FullViewportKeyboardOverlay';
 import { useKeyboardInput } from '../../features/keyboard/hooks/useKeyboardInput';
-import { useKeyboardGazeTargets } from '../../features/keyboard/useKeyboardGazeTargets';
 import { canOpenMemoKeyboard, isSavableMemoText } from '../../features/memo/memoKeyboard';
 import { useUserSettings } from '../../features/userSetting/hooks/useUserSettings';
 import { useUserSettingStore } from '../../features/userSetting/store/userSettingStore';
@@ -339,10 +338,6 @@ export default function MemoPage() {
     clearTextRef.current = clearText;
   }, [clearText]);
 
-  const keyboardContainerRef = useRef<HTMLDivElement | null>(null);
-  const layoutSignature = `${keyboardState.isKorean}-${keyboardState.isShift}`;
-  useKeyboardGazeTargets(keyboardContainerRef, handleKeySelect, layoutSignature, isKeyboardOpen);
-
   // =========================
   // 삭제 버튼 클릭
   // =========================
@@ -578,36 +573,18 @@ export default function MemoPage() {
       =========================== */}
 
       {isKeyboardOpen && (
-        <div className="memo-keyboard-overlay" role="dialog" aria-modal="true" aria-label="메모 입력">
-          <div className="memo-keyboard-panel">
-            <header className="memo-keyboard-header">
-              <p className="memo-keyboard-draft">{text || '문장을 입력하세요.'}</p>
-              <button
-                type="button"
-                className="memo-keyboard-close"
-                onClick={handleKeyboardClose}
-                disabled={isAdding}
-              >
-                닫기
-              </button>
-            </header>
-
-            {errorMessage && (
-              <p className="memo-keyboard-error" role="alert">
-                {errorMessage}
-              </p>
-            )}
-            {isAdding && <p className="memo-keyboard-status">저장 중입니다…</p>}
-
-            <div ref={keyboardContainerRef}>
-              <VirtualKeyboard
-                keyboardState={keyboardState}
-                onKeySelect={handleKeySelect}
-                keyEnlarged={settings?.keyEnlarged ?? false}
-              />
-            </div>
-          </div>
-        </div>
+        <FullViewportKeyboardOverlay
+          ariaLabel="메모 입력"
+          draftText={text}
+          draftPlaceholder="문장을 입력하세요."
+          errorMessage={errorMessage}
+          statusMessage={isAdding ? '저장 중입니다…' : null}
+          onClose={handleKeyboardClose}
+          closeDisabled={isAdding}
+          keyboardState={keyboardState}
+          onKeySelect={handleKeySelect}
+          keyEnlarged={settings?.keyEnlarged ?? false}
+        />
       )}
 
       {/* ===========================

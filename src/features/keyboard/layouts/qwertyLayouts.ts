@@ -40,9 +40,10 @@ export const FUNCTION_KEY_SPACE = ' ';
 export const FUNCTION_KEY_DEL = 'Del';
 export const FUNCTION_KEY_CONFIRM = '확인';
 
+// Look-Talk keyboard.py DISPLAY_LABELS(72-76행)와 동일한 표시 이름.
 export const DISPLAY_LABELS: Record<string, string> = {
   [FUNCTION_KEY_SHIFT]: 'shift',
-  [FUNCTION_KEY_DEL]: '뒤로',
+  [FUNCTION_KEY_DEL]: '뒤돌리기',
   [FUNCTION_KEY_SPACE]: '스페이스',
   [FUNCTION_KEY_CONFIRM]: '확인',
 };
