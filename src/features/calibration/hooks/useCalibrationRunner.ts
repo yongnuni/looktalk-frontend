@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
 import { useCamera } from '../../camera/hooks/useCamera';
@@ -151,13 +151,12 @@ export function useCalibrationRunner(
 ): UseCalibrationRunnerResult {
   const mode = options.mode ?? 'patient';
 
-  // patient/pre는 각각 별도 페이지에서 사용하며 mount 중 mode가 변경되지 않는 것을
-  // 전제로 초기 config를 고정한다.
-  const configRef = useRef<CalibrationRunnerConfig>(
-    getCalibrationRunnerConfig(mode),
-  );
-
-  const config = configRef.current;
+  // patient / pre 설정을 mode 기준으로 계산한다.
+  //
+  // 기존에는 configRef.current를 렌더링 중 읽으면서
+  // react-hooks/refs lint 오류가 발생했기 때문에,
+  // ref 대신 useMemo로 동일한 설정을 유지한다.
+  const config = useMemo(() => getCalibrationRunnerConfig(mode), [mode]);
 
   // ============================================================
   // Camera
