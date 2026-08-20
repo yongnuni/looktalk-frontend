@@ -49,7 +49,7 @@ export interface GazeRuntimeContextValue {
   activeCalibration: GazeCalibrationResult | null;
   compatibility: CalibrationCompatibility | null;
 
-  /** 매 프레임(throttle 없이) 호출되는 구독. Dwell/Mouth처럼 시간 기반 판정이 필요한
+  /** 매 프레임(throttle 없이) 호출되는 구독. Dwell/Blink/Mouth처럼 시간 기반 판정이 필요한
    * 소비자를 위한 것 — React state(위 필드들)는 UI 표시용으로만 50ms 간격 throttle된다. */
   subscribeFrame: (listener: FrameListener) => () => void;
 }
