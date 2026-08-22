@@ -13,16 +13,11 @@ type ModalState = 'SELECTING' | 'SAVING' | 'ERROR';
 interface MethodOption {
   method: InputMethod;
   label: string;
-  disabled?: boolean;
-  disabledReason?: string;
 }
 
-// Integration Plan §10.2 — BLINK는 Look-Talk Python에 참조 구현이 없고 Web 쪽 confirm
-// UX 계약도 아직 없어(Front Step 9) 선택은 노출하되 비활성화한다. 실제 Look-Talk에
-// 없는 기능을 새로 만들어 넣지 않는다는 원칙(Front Step 2-9 지침)에 따른 것이다.
 const METHOD_OPTIONS: MethodOption[] = [
   { method: 'EYE_TRACKING', label: '시선(gaze)' },
-  { method: 'BLINK', label: '눈 깜빡임(blink)', disabled: true, disabledReason: '준비 중' },
+  { method: 'BLINK', label: '눈 깜빡임(blink)' },
   { method: 'MOUTH', label: '입 움직임(mouth)' },
 ];
 
@@ -102,13 +97,10 @@ export default function MeasurementResultModal({
             key={option.method}
             type="button"
             className="measurement-result-modal__method-button"
-            disabled={option.disabled || isSaving}
+            disabled={isSaving}
             onClick={() => void handleSelect(option.method)}
           >
             {option.label}
-            {option.disabledReason && (
-              <span className="measurement-result-modal__method-note"> ({option.disabledReason})</span>
-            )}
           </button>
         ))}
       </div>

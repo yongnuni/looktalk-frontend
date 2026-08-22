@@ -7,7 +7,9 @@ import { useFaceTracking, type FaceLandmarkerLoadState } from '../../faceTrackin
 import { DEFAULT_MIRROR_STRATEGY } from '../../faceTracking/mediapipe/mirrorStrategy';
 import type { GazeSignal } from '../../faceTracking/types';
 import type { GazeCalibrationResult } from '../../calibration/types';
+import { BlinkController } from '../BlinkController';
 import { DwellController } from '../DwellController';
+import { processGazeFrameForSelection } from '../gazeFrameSelection';
 import { mapGazeSignalToFilteredCssPx } from '../gazeMapping';
 import type { GazeInputMode } from '../gazeInputMode';
 import { MouthController } from '../MouthController';
@@ -46,7 +48,7 @@ export interface UseGazeInputResult {
   /** 필터링된 gaze 커서, viewport CSS px. 추적 실패 중에는 마지막 유효 위치를 유지한다(Python last_gaze_x/y). */
   cursorCssPx: { x: number; y: number } | null;
   fixationCount: number;
-  /** dwell/mouth 공용 선택 상태. inputMode==='MOUTH'일 때는 hoveredKeyId가 잠긴(locked) 키를 우선한다. */
+  /** 세 입력 모드의 공용 선택 상태. gesture 모드에서는 잠긴(locked) target을 우선한다. */
   dwell: InputSelectionState;
   eyeClosed: boolean;
   trackingValid: boolean;
@@ -62,6 +64,7 @@ export function useGazeInput({
 
   const gazeFilterRef = useRef(new GazeFilter());
   const dwellControllerRef = useRef(new DwellController());
+  const blinkControllerRef = useRef(new BlinkController());
   const mouthControllerRef = useRef(new MouthController());
   const lastValidCursorRef = useRef<{ x: number; y: number } | null>(null);
   const getTargetsRef = useRef(getTargets);
@@ -81,6 +84,7 @@ export function useGazeInput({
     inputModeRef.current = inputMode;
     // 입력 방식이 바뀌면 이전 모드가 진행 중이던 hover/lock/hold 진행 상태를 남기지 않는다.
     dwellControllerRef.current.reset();
+    blinkControllerRef.current.reset();
     mouthControllerRef.current.reset();
   }, [inputMode]);
 
@@ -98,6 +102,7 @@ export function useGazeInput({
       // 하고 아예 update()를 호출하지 않는다(1330-1340행) — 동일하게 처리.
       if (!calibration || !signal) {
         dwellControllerRef.current.reset();
+        blinkControllerRef.current.reset();
         mouthControllerRef.current.reset();
 
         if (now - lastUiUpdateRef.current >= UI_UPDATE_INTERVAL_MS) {
@@ -122,25 +127,20 @@ export function useGazeInput({
         gazeYForDwell = filtered.y;
       }
 
-      // Look-Talk main.py 1287-1341행: mouth_mode일 때는 dwell을 hover 판정에만 쓰고(클릭은
-      // 발생시키지 않음) mouth.reset()은 하지 않는 대신, 실제 클릭은 mouth 쪽에서만 낸다 —
-      // 상호 배타적으로 둘 중 하나만 selectedKeyId를 낼 수 있게 한다.
-      let dwellState: InputSelectionState;
-
-      if (inputModeRef.current === 'MOUTH') {
-        const mouthState = mouthControllerRef.current.update(
-          gazeXForDwell,
-          gazeYForDwell,
-          getTargetsRef.current(),
-          signal.mar,
+      const dwellState = processGazeFrameForSelection(
+        {
+          hasSignal: true,
+          signal,
+          cursorCssPx: isValid ? { x: gazeXForDwell, y: gazeYForDwell } : null,
+          fixationCount: filtered.fixationCount,
           now,
-        );
-        dwellControllerRef.current.reset();
-        dwellState = { hoveredKeyId: mouthState.lockedKeyId ?? mouthState.hoveredKeyId, progress: mouthState.progress, selectedKeyId: mouthState.selectedKeyId };
-      } else {
-        dwellState = dwellControllerRef.current.update(gazeXForDwell, gazeYForDwell, getTargetsRef.current(), now);
-        mouthControllerRef.current.reset();
-      }
+        },
+        getTargetsRef.current(),
+        inputModeRef.current,
+        dwellControllerRef.current,
+        blinkControllerRef.current,
+        mouthControllerRef.current,
+      );
 
       if (dwellState.selectedKeyId) {
         onKeySelectRef.current?.(dwellState.selectedKeyId);

@@ -100,8 +100,9 @@ export class MouthController {
     if (this.isOpen) {
       if (this.openStartMs === null) {
         this.openStartMs = nowMs;
-        // 입을 벌리기 전에 잠가 둔 키를 사용 — 입이 열려 있는 동안의 현재 시선 위치는 쓰지 않는다.
-        this.startKeyId = this.lockedKeyId;
+        // 입을 벌리기 직전에도 잠근 키를 보고 있어야 gesture를 시작한다. 시작 이후에는
+        // Python 원본처럼 시선 흔들림과 무관하게 이 start key를 유지한다.
+        this.startKeyId = hoveredKeyId === this.lockedKeyId ? this.lockedKeyId : null;
       } else if (nowMs - this.openStartMs >= HOLD_TIME_SEC * 1000 && !this.clicked) {
         const cooldownReady = nowMs - this.lastClickMs >= COOLDOWN_SEC * 1000;
 
