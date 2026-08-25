@@ -10,6 +10,8 @@ import { useGazeInteraction } from '../../features/gazeInteraction/GazeInteracti
 import { usePageScope } from '../../features/gazeInteraction/usePageScope';
 import { resolveGazeInputMode } from '../../features/multimodalInput/gazeInputMode';
 import { useUserSettings } from '../../features/userSetting/hooks/useUserSettings';
+import KeyboardSuggestionRow from '../../features/autocomplete/KeyboardSuggestionRow';
+import { useKeyboardSuggestions } from '../../features/autocomplete/useKeyboardSuggestions';
 import './PatientHomePage.css';
 
 // Front Step 17 merge — 병원 상대 검색은 더 이상 이 QA 페이지를 거치지 않는다.
@@ -35,7 +37,14 @@ export default function PatientHomePage() {
     clearTextRef.current();
   }, []);
 
-  const { keyboardState, text, handleKeySelect, clearText } = useKeyboardInput({ onConfirm: handleConfirm });
+  const {
+    keyboardState,
+    text,
+    handleKeySelect,
+    handleSuggestionSelect,
+    pendingWordBoundary,
+    clearText,
+  } = useKeyboardInput({ onConfirm: handleConfirm });
 
   useEffect(() => {
     clearTextRef.current = clearText;
@@ -62,8 +71,15 @@ export default function PatientHomePage() {
   // KEYBOARD scope + registry에 key를 등록해 Global selection engine 단 하나만 쓴다(§36).
   usePageScope('KEYBOARD');
   const { hoveredTargetId, progress: dwellProgress } = useGazeInteraction();
-  const layoutSignature = `${keyboardState.isKorean}-${keyboardState.isShift}`;
-  useKeyboardGazeTargets(keyboardContainerRef, handleKeySelect, layoutSignature);
+  const { slots, handleTargetSelect, suggestionSignature } = useKeyboardSuggestions({
+    enabled: true,
+    draftText: text,
+    pendingWordBoundary,
+    onKeySelect: handleKeySelect,
+    onSuggestionSelect: handleSuggestionSelect,
+  });
+  const layoutSignature = `${keyboardState.isKorean}-${keyboardState.isShift}-${suggestionSignature}`;
+  useKeyboardGazeTargets(keyboardContainerRef, handleTargetSelect, layoutSignature);
 
   // useKeyboardGazeTargets가 등록하는 target id는 `keyboard:${value}` 접두사가 붙는다
   // (여러 화면이 같은 key 값을 동시에 등록할 수 있어 registry key 충돌을 피하기 위함,
@@ -128,15 +144,21 @@ export default function PatientHomePage() {
               value={FUNCTION_KEY_CONFIRM}
               hovered={hoveredKeyValue === FUNCTION_KEY_CONFIRM}
               dwellProgress={hoveredKeyValue === FUNCTION_KEY_CONFIRM ? dwellProgress : 0}
-              onSelect={handleKeySelect}
+              onSelect={handleTargetSelect}
             />
           </div>
+
+          <KeyboardSuggestionRow
+            slots={slots}
+            mode={text ? 'autocomplete' : 'favorites'}
+            onTargetSelect={handleTargetSelect}
+          />
 
           <VirtualKeyboard
             keyboardState={keyboardState}
             hoveredKeyId={hoveredKeyValue}
             dwellProgress={dwellProgress}
-            onKeySelect={handleKeySelect}
+            onKeySelect={handleTargetSelect}
             keyEnlarged={userSettings?.keyEnlarged ?? false}
           />
         </div>

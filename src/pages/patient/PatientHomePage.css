@@ -15,6 +15,11 @@
   display: flex;
   align-items: stretch;
   gap: clamp(12px, 1.6vw, 24px);
+  margin-bottom: clamp(14px, 1.8vh, 22px);
+}
+
+.patient-home-draft-row + .fv-keyboard-recommend-row {
+  margin-bottom: clamp(14px, 1.8vh, 22px);
 }
 
 .patient-home-draft-row .message-box {

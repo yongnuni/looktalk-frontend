@@ -45,7 +45,7 @@
 }
 
 /* Space가 가장 넓은 것은 VirtualKeyboard.css의 .keyboard-row--function grid-template-columns
-   (Shift 1.1fr / 한영 1.1fr / Space 4.5fr / 뒤돌리기 1.4fr)가 담당한다 — .keyboard-key--wide
+   (Shift 1.1fr / 한영 1.1fr / Space 4.5fr / 되돌리기 1.4fr)가 담당한다 — .keyboard-key--wide
    자체는 더 이상 폭을 정하지 않는다(마킹용 클래스로만 남는다). */
 
 /* gaze dwell hover 상태 — 진행률을 아래에서 차오르는 바로 표시한다. */
