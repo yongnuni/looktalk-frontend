@@ -8,6 +8,7 @@ import { useKeyboardGazeTargets } from '../../features/keyboard/useKeyboardGazeT
 import { useGazeRuntime } from '../../features/gazeRuntime/GazeRuntimeContext';
 import { useGazeInteraction } from '../../features/gazeInteraction/GazeInteractionContext';
 import { usePageScope } from '../../features/gazeInteraction/usePageScope';
+import LandmarkPopupLauncher from '../../features/landmarkPopup/LandmarkPopupLauncher';
 import { resolveGazeInputMode } from '../../features/multimodalInput/gazeInputMode';
 import { useUserSettings } from '../../features/userSetting/hooks/useUserSettings';
 import KeyboardSuggestionRow from '../../features/autocomplete/KeyboardSuggestionRow';
@@ -126,6 +127,7 @@ export default function PatientHomePage() {
               <strong>{faceLoadState}</strong> / 추적: <strong>{String(trackingValid)}</strong>
             </p>
           )}
+          <LandmarkPopupLauncher />
         </div>
 
         {/* Front Step 18(Python parity) — VirtualKeyboard는 더 이상 확인 키를 렌더링하지

@@ -1,6 +1,8 @@
+import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
+import { useCalibrationCompletionGaze } from '../../features/calibration/completionGaze/useCalibrationCompletionGaze';
 import { useCalibrationRunner } from '../../features/calibration/hooks/useCalibrationRunner';
 import { viewportNormalizedToCssPx } from '../../features/calibration/viewportTargets';
 import { ROUTES } from '../../shared/constants/routes';
@@ -24,6 +26,7 @@ export default function PreCalibrationPage() {
     progress,
     result,
     cursorNormalized,
+    subscribeCompletionGaze,
     restart,
   } = useCalibrationRunner({
     mode: 'pre',
@@ -41,13 +44,22 @@ export default function PreCalibrationPage() {
   const showResultStage =
     showMeasurementOverlay && progress.done && result !== null;
 
+  const retestButtonRef = useRef<HTMLButtonElement | null>(null);
+  const loginButtonRef = useRef<HTMLButtonElement | null>(null);
+  const completionActionStartedRef = useRef(false);
+
   // =========================================================
   // 다시 측정
   // =========================================================
 
-  const handleRetest = () => {
+  const handleRetest = useCallback(() => {
+    if (completionActionStartedRef.current) {
+      return;
+    }
+
+    completionActionStartedRef.current = true;
     restart();
-  };
+  }, [restart]);
 
   // =========================================================
   // 로그인으로 이동
@@ -59,10 +71,16 @@ export default function PreCalibrationPage() {
   // 로그인 성공 후 필요하면 이 값을 읽어 Backend에 연결할 수 있다.
   // =========================================================
 
-  const handleContinueToLogin = () => {
+  const handleContinueToLogin = useCallback(() => {
     if (!result) {
       return;
     }
+
+    if (completionActionStartedRef.current) {
+      return;
+    }
+
+    completionActionStartedRef.current = true;
 
     sessionStorage.setItem('preCalibrationResult', JSON.stringify(result));
 
@@ -71,7 +89,37 @@ export default function PreCalibrationPage() {
     navigate(ROUTES.LOGIN, {
       replace: true,
     });
-  };
+  }, [navigate, result]);
+
+  useEffect(() => {
+    if (!showResultStage) {
+      completionActionStartedRef.current = false;
+    }
+  }, [showResultStage]);
+
+  const getCompletionTargets = useCallback(
+    () => [
+      {
+        id: 'pre-calibration-retest',
+        element: retestButtonRef.current,
+        enabled: showResultStage,
+        onSelect: handleRetest,
+      },
+      {
+        id: 'pre-calibration-login',
+        element: loginButtonRef.current,
+        enabled: showResultStage,
+        onSelect: handleContinueToLogin,
+      },
+    ],
+    [handleContinueToLogin, handleRetest, showResultStage],
+  );
+
+  useCalibrationCompletionGaze({
+    active: showResultStage,
+    subscribe: subscribeCompletionGaze,
+    getTargets: getCompletionTargets,
+  });
 
   return (
     <main className="page calibration-page">
@@ -203,6 +251,7 @@ export default function PreCalibrationPage() {
 
                 <div className="calibration-overlay-actions">
                   <button
+                    ref={retestButtonRef}
                     type="button"
                     className="calibration-back-button"
                     onClick={handleRetest}
@@ -211,6 +260,7 @@ export default function PreCalibrationPage() {
                   </button>
 
                   <button
+                    ref={loginButtonRef}
                     type="button"
                     className="calibration-start-button"
                     onClick={handleContinueToLogin}

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import GazeCursorOverlay from '../gazeInteraction/GazeCursorOverlay';
 import { GazeInteractionProvider } from '../gazeInteraction/GazeInteractionProvider';
+import { LandmarkPopupProvider } from '../landmarkPopup/LandmarkPopupProvider';
 import { GazeRuntimeProvider } from './GazeRuntimeProvider';
 
 /**
@@ -19,10 +20,12 @@ import { GazeRuntimeProvider } from './GazeRuntimeProvider';
 export default function PatientGazeRuntimeLayout() {
   return (
     <GazeRuntimeProvider>
-      <GazeInteractionProvider>
-        <GazeCursorOverlay />
-        <Outlet />
-      </GazeInteractionProvider>
+      <LandmarkPopupProvider>
+        <GazeInteractionProvider>
+          <GazeCursorOverlay />
+          <Outlet />
+        </GazeInteractionProvider>
+      </LandmarkPopupProvider>
     </GazeRuntimeProvider>
   );
 }

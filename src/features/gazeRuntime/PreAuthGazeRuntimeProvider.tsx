@@ -20,6 +20,7 @@ import {
   GazeRuntimeContext,
   type FrameListener,
   type GazeRuntimeContextValue,
+  type TrackingFrameListener,
 } from './GazeRuntimeContext';
 
 /**
@@ -174,6 +175,13 @@ export function PreAuthGazeRuntimeProvider({
     };
   }, []);
 
+  // 랜드마크 PiP는 환자 Runtime에만 mount된다. 로그인 전 동작은 바꾸지 않고 Context의
+  // 공통 계약만 맞추기 위해 빈 구독 해제 함수를 반환한다.
+  const subscribeTrackingFrame = useCallback((listener: TrackingFrameListener) => {
+    void listener;
+    return () => undefined;
+  }, []);
+
   // =========================================================
   // Face Tracking Frame 처리
   // =========================================================
@@ -326,6 +334,8 @@ export function PreAuthGazeRuntimeProvider({
       compatibility: null,
 
       subscribeFrame,
+
+      subscribeTrackingFrame,
     }),
     [
       permission,
@@ -341,6 +351,7 @@ export function PreAuthGazeRuntimeProvider({
       mar,
       preCalibration,
       subscribeFrame,
+      subscribeTrackingFrame,
     ],
   );
 
