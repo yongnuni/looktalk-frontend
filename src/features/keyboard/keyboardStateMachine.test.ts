@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { HangulComposer } from './composition/HangulComposer';
 import { INITIAL_KEYBOARD_STATE, processKey } from './keyboardStateMachine';
+import { FUNCTION_KEY_DEL, getKeyLabel } from './layouts/qwertyLayouts';
 
 describe('keyboardStateMachine (Look-Talk keyboard.py process_key 포팅)', () => {
+  it('Del 내부 ID는 유지하면서 화면·접근성용 라벨은 되돌리기로 표시한다', () => {
+    expect(FUNCTION_KEY_DEL).toBe('Del');
+    expect(getKeyLabel(FUNCTION_KEY_DEL)).toBe('되돌리기');
+    expect(getKeyLabel(FUNCTION_KEY_DEL)).not.toContain('뒤돌리기');
+  });
+
   it('한글 모드: 문자 입력 후 Shift는 항상 false로 리셋된다', () => {
     const composer = new HangulComposer();
     let state = INITIAL_KEYBOARD_STATE;

@@ -1,0 +1,58 @@
+.fv-keyboard-recommend-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(10px, 1.2vw, 20px);
+  width: min(92vw, 1500px);
+  margin-inline: auto;
+}
+
+.fv-keyboard-recommend-button {
+  position: relative;
+  min-width: 0;
+  height: clamp(88px, 10vh, 104px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 1.2vh, 16px) clamp(12px, 1.2vw, 24px);
+  border: 1px solid #cdced2;
+  border-radius: clamp(12px, 1.2vw, 22px);
+  background: #ebecf0;
+  color: #1e293b;
+  font-size: clamp(18px, 1.6vw, 26px);
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.fv-keyboard-recommend-label {
+  display: -webkit-box;
+  max-width: 100%;
+  line-height: 1.25;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.fv-keyboard-recommend-button--long {
+  font-size: clamp(15px, 1.35vw, 22px);
+}
+
+.fv-keyboard-recommend-button:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.fv-keyboard-recommend-button[data-gaze-hovered='true'] {
+  border-color: #2563eb;
+  border-width: 2px;
+}
+
+.fv-keyboard-recommend-button--empty {
+  background: #f3f4f6;
+  border-style: dashed;
+  cursor: default;
+  pointer-events: none;
+}

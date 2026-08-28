@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { HangulComposer } from '../composition/HangulComposer';
 import { INITIAL_KEYBOARD_STATE, processKey, type KeyboardState } from '../keyboardStateMachine';
+import { applySuggestion, PendingWordBoundaryState } from '../../autocomplete/selection';
 
 interface UseKeyboardInputOptions {
   /**
@@ -20,19 +21,27 @@ export interface UseKeyboardInputResult {
    * 입력 방식별로 별도 keyboard 로직을 두지 않는다.
    */
   handleKeySelect: (keyValue: string) => void;
+  handleSuggestionSelect: (suggestion: string) => void;
+  pendingWordBoundary: boolean;
   clearText: () => void;
 }
 
 export function useKeyboardInput({ onConfirm }: UseKeyboardInputOptions = {}): UseKeyboardInputResult {
   const composerRef = useRef(new HangulComposer());
   const keyboardStateRef = useRef<KeyboardState>(INITIAL_KEYBOARD_STATE);
+  const wordBoundaryRef = useRef(new PendingWordBoundaryState());
 
   const [keyboardState, setKeyboardState] = useState<KeyboardState>(INITIAL_KEYBOARD_STATE);
   const [text, setText] = useState('');
+  const [pendingWordBoundary, setPendingWordBoundary] = useState(false);
 
   const handleKeySelect = useCallback(
     (keyValue: string) => {
-      const result = processKey(keyValue, keyboardStateRef.current, composerRef.current);
+      const result = wordBoundaryRef.current.pendingWordBoundary
+        ? wordBoundaryRef.current.handleKey(keyValue, keyboardStateRef.current, composerRef.current)
+        : processKey(keyValue, keyboardStateRef.current, composerRef.current);
+
+      setPendingWordBoundary(wordBoundaryRef.current.pendingWordBoundary);
 
       if (result.confirmed) {
         onConfirm?.(composerRef.current.getComposedText());
@@ -46,12 +55,30 @@ export function useKeyboardInput({ onConfirm }: UseKeyboardInputOptions = {}): U
     [onConfirm],
   );
 
+  const handleSuggestionSelect = useCallback((suggestion: string) => {
+    const application = applySuggestion(composerRef.current, suggestion);
+    if (!application) return;
+
+    wordBoundaryRef.current.markPending();
+    setPendingWordBoundary(true);
+    setText(application.text);
+  }, []);
+
   const clearText = useCallback(() => {
     composerRef.current.reset();
+    wordBoundaryRef.current.clear();
     keyboardStateRef.current = INITIAL_KEYBOARD_STATE;
     setKeyboardState(INITIAL_KEYBOARD_STATE);
     setText('');
+    setPendingWordBoundary(false);
   }, []);
 
-  return { keyboardState, text, handleKeySelect, clearText };
+  return {
+    keyboardState,
+    text,
+    handleKeySelect,
+    handleSuggestionSelect,
+    pendingWordBoundary,
+    clearText,
+  };
 }

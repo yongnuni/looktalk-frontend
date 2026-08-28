@@ -335,7 +335,14 @@ export default function MemoPage() {
     [currentKey, isAdding, getAuthHeaders, handleUnauthorized],
   );
 
-  const { keyboardState, text, handleKeySelect, clearText } = useKeyboardInput({ onConfirm: handleConfirmSave });
+  const {
+    keyboardState,
+    text,
+    handleKeySelect,
+    handleSuggestionSelect,
+    pendingWordBoundary,
+    clearText,
+  } = useKeyboardInput({ onConfirm: handleConfirmSave });
 
   useEffect(() => {
     clearTextRef.current = clearText;
@@ -586,6 +593,9 @@ export default function MemoPage() {
           closeDisabled={isAdding}
           keyboardState={keyboardState}
           onKeySelect={handleKeySelect}
+          onSuggestionSelect={handleSuggestionSelect}
+          pendingWordBoundary={pendingWordBoundary}
+          suggestionsEnabled
           keyEnlarged={settings?.keyEnlarged ?? false}
         />
       )}

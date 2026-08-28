@@ -36,6 +36,11 @@ import {
 
 import { useCalibrationStore } from '../store/calibrationStore';
 import type { GazeCalibrationResult } from '../types';
+import type {
+  CalibrationCompletionGazeListener,
+  SubscribeCalibrationCompletionGaze,
+} from '../completionGaze/types';
+import { viewportNormalizedToCssPx } from '../viewportTargets';
 
 // 진행률/타깃/커서 UI 갱신 주기.
 // 감지·샘플 수집 자체는 useFaceTracking의 onFrame으로 매 프레임 수행하지만,
@@ -143,6 +148,9 @@ export interface UseCalibrationRunnerResult {
     y: number;
   } | null;
 
+  /** 완료 화면의 명시적 버튼 target이 React render throttle 없이 같은 좌표를 구독한다. */
+  subscribeCompletionGaze: SubscribeCalibrationCompletionGaze;
+
   restart: () => void;
 }
 
@@ -187,6 +195,9 @@ export function useCalibrationRunner(
 
   const resultBuiltRef = useRef(false);
   const lastUiUpdateRef = useRef(0);
+  const completionGazeListenersRef = useRef(
+    new Set<CalibrationCompletionGazeListener>(),
+  );
 
   // ============================================================
   // State
@@ -206,6 +217,17 @@ export function useCalibrationRunner(
     x: number;
     y: number;
   } | null>(null);
+
+  const subscribeCompletionGaze = useCallback(
+    (listener: CalibrationCompletionGazeListener) => {
+      completionGazeListenersRef.current.add(listener);
+
+      return () => {
+        completionGazeListenersRef.current.delete(listener);
+      };
+    },
+    [],
+  );
 
   // ============================================================
   // Calibration Store
@@ -351,6 +373,19 @@ export function useCalibrationRunner(
 
         setCursorNormalized(nextCursor);
       }
+
+      const cursorCssPx = nextCursor
+        ? viewportNormalizedToCssPx(nextCursor)
+        : null;
+      const completionFrame = {
+        now,
+        hasSignal: cursorCssPx !== null,
+        cursorCssPx,
+      };
+
+      for (const listener of completionGazeListenersRef.current) {
+        listener(completionFrame);
+      }
     },
     [buildResult, config, setCandidate],
   );
@@ -401,7 +436,12 @@ export function useCalibrationRunner(
 
     setCursorNormalized(null);
 
-    setProgress(sessionRef.current.getSnapshot(performance.now()));
+    const now = performance.now();
+    for (const listener of completionGazeListenersRef.current) {
+      listener({ now, hasSignal: false, cursorCssPx: null });
+    }
+
+    setProgress(sessionRef.current.getSnapshot(now));
 
     // 정식 16점 재측정에서는 기존 candidate를 폐기한다.
     //
@@ -436,6 +476,8 @@ export function useCalibrationRunner(
     pointDiagnostics,
 
     cursorNormalized,
+
+    subscribeCompletionGaze,
 
     restart,
   };

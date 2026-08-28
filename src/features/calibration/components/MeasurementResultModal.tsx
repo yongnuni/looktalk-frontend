@@ -1,5 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { InputMethod } from '../../../shared/types/backend';
+import type {
+  CalibrationCompletionGazeTarget,
+  SubscribeCalibrationCompletionGaze,
+} from '../completionGaze/types';
+import { useCalibrationCompletionGaze } from '../completionGaze/useCalibrationCompletionGaze';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
 import { createCalibration } from '../api/calibrationApi';
 import { CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED } from '../constants';
@@ -24,6 +29,7 @@ const METHOD_OPTIONS: MethodOption[] = [
 interface MeasurementResultModalProps {
   candidate: GazeCalibrationResult;
   pointDiagnostics: HomographyPointDiagnostic[] | null;
+  subscribeCompletionGaze: SubscribeCalibrationCompletionGaze;
   onRetest: () => void;
   onApplied: (method: InputMethod) => void;
 }
@@ -34,21 +40,27 @@ interface MeasurementResultModalProps {
 export default function MeasurementResultModal({
   candidate,
   pointDiagnostics,
+  subscribeCompletionGaze,
   onRetest,
   onApplied,
 }: MeasurementResultModalProps) {
   const [modalState, setModalState] = useState<ModalState>('SELECTING');
   const [pendingMethod, setPendingMethod] = useState<InputMethod | null>(null);
   const [savedCalibrationId, setSavedCalibrationId] = useState<string | null>(null);
+  const methodButtonRefs = useRef(new Map<InputMethod, HTMLButtonElement>());
+  const retryButtonRef = useRef<HTMLButtonElement | null>(null);
+  const retestButtonRef = useRef<HTMLButtonElement | null>(null);
+  const selectionInFlightRef = useRef(false);
 
   const setActiveCalibration = useCalibrationStore((state) => state.setActive);
   const { updateSettings } = useUserSettings();
 
-  const handleSelect = async (method: InputMethod) => {
-    if (modalState === 'SAVING') {
+  const handleSelect = useCallback(async (method: InputMethod) => {
+    if (modalState === 'SAVING' || selectionInFlightRef.current) {
       return;
     }
 
+    selectionInFlightRef.current = true;
     setPendingMethod(method);
     setModalState('SAVING');
 
@@ -69,12 +81,57 @@ export default function MeasurementResultModal({
 
       onApplied(method);
     } catch {
+      selectionInFlightRef.current = false;
       setModalState('ERROR');
     }
-  };
+  }, [
+    candidate,
+    modalState,
+    onApplied,
+    savedCalibrationId,
+    setActiveCalibration,
+    updateSettings,
+  ]);
 
   const isSaving = modalState === 'SAVING';
   const rmseTooHigh = candidate.reprojectionRmseNormalized > CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED;
+
+  const getCompletionTargets = useCallback(() => {
+    const targets: CalibrationCompletionGazeTarget[] = METHOD_OPTIONS.map((option) => ({
+      id: `calibration-method-${option.method}`,
+      element: methodButtonRefs.current.get(option.method) ?? null,
+      enabled: !isSaving,
+      onSelect: () => {
+        void handleSelect(option.method);
+      },
+    }));
+
+    if (modalState === 'ERROR' && pendingMethod) {
+      targets.push({
+        id: 'calibration-method-retry',
+        element: retryButtonRef.current,
+        enabled: !isSaving,
+        onSelect: () => {
+          void handleSelect(pendingMethod);
+        },
+      });
+    }
+
+    targets.push({
+      id: 'calibration-retest',
+      element: retestButtonRef.current,
+      enabled: !isSaving,
+      onSelect: onRetest,
+    });
+
+    return targets;
+  }, [handleSelect, isSaving, modalState, onRetest, pendingMethod]);
+
+  useCalibrationCompletionGaze({
+    active: true,
+    subscribe: subscribeCompletionGaze,
+    getTargets: getCompletionTargets,
+  });
 
   return (
     <div className="measurement-result-modal" role="dialog" aria-modal="true">
@@ -95,6 +152,13 @@ export default function MeasurementResultModal({
         {METHOD_OPTIONS.map((option) => (
           <button
             key={option.method}
+            ref={(node) => {
+              if (node) {
+                methodButtonRefs.current.set(option.method, node);
+              } else {
+                methodButtonRefs.current.delete(option.method);
+              }
+            }}
             type="button"
             className="measurement-result-modal__method-button"
             disabled={isSaving}
@@ -109,14 +173,24 @@ export default function MeasurementResultModal({
         <div className="measurement-result-modal__error" aria-live="assertive">
           <p>저장에 실패했습니다. 다시 시도해주세요.</p>
           {pendingMethod && (
-            <button type="button" onClick={() => void handleSelect(pendingMethod)}>
+            <button
+              ref={retryButtonRef}
+              type="button"
+              onClick={() => void handleSelect(pendingMethod)}
+            >
               다시 시도
             </button>
           )}
         </div>
       )}
 
-      <button type="button" className="measurement-result-modal__retest-button" disabled={isSaving} onClick={onRetest}>
+      <button
+        ref={retestButtonRef}
+        type="button"
+        className="measurement-result-modal__retest-button"
+        disabled={isSaving}
+        onClick={onRetest}
+      >
         재측정
       </button>
 

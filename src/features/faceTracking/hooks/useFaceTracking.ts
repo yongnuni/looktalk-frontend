@@ -9,7 +9,7 @@ import { computeAverageEar } from '../gaze/ear';
 import { computeMouthAspectRatio } from '../gaze/mar';
 import { computeIrisConfidence } from '../gaze/irisConfidence';
 import { nextEyeClosedState } from '../gaze/blinkGate';
-import type { GazeSignal } from '../types';
+import type { FaceTrackingFrame, GazeSignal } from '../types';
 
 export type FaceLandmarkerLoadState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -32,6 +32,11 @@ interface UseFaceTrackingOptions {
    * 함수를 넘기면 매번 재구독되므로, 호출 측에서 useCallback 등으로 안정화할 것.
    */
   onFrame?: (signal: GazeSignal | null) => void;
+  /**
+   * 랜드마크 시각화처럼 전체 배열이 필요한 소비자에게 매 추론 프레임을 전달한다.
+   * React state 갱신용이 아니며, 전달받은 배열을 변경하거나 보관하지 않아야 한다.
+   */
+  onTrackingFrame?: (frame: FaceTrackingFrame) => void;
 }
 
 interface UseFaceTrackingResult {
@@ -59,6 +64,7 @@ export function useFaceTracking({
   active,
   mirrorStrategy,
   onFrame,
+  onTrackingFrame,
 }: UseFaceTrackingOptions): UseFaceTrackingResult {
   // 'loading'을 effect 본문에서 동기적으로 setState하지 않기 위해(react-hooks/set-state-in-effect),
   // 로드 결과만 비동기 콜백에서 저장하고 loadState는 active와 조합해 파생시킨다.
@@ -85,10 +91,15 @@ export function useFaceTracking({
   const fpsRef = useRef(0);
   const lastUiUpdateRef = useRef(0);
   const onFrameRef = useRef(onFrame);
+  const onTrackingFrameRef = useRef(onTrackingFrame);
 
   useEffect(() => {
     onFrameRef.current = onFrame;
   }, [onFrame]);
+
+  useEffect(() => {
+    onTrackingFrameRef.current = onTrackingFrame;
+  }, [onTrackingFrame]);
 
   useEffect(() => {
     mirrorStrategyRef.current = mirrorStrategy;
@@ -219,6 +230,12 @@ export function useFaceTracking({
         }
 
         onFrameRef.current?.(signal);
+        onTrackingFrameRef.current?.({
+          rawLandmarks: rawLandmarks ?? null,
+          canonicalLandmarks: canonical,
+          signal,
+          timestamp,
+        });
 
         // React state 갱신(debug UI 표시용)만 throttle한다(§13.4 원칙, debug 페이지 적용).
         if (timestamp - lastUiUpdateRef.current >= UI_UPDATE_INTERVAL_MS) {
