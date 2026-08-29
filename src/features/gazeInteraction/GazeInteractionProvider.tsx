@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import {
+  resolveBlinkThresholds,
+  resolveMouthThresholds,
+} from '../calibration/runtimeInputThresholds';
+import { useCalibrationStore } from '../calibration/store/calibrationStore';
 import { useGazeRuntime, type GazeFrame } from '../gazeRuntime/GazeRuntimeContext';
 import { BlinkController } from '../multimodalInput/BlinkController';
 import { DwellController } from '../multimodalInput/DwellController';
@@ -38,11 +43,20 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
   // status 가드 덕분에 PatientHomePage 등 다른 소비자와 중복 GET이 발생하지 않는다.
   const { settings } = useUserSettings();
   const inputMode = resolveGazeInputMode(settings?.currentInputMethod);
+  const inputCalibration = useCalibrationStore((state) => state.inputCalibration);
+  const blinkThresholds = useMemo(
+    () => resolveBlinkThresholds(inputCalibration),
+    [inputCalibration],
+  );
+  const mouthThresholds = useMemo(
+    () => resolveMouthThresholds(inputCalibration),
+    [inputCalibration],
+  );
 
   const registryRef = useRef(createTargetRegistry());
   const dwellControllerRef = useRef(new DwellController());
-  const blinkControllerRef = useRef(new BlinkController());
-  const mouthControllerRef = useRef(new MouthController());
+  const blinkControllerRef = useRef(new BlinkController(blinkThresholds));
+  const mouthControllerRef = useRef(new MouthController(mouthThresholds));
   const inputModeRef = useRef(inputMode);
   const activeScopeRef = useRef<InteractionScope>(DEFAULT_SCOPE);
   const lastHoveredElementRef = useRef<HTMLElement | null>(null);
@@ -55,9 +69,9 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
   useEffect(() => {
     inputModeRef.current = inputMode;
     dwellControllerRef.current.reset();
-    blinkControllerRef.current.reset();
-    mouthControllerRef.current.reset();
-  }, [inputMode]);
+    blinkControllerRef.current = new BlinkController(blinkThresholds);
+    mouthControllerRef.current = new MouthController(mouthThresholds);
+  }, [blinkThresholds, inputMode, mouthThresholds]);
 
   const registerTarget = useCallback((entry: GazeTargetEntry) => {
     registryRef.current.register(entry);

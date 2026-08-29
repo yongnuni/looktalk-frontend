@@ -19,13 +19,33 @@ const FAKE_RESULT: GazeCalibrationResult = {
   createdAtLocal: '2026-01-01T00:00:00.000Z',
 };
 
+const FAKE_INPUT_CALIBRATION = {
+  blink: {
+    closeThreshold: 0.17,
+    openThreshold: 0.21,
+    openMedian: 0.3,
+    closedMedian: 0.1,
+    fallback: false,
+  },
+  mouth: {
+    openThreshold: 0.265,
+    closeThreshold: 0.19,
+    baseline: 0.1,
+    openMar: 0.4,
+    activationThreshold: 0.18,
+    fallback: false,
+  },
+};
+
 describe('calibrationStore.reset (Front Step 10 §17 account-boundary 계정 전환 격리)', () => {
   it('9. 사용자 A의 active+candidate 상태에서 reset()을 호출하면 candidate까지 포함해 idle로 완전히 되돌아간다(다음 사용자 B가 재사용하지 않음)', () => {
     useCalibrationStore.getState().setActive('calib-a', FAKE_RESULT);
     useCalibrationStore.getState().setCandidate(FAKE_RESULT);
+    useCalibrationStore.getState().setInputCalibration(FAKE_INPUT_CALIBRATION);
     expect(useCalibrationStore.getState().activeStatus).toBe('loaded');
     expect(useCalibrationStore.getState().active).not.toBeNull();
     expect(useCalibrationStore.getState().candidate).not.toBeNull();
+    expect(useCalibrationStore.getState().inputCalibration).not.toBeNull();
 
     useCalibrationStore.getState().reset();
 
@@ -35,6 +55,7 @@ describe('calibrationStore.reset (Front Step 10 §17 account-boundary 계정 전
     expect(state.activeCalibrationId).toBeNull();
     expect(state.activeError).toBeNull();
     expect(state.candidate).toBeNull();
+    expect(state.inputCalibration).toBeNull();
   });
 
   it('일반 재측정 흐름의 resetActive와 달리, account-boundary reset()은 candidate도 함께 지운다는 것을 명시적으로 확인한다', () => {

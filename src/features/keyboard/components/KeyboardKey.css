@@ -38,6 +38,19 @@
   transform: scale(0.97);
 }
 
+.keyboard-key--pointer-disabled {
+  cursor: default;
+}
+
+.keyboard-key--pointer-disabled:hover {
+  border-color: #cdced2;
+  background: #ebecf0;
+}
+
+.keyboard-key--pointer-disabled:active {
+  transform: none;
+}
+
 .keyboard-key--active {
   border-color: #2563eb;
   border-width: 2px;

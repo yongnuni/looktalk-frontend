@@ -3,9 +3,12 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
 import { useCalibrationCompletionGaze } from '../../features/calibration/completionGaze/useCalibrationCompletionGaze';
+import { resolvePreCalibrationPopup } from '../../features/calibration/calibrationLandmarkPopup';
 import { useCalibrationRunner } from '../../features/calibration/hooks/useCalibrationRunner';
 import { viewportNormalizedToCssPx } from '../../features/calibration/viewportTargets';
 import { ROUTES } from '../../shared/constants/routes';
+import LandmarkPopupAutoOpen from '../../features/landmarkPopup/LandmarkPopupAutoOpen';
+import { LandmarkPopupProvider } from '../../features/landmarkPopup/LandmarkPopupProvider';
 
 import './CalibrationPage.css';
 
@@ -27,6 +30,7 @@ export default function PreCalibrationPage() {
     result,
     cursorNormalized,
     subscribeCompletionGaze,
+    subscribeTrackingFrame,
     restart,
   } = useCalibrationRunner({
     mode: 'pre',
@@ -43,6 +47,7 @@ export default function PreCalibrationPage() {
 
   const showResultStage =
     showMeasurementOverlay && progress.done && result !== null;
+  const popupRequest = resolvePreCalibrationPopup(showCalibrationStage);
 
   const retestButtonRef = useRef<HTMLButtonElement | null>(null);
   const loginButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -122,7 +127,18 @@ export default function PreCalibrationPage() {
   });
 
   return (
-    <main className="page calibration-page">
+    <LandmarkPopupProvider
+      videoRef={videoRef}
+      subscribeTrackingFrame={subscribeTrackingFrame}
+    >
+      {popupRequest && (
+        <LandmarkPopupAutoOpen
+          key={popupRequest.key}
+          requestKey={popupRequest.key}
+          variant={popupRequest.variant}
+        />
+      )}
+      <main className="page calibration-page">
       <section className="card wide calibration-card">
         <header className="calibration-header">
           <div>
@@ -293,6 +309,7 @@ export default function PreCalibrationPage() {
           </div>,
           document.body,
         )}
-    </main>
+      </main>
+    </LandmarkPopupProvider>
   );
 }

@@ -10,12 +10,29 @@ import {
 } from '../../faceTracking/hooks/useFaceTracking';
 
 import { DEFAULT_MIRROR_STRATEGY } from '../../faceTracking/mediapipe/mirrorStrategy';
-import type { GazeSignal } from '../../faceTracking/types';
+import type { FaceTrackingFrame, GazeSignal } from '../../faceTracking/types';
+import type {
+  FrameListener,
+  TrackingFrameListener,
+} from '../../gazeRuntime/GazeRuntimeContext';
 
 import {
   CalibrationSession,
   type CalibrationSessionSnapshot,
 } from '../CalibrationSession';
+import {
+  PatientCalibrationFlow,
+  type PatientCalibrationStage,
+  type PatientInputTestResults,
+  type PatientInputTestTargets,
+} from '../PatientCalibrationFlow';
+import {
+  BlinkCalibrationSession,
+  MouthCalibrationSession,
+  type BlinkCalibrationSnapshot,
+  type MouthCalibrationSnapshot,
+} from '../inputCalibration';
+import type { InputMethodTestResult } from '../inputMethodTest';
 
 import {
   CALIBRATION_GRID_POINTS,
@@ -151,6 +168,38 @@ export interface UseCalibrationRunnerResult {
   /** 완료 화면의 명시적 버튼 target이 React render throttle 없이 같은 좌표를 구독한다. */
   subscribeCompletionGaze: SubscribeCalibrationCompletionGaze;
 
+  /** 입력 테스트가 기존 selection controller를 재사용하는 매-frame 구독. */
+  subscribeInputFrame: (listener: FrameListener) => () => void;
+
+  /** 같은 FaceLandmarker frame을 Landmark PiP에 전달하는 구독. */
+  subscribeTrackingFrame: (listener: TrackingFrameListener) => () => void;
+
+  flowStage: PatientCalibrationStage;
+
+  blinkProgress: BlinkCalibrationSnapshot | null;
+
+  mouthProgress: MouthCalibrationSnapshot | null;
+
+  inputTestTargets: PatientInputTestTargets;
+
+  inputTestResults: PatientInputTestResults;
+
+  completeInputTest: (result: InputMethodTestResult) => void;
+
+  restartBlink: () => void;
+
+  continueBlinkWithDefaults: () => void;
+
+  restartMouth: () => void;
+
+  continueMouthWithDefaults: () => void;
+
+  markSaving: () => void;
+
+  markSaveFailed: () => void;
+
+  markComplete: () => void;
+
   restart: () => void;
 }
 
@@ -192,12 +241,17 @@ export function useCalibrationRunner(
   // patient → 16점
   // pre     → 9점
   const sessionRef = useRef(new CalibrationSession(config.targetPoints));
+  const patientFlowRef = useRef(new PatientCalibrationFlow());
+  const blinkSessionRef = useRef(new BlinkCalibrationSession());
+  const mouthSessionRef = useRef(new MouthCalibrationSession());
 
   const resultBuiltRef = useRef(false);
   const lastUiUpdateRef = useRef(0);
   const completionGazeListenersRef = useRef(
     new Set<CalibrationCompletionGazeListener>(),
   );
+  const inputFrameListenersRef = useRef(new Set<FrameListener>());
+  const trackingFrameListenersRef = useRef(new Set<TrackingFrameListener>());
 
   // ============================================================
   // State
@@ -218,6 +272,20 @@ export function useCalibrationRunner(
     y: number;
   } | null>(null);
 
+  const [flowStage, setFlowStage] = useState<PatientCalibrationStage>('GAZE_RUNNING');
+  const [blinkProgress, setBlinkProgress] = useState<BlinkCalibrationSnapshot | null>(null);
+  const [mouthProgress, setMouthProgress] = useState<MouthCalibrationSnapshot | null>(null);
+  const [inputTestTargets, setInputTestTargets] = useState<PatientInputTestTargets>({
+    gaze: null,
+    blink: null,
+    mouth: null,
+  });
+  const [inputTestResults, setInputTestResults] = useState<PatientInputTestResults>({
+    gaze: null,
+    blink: null,
+    mouth: null,
+  });
+
   const subscribeCompletionGaze = useCallback(
     (listener: CalibrationCompletionGazeListener) => {
       completionGazeListenersRef.current.add(listener);
@@ -228,6 +296,33 @@ export function useCalibrationRunner(
     },
     [],
   );
+
+  const subscribeInputFrame = useCallback((listener: FrameListener) => {
+    inputFrameListenersRef.current.add(listener);
+    return () => {
+      inputFrameListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const subscribeTrackingFrame = useCallback((listener: TrackingFrameListener) => {
+    trackingFrameListenersRef.current.add(listener);
+    return () => {
+      trackingFrameListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const handleTrackingFrame = useCallback((frame: FaceTrackingFrame) => {
+    for (const listener of trackingFrameListenersRef.current) {
+      listener(frame);
+    }
+  }, []);
+
+  const syncPatientFlowState = useCallback(() => {
+    const snapshot = patientFlowRef.current.getSnapshot();
+    setFlowStage(snapshot.stage);
+    setInputTestTargets(snapshot.inputTestTargets);
+    setInputTestResults(snapshot.inputTests);
+  }, []);
 
   // ============================================================
   // Calibration Store
@@ -240,6 +335,8 @@ export function useCalibrationRunner(
   const setCandidate = useCalibrationStore((state) => state.setCandidate);
 
   const clearCandidate = useCalibrationStore((state) => state.clearCandidate);
+  const setInputCalibration = useCalibrationStore((state) => state.setInputCalibration);
+  const clearInputCalibration = useCalibrationStore((state) => state.clearInputCalibration);
 
   // ============================================================
   // Result 생성
@@ -292,6 +389,65 @@ export function useCalibrationRunner(
     [config],
   );
 
+  const finishBlinkCalibration = useCallback(
+    (snapshot: BlinkCalibrationSnapshot) => {
+      if (!snapshot.result) {
+        return;
+      }
+
+      patientFlowRef.current.completeBlink(snapshot.result);
+      setBlinkProgress(snapshot);
+      syncPatientFlowState();
+    },
+    [syncPatientFlowState],
+  );
+
+  const finishMouthCalibration = useCallback(
+    (snapshot: MouthCalibrationSnapshot) => {
+      if (!snapshot.result) {
+        return;
+      }
+
+      patientFlowRef.current.completeMouth(snapshot.result);
+      const flowSnapshot = patientFlowRef.current.getSnapshot();
+
+      if (flowSnapshot.blink && flowSnapshot.mouth) {
+        setInputCalibration({
+          blink: flowSnapshot.blink,
+          mouth: flowSnapshot.mouth,
+        });
+      }
+
+      setMouthProgress(snapshot);
+      syncPatientFlowState();
+    },
+    [setInputCalibration, syncPatientFlowState],
+  );
+
+  const completeInputTest = useCallback(
+    (testResult: InputMethodTestResult) => {
+      const previousStage = patientFlowRef.current.getSnapshot().stage;
+      patientFlowRef.current.completeInputTest(testResult);
+      const nextStage = patientFlowRef.current.getSnapshot().stage;
+
+      if (nextStage === previousStage) {
+        return;
+      }
+
+      if (nextStage === 'BLINK_RUNNING') {
+        blinkSessionRef.current = new BlinkCalibrationSession();
+        setBlinkProgress(blinkSessionRef.current.getCurrentSnapshot());
+        setMouthProgress(null);
+      } else if (nextStage === 'MOUTH_RUNNING') {
+        mouthSessionRef.current = new MouthCalibrationSession();
+        setMouthProgress(mouthSessionRef.current.getCurrentSnapshot());
+      }
+
+      syncPatientFlowState();
+    },
+    [syncPatientFlowState],
+  );
+
   // ============================================================
   // Frame
   // ============================================================
@@ -302,7 +458,9 @@ export function useCalibrationRunner(
 
       const now = signal?.timestamp ?? performance.now();
 
-      if (signal) {
+      const stageAtFrameStart = patientFlowRef.current.getSnapshot().stage;
+
+      if (signal && (mode === 'pre' || stageAtFrameStart === 'GAZE_RUNNING')) {
         session.update(signal.irisX, signal.irisY, signal.irisConfidence, now);
       }
 
@@ -328,6 +486,8 @@ export function useCalibrationRunner(
         // 덮어쓰지 않는다.
         if (config.persistCandidate) {
           setCandidate(builtResult);
+          patientFlowRef.current.completeGaze(builtResult);
+          syncPatientFlowState();
         }
 
         setPointDiagnostics(
@@ -337,6 +497,23 @@ export function useCalibrationRunner(
             config.targetPoints,
           ),
         );
+      }
+
+      let nextBlinkProgress: BlinkCalibrationSnapshot | null = null;
+      let nextMouthProgress: MouthCalibrationSnapshot | null = null;
+
+      if (mode === 'patient' && stageAtFrameStart === 'BLINK_RUNNING') {
+        nextBlinkProgress = blinkSessionRef.current.update(signal?.ear ?? null, now);
+
+        if (nextBlinkProgress.done) {
+          finishBlinkCalibration(nextBlinkProgress);
+        }
+      } else if (mode === 'patient' && stageAtFrameStart === 'MOUTH_RUNNING') {
+        nextMouthProgress = mouthSessionRef.current.update(signal?.mar ?? null, now);
+
+        if (nextMouthProgress.done) {
+          finishMouthCalibration(nextMouthProgress);
+        }
       }
 
       // ========================================================
@@ -372,22 +549,44 @@ export function useCalibrationRunner(
         setProgress(snapshot);
 
         setCursorNormalized(nextCursor);
+
+        if (nextBlinkProgress) {
+          setBlinkProgress(nextBlinkProgress);
+        }
+
+        if (nextMouthProgress) {
+          setMouthProgress(nextMouthProgress);
+        }
       }
 
       const cursorCssPx = nextCursor
         ? viewportNormalizedToCssPx(nextCursor)
         : null;
-      const completionFrame = {
+      const inputFrame = {
         now,
-        hasSignal: cursorCssPx !== null,
+        hasSignal: signal !== null && cursorCssPx !== null,
+        signal,
         cursorCssPx,
+        fixationCount: 0,
       };
 
+      for (const listener of inputFrameListenersRef.current) {
+        listener(inputFrame);
+      }
+
       for (const listener of completionGazeListenersRef.current) {
-        listener(completionFrame);
+        listener(inputFrame);
       }
     },
-    [buildResult, config, setCandidate],
+    [
+      buildResult,
+      config,
+      finishBlinkCalibration,
+      finishMouthCalibration,
+      mode,
+      setCandidate,
+      syncPatientFlowState,
+    ],
   );
 
   // ============================================================
@@ -403,6 +602,8 @@ export function useCalibrationRunner(
       mirrorStrategy: DEFAULT_MIRROR_STRATEGY,
 
       onFrame: handleFrame,
+
+      onTrackingFrame: handleTrackingFrame,
     });
 
   // ============================================================
@@ -418,8 +619,59 @@ export function useCalibrationRunner(
   //
   // Browser Fullscreen API는 사용하지 않는다.
   const startCalibration = useCallback(() => {
+    if (mode === 'patient') {
+      clearInputCalibration();
+    }
+
     void start();
-  }, [start]);
+  }, [clearInputCalibration, mode, start]);
+
+  const restartBlink = useCallback(() => {
+    patientFlowRef.current.retryBlink();
+    blinkSessionRef.current = new BlinkCalibrationSession();
+    mouthSessionRef.current = new MouthCalibrationSession();
+    setBlinkProgress(blinkSessionRef.current.getCurrentSnapshot());
+    setMouthProgress(null);
+    syncPatientFlowState();
+  }, [syncPatientFlowState]);
+
+  const continueBlinkWithDefaults = useCallback(() => {
+    if (patientFlowRef.current.getSnapshot().stage !== 'BLINK_RUNNING') {
+      return;
+    }
+
+    finishBlinkCalibration(blinkSessionRef.current.continueWithDefaults());
+  }, [finishBlinkCalibration]);
+
+  const restartMouth = useCallback(() => {
+    patientFlowRef.current.retryMouth();
+    mouthSessionRef.current = new MouthCalibrationSession();
+    setMouthProgress(mouthSessionRef.current.getCurrentSnapshot());
+    syncPatientFlowState();
+  }, [syncPatientFlowState]);
+
+  const continueMouthWithDefaults = useCallback(() => {
+    if (patientFlowRef.current.getSnapshot().stage !== 'MOUTH_RUNNING') {
+      return;
+    }
+
+    finishMouthCalibration(mouthSessionRef.current.continueWithDefaults());
+  }, [finishMouthCalibration]);
+
+  const markSaving = useCallback(() => {
+    patientFlowRef.current.startSaving();
+    syncPatientFlowState();
+  }, [syncPatientFlowState]);
+
+  const markSaveFailed = useCallback(() => {
+    patientFlowRef.current.savingFailed();
+    syncPatientFlowState();
+  }, [syncPatientFlowState]);
+
+  const markComplete = useCallback(() => {
+    patientFlowRef.current.complete();
+    syncPatientFlowState();
+  }, [syncPatientFlowState]);
 
   // ============================================================
   // Restart
@@ -427,6 +679,9 @@ export function useCalibrationRunner(
 
   const restart = useCallback(() => {
     sessionRef.current.reset();
+    patientFlowRef.current.restartGaze();
+    blinkSessionRef.current = new BlinkCalibrationSession();
+    mouthSessionRef.current = new MouthCalibrationSession();
 
     resultBuiltRef.current = false;
 
@@ -436,9 +691,25 @@ export function useCalibrationRunner(
 
     setCursorNormalized(null);
 
+    syncPatientFlowState();
+
+    setBlinkProgress(null);
+
+    setMouthProgress(null);
+
     const now = performance.now();
+    const resetInputFrame = {
+      now,
+      hasSignal: false,
+      signal: null,
+      cursorCssPx: null,
+      fixationCount: 0,
+    };
+    for (const listener of inputFrameListenersRef.current) {
+      listener(resetInputFrame);
+    }
     for (const listener of completionGazeListenersRef.current) {
-      listener({ now, hasSignal: false, cursorCssPx: null });
+      listener(resetInputFrame);
     }
 
     setProgress(sessionRef.current.getSnapshot(now));
@@ -449,8 +720,9 @@ export function useCalibrationRunner(
     // 건드리지 않는다.
     if (config.persistCandidate) {
       clearCandidate();
+      clearInputCalibration();
     }
-  }, [clearCandidate, config]);
+  }, [clearCandidate, clearInputCalibration, config, syncPatientFlowState]);
 
   // ============================================================
   // Return
@@ -478,6 +750,36 @@ export function useCalibrationRunner(
     cursorNormalized,
 
     subscribeCompletionGaze,
+
+    subscribeInputFrame,
+
+    subscribeTrackingFrame,
+
+    flowStage,
+
+    blinkProgress,
+
+    mouthProgress,
+
+    inputTestTargets,
+
+    inputTestResults,
+
+    completeInputTest,
+
+    restartBlink,
+
+    continueBlinkWithDefaults,
+
+    restartMouth,
+
+    continueMouthWithDefaults,
+
+    markSaving,
+
+    markSaveFailed,
+
+    markComplete,
 
     restart,
   };

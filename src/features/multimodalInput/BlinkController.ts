@@ -22,8 +22,15 @@ export interface BlinkSelectionState extends InputSelectionState {
   lockedKeyId: string | null;
 }
 
+export interface BlinkControllerThresholds {
+  closeThreshold: number;
+  openThreshold: number;
+}
+
 export class BlinkController {
   private readonly hoverDetector = new DwellController();
+  private readonly closeThreshold: number;
+  private readonly openThreshold: number;
 
   private isClosed = false;
   private closedAtMs = 0;
@@ -32,6 +39,11 @@ export class BlinkController {
   private armed = false;
   private lastHoveredKeyId: string | null = null;
   private lockedKeyId: string | null = null;
+
+  constructor(thresholds?: BlinkControllerThresholds) {
+    this.closeThreshold = thresholds?.closeThreshold ?? EAR_CLOSE_THRESHOLD;
+    this.openThreshold = thresholds?.openThreshold ?? EAR_OPEN_THRESHOLD;
+  }
 
   /**
    * 모드 변경/추적 실패 뒤에는 눈이 열린 프레임을 먼저 확인해야 다시 입력을 받는다.
@@ -60,12 +72,12 @@ export class BlinkController {
     if (!this.isClosed) {
       // 명확히 열린 프레임에서만 현재 선택 후보를 갱신한다. 눈 감김 프레임에서는
       // GazeFilter가 좌표를 -1로 만들기 때문에 직전 유효 target을 보존해야 한다.
-      if (ear >= EAR_CLOSE_THRESHOLD) {
+      if (ear >= this.closeThreshold) {
         this.lastHoveredKeyId = hoveredKeyId;
       }
 
       if (!this.armed) {
-        if (ear > EAR_OPEN_THRESHOLD) {
+        if (ear > this.openThreshold) {
           this.armed = true;
           this.lastHoveredKeyId = hoveredKeyId;
         }
@@ -73,7 +85,7 @@ export class BlinkController {
         return this.state(hoveredKeyId, selectedKeyId, ear);
       }
 
-      if (ear < EAR_CLOSE_THRESHOLD && nowMs - this.lastEventMs >= REFRACTORY_MS) {
+      if (ear < this.closeThreshold && nowMs - this.lastEventMs >= REFRACTORY_MS) {
         this.isClosed = true;
         this.closedAtMs = nowMs;
         this.longFired = false;
@@ -85,7 +97,7 @@ export class BlinkController {
 
     const closedDurationMs = nowMs - this.closedAtMs;
 
-    if (ear > EAR_OPEN_THRESHOLD) {
+    if (ear > this.openThreshold) {
       this.isClosed = false;
       this.armed = true;
 

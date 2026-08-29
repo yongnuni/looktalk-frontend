@@ -1,7 +1,8 @@
 import axios, { AxiosError, type AxiosAdapter, type AxiosResponse } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient, authRefreshClient } from '../../../shared/api/apiClient';
-import { getActiveCalibration } from './calibrationApi';
+import { createCalibration, getActiveCalibration } from './calibrationApi';
+import type { GazeCalibrationResult } from '../types';
 
 const storage = new Map<string, string>();
 
@@ -152,5 +153,54 @@ describe('getActiveCalibration authentication retry', () => {
     );
 
     await expect(getActiveCalibration()).resolves.toBeNull();
+  });
+
+  it('저장 payload는 기존 gaze 필드만 포함하고 blink/mouth 세션 값을 추가하지 않는다', async () => {
+    const candidate: GazeCalibrationResult = {
+      schemaVersion: 1,
+      mappingType: 'RAW_HOMOGRAPHY',
+      coordinateSpace: 'NORMALIZED_VIEWPORT',
+      homography: [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+      ],
+      mirrorX: true,
+      mirrorStrategy: 'PRE_INFERENCE_FRAME_FLIP',
+      grid: { rows: 4, cols: 4, margin: 0.08 },
+      calibratedViewport: {
+        widthPx: 1920,
+        heightPx: 1080,
+        aspectRatio: 1920 / 1080,
+        orientation: 'landscape',
+      },
+      reprojectionRmseNormalized: 0.01,
+      createdAtLocal: '2026-08-29T00:00:00.000Z',
+    };
+
+    apiClient.defaults.adapter = vi.fn<AxiosAdapter>(async (config) => {
+      const payload = JSON.parse(String(config.data)) as {
+        calibrationData: Record<string, unknown>;
+      };
+      expect(payload.calibrationData).not.toHaveProperty('blink');
+      expect(payload.calibrationData).not.toHaveProperty('mouth');
+      expect(payload.calibrationData).not.toHaveProperty('inputTests');
+      expect(payload.calibrationData).not.toHaveProperty('inputTestResults');
+      expect(payload.calibrationData).not.toHaveProperty('targetWord');
+      expect(payload.calibrationData).not.toHaveProperty('createdAtLocal');
+
+      return response(config, 200, {
+        success: true,
+        data: {
+          calibrationId: 'calibration-new',
+          createdAt: '2026-08-29T00:00:00.000Z',
+          calibrationData: payload.calibrationData,
+        },
+      });
+    });
+
+    await expect(createCalibration(candidate)).resolves.toMatchObject({
+      calibrationId: 'calibration-new',
+    });
   });
 });

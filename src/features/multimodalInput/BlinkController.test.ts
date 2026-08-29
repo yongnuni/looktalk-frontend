@@ -95,4 +95,16 @@ describe('BlinkController (Look-Talk blink.py BlinkDetector 포팅)', () => {
     closeEyes(controller, BASE + 650);
     expect(controller.update(100, 100, TARGETS, OPEN_EAR, BASE + 950).selectedKeyId).toBe('A');
   });
+
+  it('세션에서 전달한 개인 close/open threshold를 사용한다', () => {
+    const controller = new BlinkController({
+      closeThreshold: 0.25,
+      openThreshold: 0.27,
+    });
+
+    controller.update(100, 100, TARGETS, 0.3, BASE);
+    controller.update(-1, -1, TARGETS, 0.24, BASE + 10);
+
+    expect(controller.update(100, 100, TARGETS, 0.28, BASE + 310).selectedKeyId).toBe('A');
+  });
 });

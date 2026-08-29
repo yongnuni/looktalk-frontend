@@ -2,10 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resolveCalibrationCompletionPath } from '../../features/calibration/calibrationGate';
+import { resolvePatientCalibrationPopup } from '../../features/calibration/calibrationLandmarkPopup';
+import InputCalibrationPanel from '../../features/calibration/components/InputCalibrationPanel';
+import InputMethodTestPanel from '../../features/calibration/components/InputMethodTestPanel';
 import MeasurementResultModal from '../../features/calibration/components/MeasurementResultModal';
 import SettingCompleteModal from '../../features/calibration/components/SettingCompleteModal';
 import { useCalibrationRunner } from '../../features/calibration/hooks/useCalibrationRunner';
 import { viewportNormalizedToCssPx } from '../../features/calibration/viewportTargets';
+import LandmarkPopupAutoOpen from '../../features/landmarkPopup/LandmarkPopupAutoOpen';
+import { LandmarkPopupProvider } from '../../features/landmarkPopup/LandmarkPopupProvider';
 import './CalibrationPage.css';
 
 function formatPercent(ratio: number): string {
@@ -32,15 +37,49 @@ export default function CalibrationPage() {
     pointDiagnostics,
     cursorNormalized,
     subscribeCompletionGaze,
+    subscribeInputFrame,
+    subscribeTrackingFrame,
+    flowStage,
+    blinkProgress,
+    mouthProgress,
+    inputTestTargets,
+    inputTestResults,
+    completeInputTest,
+    restartBlink,
+    continueBlinkWithDefaults,
+    restartMouth,
+    continueMouthWithDefaults,
+    markSaving,
+    markSaveFailed,
+    markComplete,
     restart,
   } = useCalibrationRunner();
 
   const showStartPrompt = permission !== 'granted';
   const showLoading = permission === 'granted' && faceLoadState !== 'ready';
   const showMeasurementOverlay = permission === 'granted' && faceLoadState === 'ready';
-  const showCalibrationStage = showMeasurementOverlay && !progress.done;
-  const showResultStage = showMeasurementOverlay && progress.done;
+  const showCalibrationStage = showMeasurementOverlay && flowStage === 'GAZE_RUNNING';
+  const showBlinkStage = showMeasurementOverlay && flowStage === 'BLINK_RUNNING';
+  const showMouthStage = showMeasurementOverlay && flowStage === 'MOUTH_RUNNING';
+  const activeInputTest =
+    flowStage === 'GAZE_INPUT_TEST' && inputTestTargets.gaze
+      ? { method: 'GAZE' as const, targetWord: inputTestTargets.gaze }
+      : flowStage === 'BLINK_INPUT_TEST' && inputTestTargets.blink
+        ? { method: 'BLINK' as const, targetWord: inputTestTargets.blink }
+        : flowStage === 'MOUTH_INPUT_TEST' && inputTestTargets.mouth
+          ? { method: 'MOUTH' as const, targetWord: inputTestTargets.mouth }
+          : null;
+  const showInputTestStage = showMeasurementOverlay && activeInputTest !== null;
+  const showReviewStage =
+    showMeasurementOverlay && (flowStage === 'REVIEW' || flowStage === 'SAVING');
+  const showCompleteStage = showMeasurementOverlay && flowStage === 'COMPLETE';
+  const showResultCursor = showInputTestStage || showReviewStage || showCompleteStage;
+  const inputCalibration =
+    blinkProgress?.result && mouthProgress?.result
+      ? { blink: blinkProgress.result, mouth: mouthProgress.result }
+      : null;
   const retestActionStartedRef = useRef(false);
+  const popupRequest = resolvePatientCalibrationPopup(flowStage, showMeasurementOverlay);
 
   const handleBackToAnalysis = useCallback(() => {
     navigate('/analysis');
@@ -54,14 +93,16 @@ export default function CalibrationPage() {
     }
 
     retestActionStartedRef.current = true;
+    setSettingApplied(false);
     restart();
   }, [restart]);
 
   // §10.3 완료 — 두 요청(Calibration POST, UserSetting PATCH) 모두 성공한 뒤에만 호출된다
   // (MeasurementResultModal 내부에서 보장). 측정 결과 모달을 닫고 설정 완료 모달을 띄운다.
   const handleApplied = useCallback(() => {
+    markComplete();
     setSettingApplied(true);
-  }, []);
+  }, [markComplete]);
 
   // §10/§11 — 최초 Bootstrap Calibration은 실제 PATIENT Main인 ROUTES.MAIN(/main)으로,
   // Analysis 재측정은 기존 계약대로 /analysis로 돌아간다(/patient는 VirtualKeyboard가
@@ -72,13 +113,24 @@ export default function CalibrationPage() {
   }, [isRetestFlow, navigate]);
 
   useEffect(() => {
-    if (!showResultStage) {
+    if (!showReviewStage) {
       retestActionStartedRef.current = false;
     }
-  }, [showResultStage]);
+  }, [showReviewStage]);
 
   return (
-    <main className="page calibration-page">
+    <LandmarkPopupProvider
+      videoRef={videoRef}
+      subscribeTrackingFrame={subscribeTrackingFrame}
+    >
+      {popupRequest && (
+        <LandmarkPopupAutoOpen
+          key={popupRequest.key}
+          requestKey={popupRequest.key}
+          variant={popupRequest.variant}
+        />
+      )}
+      <main className="page calibration-page">
       <section className="card wide calibration-card">
         <header className="calibration-header">
           <div>
@@ -145,28 +197,62 @@ export default function CalibrationPage() {
               </div>
             )}
 
+            {showBlinkStage && blinkProgress && (
+              <InputCalibrationPanel
+                kind="blink"
+                snapshot={blinkProgress}
+                onRestart={restartBlink}
+                onContinueWithDefaults={continueBlinkWithDefaults}
+              />
+            )}
+
+            {showMouthStage && mouthProgress && (
+              <InputCalibrationPanel
+                kind="mouth"
+                snapshot={mouthProgress}
+                onRestart={restartMouth}
+                onContinueWithDefaults={continueMouthWithDefaults}
+              />
+            )}
+
+            {showInputTestStage && activeInputTest && (
+              <InputMethodTestPanel
+                key={flowStage}
+                method={activeInputTest.method}
+                targetWord={activeInputTest.targetWord}
+                subscribeFrame={subscribeInputFrame}
+                blinkCalibration={blinkProgress?.result ?? null}
+                mouthCalibration={mouthProgress?.result ?? null}
+                onComplete={completeInputTest}
+              />
+            )}
+
             {/* §10.1 — X/닫기, background click, ESC로 닫히지 않는다. 사용자는 입력 방식
                 선택 또는 재측정 중 하나를 반드시 수행해야 하므로, 이 모달을 우회하는
                 버튼(예: "분석 페이지로 돌아가기")은 두지 않는다. */}
-            {showResultStage && result && !settingApplied && (
+            {showReviewStage && result && inputCalibration && !settingApplied && (
               <MeasurementResultModal
                 candidate={result}
                 pointDiagnostics={pointDiagnostics}
                 subscribeCompletionGaze={subscribeCompletionGaze}
+                inputCalibration={inputCalibration}
+                inputTestResults={inputTestResults}
                 onRetest={handleRetest}
+                onSaving={markSaving}
+                onSaveFailed={markSaveFailed}
                 onApplied={handleApplied}
               />
             )}
 
             {/* §11 — 설정 저장이 실제로 성공한 뒤에만 표시. 확인 클릭 시 /analysis로 이동. */}
-            {showResultStage && settingApplied && (
+            {showCompleteStage && settingApplied && (
               <SettingCompleteModal
                 subscribeCompletionGaze={subscribeCompletionGaze}
                 onConfirm={handleSuccessConfirm}
               />
             )}
 
-            {showResultStage &&
+            {showResultCursor &&
               cursorNormalized &&
               (() => {
                 const cssPx = viewportNormalizedToCssPx(cursorNormalized);
@@ -180,6 +266,7 @@ export default function CalibrationPage() {
           </div>,
           document.body,
         )}
-    </main>
+      </main>
+    </LandmarkPopupProvider>
   );
 }

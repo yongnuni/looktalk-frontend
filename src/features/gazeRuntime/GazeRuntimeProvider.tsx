@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useCamera } from '../camera/hooks/useCamera';
 import { useActiveCalibration } from '../calibration/hooks/useActiveCalibration';
+import { resolveBlinkThresholds } from '../calibration/runtimeInputThresholds';
+import { useCalibrationStore } from '../calibration/store/calibrationStore';
 import { GazeFilter } from '../faceTracking/gaze/GazeFilter';
 import { useFaceTracking } from '../faceTracking/hooks/useFaceTracking';
 import { DEFAULT_MIRROR_STRATEGY } from '../faceTracking/mediapipe/mirrorStrategy';
@@ -47,6 +49,11 @@ export function GazeRuntimeProvider({ children }: GazeRuntimeProviderProps) {
   // Provider가 mount된다(router.tsx: Gate → GazeRuntimeLayout → Outlet) — status가 이미
   // 'idle'이 아니므로 여기서 다시 호출해도 중복 GET이 발생하지 않는다(§20).
   const { active: activeCalibration, compatibility } = useActiveCalibration();
+  const inputCalibration = useCalibrationStore((state) => state.inputCalibration);
+  const blinkThresholds = useMemo(
+    () => resolveBlinkThresholds(inputCalibration),
+    [inputCalibration],
+  );
 
   const gazeFilterRef = useRef(new GazeFilter());
   const listenersRef = useRef(new Set<FrameListener>());
@@ -119,6 +126,7 @@ export function GazeRuntimeProvider({ children }: GazeRuntimeProviderProps) {
     videoRef,
     active: permission === 'granted',
     mirrorStrategy: DEFAULT_MIRROR_STRATEGY,
+    blinkThresholds,
     onFrame: handleFrame,
     onTrackingFrame: handleTrackingFrame,
   });

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
-import { useGazeInteraction } from '../gazeInteraction/GazeInteractionContext';
+import { useOptionalGazeInteraction } from '../gazeInteraction/GazeInteractionContext';
 
 /**
  * Front Step 13/14 §13 — VirtualKeyboard의 렌더링된 `[data-key-id]` DOM key를 Global Gaze
@@ -30,11 +30,13 @@ export function useKeyboardGazeTargets(
   layoutSignature: string,
   active = true,
 ): void {
-  const { registerTarget, unregisterTarget } = useGazeInteraction();
+  const interaction = useOptionalGazeInteraction();
+  const registerTarget = interaction?.registerTarget;
+  const unregisterTarget = interaction?.unregisterTarget;
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!active || !container) {
+    if (!active || !container || !registerTarget || !unregisterTarget) {
       return undefined;
     }
 

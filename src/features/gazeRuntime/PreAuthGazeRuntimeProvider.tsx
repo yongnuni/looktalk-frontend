@@ -12,7 +12,7 @@ import { useFaceTracking } from '../faceTracking/hooks/useFaceTracking';
 
 import { DEFAULT_MIRROR_STRATEGY } from '../faceTracking/mediapipe/mirrorStrategy';
 
-import type { GazeSignal } from '../faceTracking/types';
+import type { FaceTrackingFrame, GazeSignal } from '../faceTracking/types';
 
 import { buildGazeFrame } from './gazeFrameBuilder';
 
@@ -143,6 +143,8 @@ export function PreAuthGazeRuntimeProvider({
 
   const listenersRef = useRef(new Set<FrameListener>());
 
+  const trackingListenersRef = useRef(new Set<TrackingFrameListener>());
+
   const lastUiUpdateRef = useRef(0);
 
   const lastValidCursorRef = useRef<{
@@ -175,11 +177,17 @@ export function PreAuthGazeRuntimeProvider({
     };
   }, []);
 
-  // 랜드마크 PiP는 환자 Runtime에만 mount된다. 로그인 전 동작은 바꾸지 않고 Context의
-  // 공통 계약만 맞추기 위해 빈 구독 해제 함수를 반환한다.
   const subscribeTrackingFrame = useCallback((listener: TrackingFrameListener) => {
-    void listener;
-    return () => undefined;
+    trackingListenersRef.current.add(listener);
+    return () => {
+      trackingListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const handleTrackingFrame = useCallback((frame: FaceTrackingFrame) => {
+    for (const listener of trackingListenersRef.current) {
+      listener(frame);
+    }
   }, []);
 
   // =========================================================
@@ -252,6 +260,8 @@ export function PreAuthGazeRuntimeProvider({
       mirrorStrategy: DEFAULT_MIRROR_STRATEGY,
 
       onFrame: handleFrame,
+
+      onTrackingFrame: handleTrackingFrame,
     });
 
   // =========================================================

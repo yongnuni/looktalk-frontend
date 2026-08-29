@@ -220,3 +220,185 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
 }
+
+.input-calibration-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 2001;
+  width: min(760px, calc(100vw - 48px));
+  transform: translate(-50%, -50%);
+  padding: clamp(32px, 5vw, 56px);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #f8fafc;
+  text-align: center;
+  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.45);
+}
+
+.input-calibration-panel__kicker {
+  margin: 0 0 18px;
+  color: #60a5fa;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+}
+
+.input-calibration-panel h2 {
+  min-height: 2.8em;
+  margin: 0;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.35;
+}
+
+.input-calibration-panel__face {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.input-calibration-panel__face span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.input-calibration-panel__face--detected {
+  background: rgba(52, 211, 153, 0.14);
+  color: #6ee7b7;
+}
+
+.input-calibration-panel__face--detected span {
+  background: #34d399;
+}
+
+.input-calibration-panel__face--missing {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
+}
+
+.input-calibration-panel__face--missing span {
+  background: #f87171;
+}
+
+.input-calibration-panel__count {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 14px;
+}
+
+.input-calibration-panel__count strong {
+  font-size: clamp(38px, 6vw, 64px);
+  font-variant-numeric: tabular-nums;
+}
+
+.input-calibration-panel__count span {
+  color: #cbd5e1;
+  font-size: 20px;
+}
+
+.input-calibration-panel__steps {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin: 22px 0 16px;
+}
+
+.input-calibration-panel__steps span {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 2px solid #475569;
+  border-radius: 50%;
+  color: #94a3b8;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.input-calibration-panel__steps .is-current {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.18);
+  color: #ffffff;
+}
+
+.input-calibration-panel__steps .is-complete {
+  border-color: #34d399;
+  background: #059669;
+  color: #ffffff;
+}
+
+.input-calibration-panel__progress {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #334155;
+}
+
+.input-calibration-panel__progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3b82f6, #34d399);
+  transition: width 80ms linear;
+}
+
+.input-calibration-panel__attempt {
+  margin: 14px 0 0;
+  color: #fbbf24;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.input-calibration-panel__signal {
+  margin: 14px 0 0;
+  color: #94a3b8;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.input-calibration-panel__actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.input-calibration-panel__actions button {
+  min-width: 220px;
+  min-height: 64px;
+  padding: 14px 24px;
+  border: 1px solid #64748b;
+  border-radius: 12px;
+  background: #1e293b;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.input-calibration-panel__actions .input-calibration-panel__fallback {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+@media (max-width: 640px) {
+  .input-calibration-panel {
+    width: calc(100vw - 28px);
+    padding: 28px 20px;
+  }
+
+  .input-calibration-panel__actions {
+    flex-direction: column;
+  }
+
+  .input-calibration-panel__actions button {
+    width: 100%;
+  }
+}

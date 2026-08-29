@@ -4,11 +4,31 @@ import GazeCursorOverlay from '../gazeInteraction/GazeCursorOverlay';
 
 import { GazeInteractionProvider } from '../gazeInteraction/GazeInteractionProvider';
 
+import { LandmarkPopupProvider } from '../landmarkPopup/LandmarkPopupProvider';
+
 import { PreAuthGazeRuntimeProvider } from './PreAuthGazeRuntimeProvider';
+
+import { useGazeRuntime } from './GazeRuntimeContext';
 
 const PRE_CALIBRATION_RESULT_KEY = 'preCalibrationResult';
 
 const PRE_CALIBRATION_COMPLETED_KEY = 'preCalibrationCompleted';
+
+function PreAuthGazeRuntimeContent() {
+  const { videoRef, subscribeTrackingFrame } = useGazeRuntime();
+
+  return (
+    <LandmarkPopupProvider
+      videoRef={videoRef}
+      subscribeTrackingFrame={subscribeTrackingFrame}
+    >
+      <GazeInteractionProvider>
+        <GazeCursorOverlay />
+        <Outlet />
+      </GazeInteractionProvider>
+    </LandmarkPopupProvider>
+  );
+}
 
 /**
  * 로그인 / 회원가입 / 비밀번호 재설정에서 사용하는
@@ -43,11 +63,7 @@ export default function PreAuthGazeRuntimeLayout() {
 
   return (
     <PreAuthGazeRuntimeProvider>
-      <GazeInteractionProvider>
-        <GazeCursorOverlay />
-
-        <Outlet />
-      </GazeInteractionProvider>
+      <PreAuthGazeRuntimeContent />
     </PreAuthGazeRuntimeProvider>
   );
 }

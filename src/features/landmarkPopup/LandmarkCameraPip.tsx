@@ -3,9 +3,10 @@ import {
   useEffect,
   useRef,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useGazeRuntime } from '../gazeRuntime/GazeRuntimeContext';
+import type { TrackingFrameListener } from '../gazeRuntime/GazeRuntimeContext';
 import type { LandmarkPopupVariant } from './LandmarkPopupContext';
 import { drawLandmarkFrame } from './landmarkDrawing';
 import {
@@ -18,12 +19,18 @@ import {
   type PipResizeCorner,
 } from './pipResize';
 import './LandmarkCameraPip.css';
+import {
+  EMPTY_LANDMARK_SIGNAL_HUD,
+  formatLandmarkSignalHud,
+} from './landmarkSignalHud';
 
 interface LandmarkCameraPipProps {
   variant: LandmarkPopupVariant;
   initialGeometry: PipGeometry | null;
   onGeometryChange: (geometry: PipGeometry) => void;
   onClose: () => void;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  subscribeTrackingFrame: (listener: TrackingFrameListener) => () => void;
 }
 
 interface PointerInteraction {
@@ -47,13 +54,15 @@ export default function LandmarkCameraPip({
   initialGeometry,
   onGeometryChange,
   onClose,
+  videoRef,
+  subscribeTrackingFrame,
 }: LandmarkCameraPipProps) {
-  const { videoRef, subscribeTrackingFrame } = useGazeRuntime();
   const pipRef = useRef<HTMLElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const promptRef = useRef<HTMLParagraphElement | null>(null);
   const statusRef = useRef<HTMLParagraphElement | null>(null);
+  const signalHudRef = useRef<HTMLParagraphElement | null>(null);
   const variantRef = useRef(variant);
   const displaySizeRef = useRef({ width: 0, height: 0 });
   const geometryRef = useRef<PipGeometry | null>(initialGeometry);
@@ -153,6 +162,10 @@ export default function LandmarkCameraPip({
     const unsubscribe = subscribeTrackingFrame((frame) => {
       const video = videoRef.current;
       const { width, height } = displaySizeRef.current;
+
+      if (signalHudRef.current) {
+        signalHudRef.current.textContent = formatLandmarkSignalHud(frame.signal);
+      }
 
       if (!video || width <= 0 || height <= 0) {
         return;
@@ -288,6 +301,9 @@ export default function LandmarkCameraPip({
 
         <div ref={viewportRef} className="landmark-camera-pip__viewport">
           <canvas ref={canvasRef} className="landmark-camera-pip__canvas" aria-hidden="true" />
+          <p ref={signalHudRef} className="landmark-camera-pip__signal-hud">
+            {EMPTY_LANDMARK_SIGNAL_HUD}
+          </p>
           <p ref={promptRef} className="landmark-camera-pip__prompt" aria-live="polite">
             카메라를 정면으로 바라봐 주세요
           </p>

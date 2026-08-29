@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import KeyboardKey from './KeyboardKey';
 import VirtualKeyboard from './VirtualKeyboard';
 import { FUNCTION_KEY_CONFIRM } from '../layouts/qwertyLayouts';
@@ -6,6 +6,7 @@ import { useKeyboardGazeTargets } from '../useKeyboardGazeTargets';
 import type { KeyboardState } from '../keyboardStateMachine';
 import KeyboardSuggestionRow from '../../autocomplete/KeyboardSuggestionRow';
 import { useKeyboardSuggestions } from '../../autocomplete/useKeyboardSuggestions';
+import { useLandmarkAutoOpen } from '../../landmarkPopup/useLandmarkAutoOpen';
 import './FullViewportKeyboardOverlay.css';
 
 interface FullViewportKeyboardOverlayProps {
@@ -22,6 +23,15 @@ interface FullViewportKeyboardOverlayProps {
   pendingWordBoundary?: boolean;
   suggestionsEnabled?: boolean;
   keyEnlarged?: boolean;
+  showSuggestions?: boolean;
+  showClose?: boolean;
+  gazeTargetsEnabled?: boolean;
+  pointerSelectionEnabled?: boolean;
+  hoveredKeyId?: string | null;
+  selectionProgress?: number;
+  headerContent?: ReactNode;
+  containerRef?: RefObject<HTMLDivElement | null>;
+  autoLandmarkPopup?: boolean;
 }
 
 /**
@@ -49,8 +59,19 @@ export default function FullViewportKeyboardOverlay({
   pendingWordBoundary = false,
   suggestionsEnabled = false,
   keyEnlarged = false,
+  showSuggestions = true,
+  showClose = true,
+  gazeTargetsEnabled = true,
+  pointerSelectionEnabled = true,
+  hoveredKeyId = null,
+  selectionProgress = 0,
+  headerContent,
+  containerRef: providedContainerRef,
+  autoLandmarkPopup = true,
 }: FullViewportKeyboardOverlayProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  useLandmarkAutoOpen('looktalk', 'keyboard', undefined, autoLandmarkPopup);
+  const internalContainerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = providedContainerRef ?? internalContainerRef;
   const { slots, handleTargetSelect, suggestionSignature } = useKeyboardSuggestions({
     enabled: suggestionsEnabled,
     draftText,
@@ -60,7 +81,12 @@ export default function FullViewportKeyboardOverlay({
   });
 
   const layoutSignature = `${keyboardState.isKorean}-${keyboardState.isShift}-${suggestionSignature}`;
-  useKeyboardGazeTargets(containerRef, handleTargetSelect, layoutSignature, true);
+  useKeyboardGazeTargets(
+    containerRef,
+    handleTargetSelect,
+    layoutSignature,
+    gazeTargetsEnabled,
+  );
 
   // 임시 디버그 로그(§8) — 브라우저 자동화 도구가 없어 실제 DOM geometry를 직접 찍어볼
   // 방법이 없다. dev 빌드에서만 최초 렌더 후 실측값을 콘솔에 출력한다. 확인 후 제거 요청 시
@@ -92,7 +118,7 @@ export default function FullViewportKeyboardOverlay({
       functionRowHeight: rect(functionRow)?.height,
       bottomReservedHeight: rect(bottomReserved)?.height,
     });
-  }, []);
+  }, [containerRef]);
 
   return (
     <div
@@ -102,17 +128,27 @@ export default function FullViewportKeyboardOverlay({
       aria-modal="true"
       aria-label={ariaLabel}
     >
-      <div className="fv-keyboard-topbar">
-        <button
-          type="button"
-          className="fv-keyboard-close"
-          onClick={onClose}
-          disabled={closeDisabled}
-        >
-          닫기
-        </button>
+      {headerContent}
+
+      <div className={`fv-keyboard-topbar${showClose ? '' : ' fv-keyboard-topbar--no-close'}`}>
+        {showClose && (
+          <button
+            type="button"
+            className="fv-keyboard-close"
+            onClick={onClose}
+            disabled={closeDisabled}
+          >
+            닫기
+          </button>
+        )}
         <p className="fv-keyboard-draft">{draftText || draftPlaceholder}</p>
-        <KeyboardKey value={FUNCTION_KEY_CONFIRM} onSelect={handleTargetSelect} />
+        <KeyboardKey
+          value={FUNCTION_KEY_CONFIRM}
+          hovered={hoveredKeyId === FUNCTION_KEY_CONFIRM}
+          dwellProgress={hoveredKeyId === FUNCTION_KEY_CONFIRM ? selectionProgress : 0}
+          onSelect={handleTargetSelect}
+          pointerSelectionEnabled={pointerSelectionEnabled}
+        />
       </div>
 
       {errorMessage && (
@@ -123,18 +159,23 @@ export default function FullViewportKeyboardOverlay({
       {statusMessage && <p className="fv-keyboard-status">{statusMessage}</p>}
 
       {/* 입력 전 자주 쓰는 문장과 입력 중 자동완성을 같은 3개 슬롯에 표시한다. */}
-      <div className="fv-keyboard-recommend-group">
-        <KeyboardSuggestionRow
-          slots={slots}
-          mode={draftText ? 'autocomplete' : 'favorites'}
-          onTargetSelect={handleTargetSelect}
-        />
-      </div>
+      {showSuggestions && (
+        <div className="fv-keyboard-recommend-group">
+          <KeyboardSuggestionRow
+            slots={slots}
+            mode={draftText ? 'autocomplete' : 'favorites'}
+            onTargetSelect={handleTargetSelect}
+          />
+        </div>
+      )}
 
       <VirtualKeyboard
         keyboardState={keyboardState}
+        hoveredKeyId={hoveredKeyId}
+        dwellProgress={selectionProgress}
         onKeySelect={handleTargetSelect}
         keyEnlarged={keyEnlarged}
+        pointerSelectionEnabled={pointerSelectionEnabled}
       />
 
       {/* Studio/입력방식/Dwell·Fixation 등 상태 표시를 위해 예약된 고정 하단 영역 —

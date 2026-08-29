@@ -125,4 +125,17 @@ describe('MouthController (Look-Talk mouth.py MouthClickDetector 포팅)', () =>
     const reopened = controller.update(100, 100, TARGETS, OPEN_MAR, BASE + 700 + 300);
     expect(reopened.selectedKeyId).toBeNull();
   });
+
+  it('세션에서 전달한 개인 open/close threshold를 사용한다', () => {
+    const controller = new MouthController({
+      openThreshold: 0.2,
+      closeThreshold: 0.15,
+    });
+
+    controller.update(100, 100, TARGETS, 0.1, BASE);
+    controller.update(100, 100, TARGETS, 0.1, BASE + 250);
+    controller.update(100, 100, TARGETS, 0.25, BASE + 300);
+
+    expect(controller.update(100, 100, TARGETS, 0.25, BASE + 600).selectedKeyId).toBe('A');
+  });
 });

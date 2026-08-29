@@ -9,10 +9,22 @@
 export const EAR_CLOSE_THRESHOLD = 0.18;
 export const EAR_OPEN_THRESHOLD = 0.22;
 
-export function nextEyeClosedState(ear: number, wasClosed: boolean): boolean {
+export interface EyeClosureThresholds {
+  closeThreshold: number;
+  openThreshold: number;
+}
+
+export function nextEyeClosedState(
+  ear: number,
+  wasClosed: boolean,
+  thresholds: EyeClosureThresholds = {
+    closeThreshold: EAR_CLOSE_THRESHOLD,
+    openThreshold: EAR_OPEN_THRESHOLD,
+  },
+): boolean {
   if (wasClosed) {
-    return !(ear > EAR_OPEN_THRESHOLD);
+    return !(ear > thresholds.openThreshold);
   }
 
-  return ear < EAR_CLOSE_THRESHOLD;
+  return ear < thresholds.closeThreshold;
 }
