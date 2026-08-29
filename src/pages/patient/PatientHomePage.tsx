@@ -88,8 +88,8 @@ export default function PatientHomePage() {
   const hoveredKeyValue = hoveredTargetId?.startsWith('keyboard:') ? hoveredTargetId.slice('keyboard:'.length) : null;
 
   return (
-    <main className="page">
-      <section className="card wide">
+    <main className="page patient-home-page">
+      <section className="card wide patient-home-card">
         <header className="page-header">
           <div>
             <h1>환자 메인</h1>
@@ -134,7 +134,7 @@ export default function PatientHomePage() {
             않는다(keyboard.py의 confirm_rect처럼 입력창 옆에 둔다). 실제 서비스 화면은
             FullViewportKeyboardOverlay를 쓰지만, 이 QA route는 페이지 전체가 이미 키보드
             화면이라 별도 overlay 없이 텍스트 영역 옆에 확인 키만 추가한다. */}
-        <div ref={keyboardContainerRef}>
+        <div ref={keyboardContainerRef} className="patient-home-keyboard">
           <div className="patient-home-draft-row">
             <textarea
               className="message-box"

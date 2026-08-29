@@ -28,6 +28,7 @@ describe('landmark visualization groups', () => {
         ]),
       ),
     );
+    expect(FULL_FACE_CONTOUR_INDICES).toHaveLength(128);
     expect(FULL_FACE_CONTOUR_CONNECTIONS).not.toEqual(
       FaceLandmarker.FACE_LANDMARKS_TESSELATION,
     );

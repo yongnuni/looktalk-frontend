@@ -8,27 +8,35 @@
 .landmark-camera-pip {
   position: absolute;
   top: 12px;
-  right: 12px;
-  width: clamp(360px, 25vw, 720px);
-  max-width: calc(100vw - 24px);
+  left: 12px;
+  width: 25vw;
   overflow: hidden;
-  border: 1px solid #ffffff;
+  border: 0;
   border-radius: 12px;
   background: #050505;
   color: #ffffff;
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.38);
+  outline: 1px solid #ffffff;
+  outline-offset: -1px;
   pointer-events: auto;
 }
 
 .landmark-camera-pip__header {
   display: flex;
-  min-height: 40px;
+  height: 41px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 4px 6px 4px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   background: #111111;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.landmark-camera-pip[data-interacting='drag'] .landmark-camera-pip__header {
+  cursor: grabbing;
 }
 
 .landmark-camera-pip__header h2 {
@@ -57,6 +65,7 @@
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .landmark-camera-pip__close:hover {
@@ -85,25 +94,42 @@
 .landmark-camera-pip__resize-handle {
   position: absolute;
   bottom: 0;
-  left: 0;
-  z-index: 2;
+  z-index: 3;
   width: 30px;
   height: 30px;
   padding: 0;
   border: 0;
-  background: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.9) 0 2px,
-    transparent 2px 6px,
-    rgba(255, 255, 255, 0.9) 6px 8px,
-    transparent 8px 12px,
-    rgba(255, 255, 255, 0.9) 12px 14px,
-    transparent 14px
-  );
-  background-position: 5px 5px;
-  background-repeat: no-repeat;
-  cursor: nesw-resize;
+  background-color: rgba(0, 0, 0, 0.45);
   touch-action: none;
+}
+
+.landmark-camera-pip__resize-handle::after {
+  position: absolute;
+  bottom: 5px;
+  width: 12px;
+  height: 12px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.95);
+  content: '';
+}
+
+.landmark-camera-pip__resize-handle--sw {
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.landmark-camera-pip__resize-handle--sw::after {
+  left: 5px;
+  border-left: 3px solid rgba(255, 255, 255, 0.95);
+}
+
+.landmark-camera-pip__resize-handle--se {
+  right: 0;
+  cursor: nwse-resize;
+}
+
+.landmark-camera-pip__resize-handle--se::after {
+  right: 5px;
+  border-right: 3px solid rgba(255, 255, 255, 0.95);
 }
 
 .landmark-camera-pip__resize-handle:focus-visible {

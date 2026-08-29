@@ -136,7 +136,9 @@ export default function MeasurementResultModal({
   return (
     <div className="measurement-result-modal" role="dialog" aria-modal="true">
       <p className="measurement-result-modal__title">&lt;측정 결과&gt;</p>
-      <p>사용하고 싶은 입력 방식을 선택해주세요.</p>
+      <p className="measurement-result-modal__instruction">
+        사용하고 싶은 입력 방식을 선택해주세요.
+      </p>
 
       {/* Final C — Look-Talk 원본(calibration.py 643행)의 RMSE 하드 게이트에 대응하는
           비침습적 경고. Python처럼 말없이 이전 값으로 자동 대체하지 않고 사용자가 직접

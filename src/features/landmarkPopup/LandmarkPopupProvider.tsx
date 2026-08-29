@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 import LandmarkCameraPip from './LandmarkCameraPip';
 import {
@@ -7,6 +7,7 @@ import {
   type LandmarkPopupContextValue,
   type LandmarkPopupVariant,
 } from './LandmarkPopupContext';
+import type { PipGeometry } from './pipResize';
 
 interface LandmarkPopupProviderProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ interface LandmarkPopupProviderProps {
 
 export function LandmarkPopupProvider({ children }: LandmarkPopupProviderProps) {
   const [variant, dispatch] = useReducer(landmarkPopupReducer, null);
+  const [geometry, setGeometry] = useState<PipGeometry | null>(null);
 
   const open = useCallback((nextVariant: LandmarkPopupVariant) => {
     dispatch({ type: 'open', variant: nextVariant });
@@ -31,7 +33,14 @@ export function LandmarkPopupProvider({ children }: LandmarkPopupProviderProps) 
   return (
     <LandmarkPopupContext.Provider value={value}>
       {children}
-      {variant && <LandmarkCameraPip variant={variant} onClose={close} />}
+      {variant && (
+        <LandmarkCameraPip
+          variant={variant}
+          initialGeometry={geometry}
+          onGeometryChange={setGeometry}
+          onClose={close}
+        />
+      )}
     </LandmarkPopupContext.Provider>
   );
 }

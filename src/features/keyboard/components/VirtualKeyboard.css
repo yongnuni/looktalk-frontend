@@ -19,21 +19,21 @@
 .keyboard-row--10,
 .keyboard-row--9 {
   display: grid;
-  gap: clamp(10px, 0.7vw, 12px);
+  gap: clamp(4px, 0.7vw, 12px);
   margin-inline: auto;
 }
 
 /* 숫자행/한글1행(또는 QWERTY의 상위 3행)처럼 10키인 행. */
 .keyboard-row--10 {
   grid-template-columns: repeat(10, minmax(0, 1fr));
-  width: min(92vw, 1500px);
+  width: min(100%, 1500px);
 }
 
 /* 자모2/3행(또는 QWERTY 마지막 행)처럼 9키인 행 — 10키 행과 같은 폭 기준선에서
    비율만 좁혀 자연히 안쪽으로 들어가 보이게 한다(Python의 row offset과 동일 원리). */
 .keyboard-row--9 {
   grid-template-columns: repeat(9, minmax(0, 1fr));
-  width: min(82vw, 1340px);
+  width: min(90%, 1340px);
 }
 
 .keyboard-row--10 .keyboard-key,
@@ -47,24 +47,24 @@
 .keyboard-row--function {
   display: grid;
   grid-template-columns: 1.1fr 1.1fr 4.5fr 1.4fr;
-  gap: clamp(10px, 1.2vw, 20px);
-  width: min(92vw, 1500px);
+  gap: clamp(6px, 1.2vw, 20px);
+  width: min(100%, 1500px);
   margin-inline: auto;
 }
 
 .keyboard-row--function .keyboard-key {
   width: 100%;
   min-width: 0;
-  font-size: clamp(20px, 1.6vw, 30px);
+  font-size: clamp(14px, 1.6vw, 30px);
 }
 
 /* UserSetting.keyEnlarged 대응 — transform: scale이 아니라 실제 height/font-size를
    키운다(폭은 Grid 컬럼이 이미 행 폭 전체를 채우고 있어 따로 키울 필요가 없다). */
 .virtual-keyboard--enlarged .keyboard-key {
   height: clamp(96px, 11vh, 112px);
-  font-size: clamp(32px, 2.5vw, 46px);
+  font-size: clamp(20px, 2.5vw, 46px);
 }
 
 .virtual-keyboard--enlarged .keyboard-row--function .keyboard-key {
-  font-size: clamp(23px, 1.9vw, 34px);
+  font-size: clamp(16px, 1.9vw, 34px);
 }

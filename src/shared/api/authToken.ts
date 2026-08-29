@@ -1,6 +1,8 @@
 const ACCESS_TOKEN_STORAGE_KEYS = ['accessToken', 'looktalk_access_token'] as const;
 
 export function getAccessToken(): string | null {
+  if (typeof localStorage === 'undefined') return null;
+
   for (const key of ACCESS_TOKEN_STORAGE_KEYS) {
     const token = localStorage.getItem(key)?.trim();
 
@@ -11,9 +13,20 @@ export function getAccessToken(): string | null {
 }
 
 export function clearStoredAuthTokens() {
+  if (typeof localStorage === 'undefined') return;
+
   for (const key of ACCESS_TOKEN_STORAGE_KEYS) {
     localStorage.removeItem(key);
   }
+}
+
+/** 실제 로그인 흐름이 사용하는 canonical key에 새 Access Token을 저장한다. */
+export function storeAccessToken(token: string) {
+  if (typeof localStorage === 'undefined') return;
+
+  localStorage.setItem('accessToken', token);
+  // 개발용 legacy 토큰이 만료 토큰 대신 fallback으로 다시 선택되지 않게 정리한다.
+  localStorage.removeItem('looktalk_access_token');
 }
 
 export function isJwtExpired(token: string, clockSkewSeconds = 30): boolean {

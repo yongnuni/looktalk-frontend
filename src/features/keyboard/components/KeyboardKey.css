@@ -15,12 +15,12 @@
   align-items: center;
   justify-content: center;
   width: clamp(78px, 8vw, 140px);
-  height: clamp(88px, 10vh, 104px);
-  padding: 0 10px;
+  height: clamp(58px, 8vw, 104px);
+  padding: 0 clamp(2px, 0.6vw, 10px);
   border: 1px solid #cdced2;
   border-radius: clamp(12px, 1.2vw, 22px);
   background: #ebecf0;
-  font-size: clamp(28px, 2.2vw, 40px);
+  font-size: clamp(14px, 2.2vw, 40px);
   font-weight: 600;
   color: #1e293b;
   cursor: pointer;

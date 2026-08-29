@@ -1,24 +1,38 @@
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useGazeRuntime } from '../gazeRuntime/GazeRuntimeContext';
 import type { LandmarkPopupVariant } from './LandmarkPopupContext';
 import { drawLandmarkFrame } from './landmarkDrawing';
 import {
-  clampPipWidth,
-  getDefaultPipWidth,
-  getPointerResizedWidth,
+  clampPipGeometry,
+  getDefaultPipGeometry,
+  getDraggedPipGeometry,
+  getPointerResizedGeometry,
+  shouldStartPipDrag,
+  type PipGeometry,
+  type PipResizeCorner,
 } from './pipResize';
 import './LandmarkCameraPip.css';
 
 interface LandmarkCameraPipProps {
   variant: LandmarkPopupVariant;
+  initialGeometry: PipGeometry | null;
+  onGeometryChange: (geometry: PipGeometry) => void;
   onClose: () => void;
 }
 
-interface ResizeDragState {
+interface PointerInteraction {
+  kind: 'drag' | 'resize';
   pointerId: number;
-  startPointerX: number;
-  startWidth: number;
+  startPointer: { x: number; y: number };
+  startGeometry: PipGeometry;
+  corner?: PipResizeCorner;
+  captureTarget: HTMLElement;
 }
 
 const TITLES: Record<LandmarkPopupVariant, string> = {
@@ -26,8 +40,12 @@ const TITLES: Record<LandmarkPopupVariant, string> = {
   looktalk: '눈 · 홍채 · 입 랜드마크',
 };
 
+const RESIZE_CORNERS: ReadonlyArray<PipResizeCorner> = ['sw', 'se'];
+
 export default function LandmarkCameraPip({
   variant,
+  initialGeometry,
+  onGeometryChange,
   onClose,
 }: LandmarkCameraPipProps) {
   const { videoRef, subscribeTrackingFrame } = useGazeRuntime();
@@ -36,11 +54,11 @@ export default function LandmarkCameraPip({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const promptRef = useRef<HTMLParagraphElement | null>(null);
   const statusRef = useRef<HTMLParagraphElement | null>(null);
-  const resizeHandleRef = useRef<HTMLButtonElement | null>(null);
   const variantRef = useRef(variant);
   const displaySizeRef = useRef({ width: 0, height: 0 });
-  const currentWidthRef = useRef<number | null>(null);
-  const resizeDragRef = useRef<ResizeDragState | null>(null);
+  const geometryRef = useRef<PipGeometry | null>(initialGeometry);
+  const interactionRef = useRef<PointerInteraction | null>(null);
+  const onGeometryChangeRef = useRef(onGeometryChange);
 
   useEffect(() => {
     variantRef.current = variant;
@@ -51,41 +69,67 @@ export default function LandmarkCameraPip({
   }, [variant]);
 
   useEffect(() => {
+    onGeometryChangeRef.current = onGeometryChange;
+  }, [onGeometryChange]);
+
+  const applyGeometry = useCallback((geometry: PipGeometry) => {
     const pip = pipRef.current;
-    const resizeHandle = resizeHandleRef.current;
     if (!pip) {
       return;
     }
 
-    const applyWidth = (width: number) => {
-      currentWidthRef.current = width;
-      pip.style.width = `${width}px`;
-    };
+    geometryRef.current = geometry;
+    pip.style.left = `${geometry.x}px`;
+    pip.style.top = `${geometry.y}px`;
+    pip.style.width = `${geometry.width}px`;
+  }, []);
 
-    applyWidth(getDefaultPipWidth(window.innerWidth, window.innerHeight));
+  const finishInteraction = useCallback((pointerId: number) => {
+    const interaction = interactionRef.current;
+    if (!interaction || interaction.pointerId !== pointerId) {
+      return;
+    }
+
+    interactionRef.current = null;
+    pipRef.current?.removeAttribute('data-interacting');
+    if (geometryRef.current) {
+      onGeometryChangeRef.current(geometryRef.current);
+    }
+    if (interaction.captureTarget.hasPointerCapture(pointerId)) {
+      interaction.captureTarget.releasePointerCapture(pointerId);
+    }
+  }, []);
+
+  useEffect(() => {
+    const firstGeometry = initialGeometry
+      ? clampPipGeometry(initialGeometry, window.innerWidth, window.innerHeight)
+      : getDefaultPipGeometry(window.innerWidth, window.innerHeight);
+    applyGeometry(firstGeometry);
+    onGeometryChangeRef.current(firstGeometry);
 
     const handleViewportResize = () => {
-      const requestedWidth = currentWidthRef.current
-        ?? getDefaultPipWidth(window.innerWidth, window.innerHeight);
-      applyWidth(clampPipWidth(requestedWidth, window.innerWidth, window.innerHeight));
+      const current = geometryRef.current ?? getDefaultPipGeometry(
+        window.innerWidth,
+        window.innerHeight,
+      );
+      const clamped = clampPipGeometry(current, window.innerWidth, window.innerHeight);
+      applyGeometry(clamped);
+      onGeometryChangeRef.current(clamped);
     };
 
     window.addEventListener('resize', handleViewportResize);
 
     return () => {
       window.removeEventListener('resize', handleViewportResize);
-      const activePointerId = resizeDragRef.current?.pointerId;
-      resizeDragRef.current = null;
-
-      if (
-        resizeHandle &&
-        activePointerId !== undefined &&
-        resizeHandle.hasPointerCapture(activePointerId)
-      ) {
-        resizeHandle.releasePointerCapture(activePointerId);
+      const interaction = interactionRef.current;
+      interactionRef.current = null;
+      if (interaction?.captureTarget.hasPointerCapture(interaction.pointerId)) {
+        interaction.captureTarget.releasePointerCapture(interaction.pointerId);
       }
     };
-  }, []);
+    // initialGeometry은 mount 시 Provider session snapshot으로만 사용한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applyGeometry]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -97,14 +141,10 @@ export default function LandmarkCameraPip({
 
     const updateDisplaySize = () => {
       const rect = viewport.getBoundingClientRect();
-      displaySizeRef.current = {
-        width: rect.width,
-        height: rect.height,
-      };
+      displaySizeRef.current = { width: rect.width, height: rect.height };
     };
 
     updateDisplaySize();
-
     const resizeObserver = typeof ResizeObserver === 'undefined'
       ? null
       : new ResizeObserver(updateDisplaySize);
@@ -129,96 +169,116 @@ export default function LandmarkCameraPip({
       });
 
       const faceDetected = (frame.canonicalLandmarks?.length ?? 0) > 0;
-
       if (promptRef.current) {
         promptRef.current.hidden = faceDetected;
       }
-
       if (statusRef.current) {
         const showFullStatus = faceDetected && variantRef.current === 'full';
         statusRef.current.hidden = !showFullStatus;
-        statusRef.current.textContent = showFullStatus
-          ? '얼굴 주요 랜드마크 감지됨'
-          : '';
+        statusRef.current.textContent = showFullStatus ? '얼굴 주요 랜드마크 감지됨' : '';
       }
     });
 
     return () => {
       unsubscribe();
       resizeObserver?.disconnect();
-
-      const context = canvas.getContext('2d');
-      context?.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
       canvas.width = 0;
       canvas.height = 0;
       displaySizeRef.current = { width: 0, height: 0 };
     };
   }, [subscribeTrackingFrame, videoRef]);
 
-  const handleResizePointerDown = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-  ) => {
-    if (event.button !== 0) {
+  const handleHeaderPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    const closeButtonHit = event.target instanceof Element
+      && event.target.closest('.landmark-camera-pip__close') !== null;
+    if (!shouldStartPipDrag(event.button, closeButtonHit)) {
+      return;
+    }
+
+    const geometry = geometryRef.current;
+    if (!geometry) {
       return;
     }
 
     event.preventDefault();
-    const startWidth = currentWidthRef.current
-      ?? pipRef.current?.getBoundingClientRect().width
-      ?? getDefaultPipWidth(window.innerWidth, window.innerHeight);
-
-    resizeDragRef.current = {
+    interactionRef.current = {
+      kind: 'drag',
       pointerId: event.pointerId,
-      startPointerX: event.clientX,
-      startWidth,
+      startPointer: { x: event.clientX, y: event.clientY },
+      startGeometry: geometry,
+      captureTarget: event.currentTarget,
     };
+    pipRef.current?.setAttribute('data-interacting', 'drag');
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const handleResizePointerMove = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-  ) => {
-    const drag = resizeDragRef.current;
-    const pip = pipRef.current;
-    if (!drag || drag.pointerId !== event.pointerId || !pip) {
+  const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const interaction = interactionRef.current;
+    if (!interaction || interaction.pointerId !== event.pointerId) {
       return;
     }
 
     event.preventDefault();
-    const nextWidth = getPointerResizedWidth(
-      drag.startWidth,
-      drag.startPointerX,
-      event.clientX,
-      window.innerWidth,
-      window.innerHeight,
-    );
-    currentWidthRef.current = nextWidth;
-    pip.style.width = `${nextWidth}px`;
+    const currentPointer = { x: event.clientX, y: event.clientY };
+    const geometry = interaction.kind === 'drag'
+      ? getDraggedPipGeometry(
+          interaction.startGeometry,
+          interaction.startPointer,
+          currentPointer,
+          window.innerWidth,
+          window.innerHeight,
+        )
+      : getPointerResizedGeometry(
+          interaction.startGeometry,
+          interaction.corner ?? 'se',
+          interaction.startPointer,
+          currentPointer,
+          window.innerWidth,
+          window.innerHeight,
+        );
+    applyGeometry(geometry);
   };
 
-  const finishResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (resizeDragRef.current?.pointerId !== event.pointerId) {
+  const handleResizePointerDown = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    corner: PipResizeCorner,
+  ) => {
+    const geometry = geometryRef.current;
+    if (event.button !== 0 || !geometry) {
       return;
     }
 
-    resizeDragRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
+    event.preventDefault();
+    event.stopPropagation();
+    interactionRef.current = {
+      kind: 'resize',
+      pointerId: event.pointerId,
+      startPointer: { x: event.clientX, y: event.clientY },
+      startGeometry: geometry,
+      corner,
+      captureTarget: event.currentTarget,
+    };
+    pipRef.current?.setAttribute('data-interacting', 'resize');
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   return createPortal(
     <div className="landmark-camera-pip-portal">
-      <section
-        ref={pipRef}
-        className="landmark-camera-pip"
-        aria-label={TITLES[variant]}
-      >
-        <header className="landmark-camera-pip__header">
+      <section ref={pipRef} className="landmark-camera-pip" aria-label={TITLES[variant]}>
+        <header
+          className="landmark-camera-pip__header"
+          onPointerDown={handleHeaderPointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={(event) => finishInteraction(event.pointerId)}
+          onPointerCancel={(event) => finishInteraction(event.pointerId)}
+          onLostPointerCapture={(event) => finishInteraction(event.pointerId)}
+        >
           <h2>{TITLES[variant]}</h2>
           <button
             type="button"
             className="landmark-camera-pip__close"
+            onPointerDown={(event) => event.stopPropagation()}
             onClick={onClose}
             aria-label="랜드마크 카메라 닫기"
           >
@@ -232,20 +292,21 @@ export default function LandmarkCameraPip({
             카메라를 정면으로 바라봐 주세요
           </p>
           <p ref={statusRef} className="landmark-camera-pip__status" hidden />
-          <button
-            ref={resizeHandleRef}
-            type="button"
-            className="landmark-camera-pip__resize-handle"
-            aria-label="랜드마크 카메라 크기 조절"
-            onPointerDown={handleResizePointerDown}
-            onPointerMove={handleResizePointerMove}
-            onPointerUp={finishResize}
-            onPointerCancel={finishResize}
-            onLostPointerCapture={() => {
-              resizeDragRef.current = null;
-            }}
-          />
         </div>
+
+        {RESIZE_CORNERS.map((corner) => (
+          <button
+            key={corner}
+            type="button"
+            className={`landmark-camera-pip__resize-handle landmark-camera-pip__resize-handle--${corner}`}
+            aria-label={`${corner} 모서리에서 랜드마크 카메라 크기 조절`}
+            onPointerDown={(event) => handleResizePointerDown(event, corner)}
+            onPointerMove={handlePointerMove}
+            onPointerUp={(event) => finishInteraction(event.pointerId)}
+            onPointerCancel={(event) => finishInteraction(event.pointerId)}
+            onLostPointerCapture={(event) => finishInteraction(event.pointerId)}
+          />
+        ))}
       </section>
     </div>,
     document.body,
