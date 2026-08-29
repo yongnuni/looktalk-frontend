@@ -1,38 +1,59 @@
-/* Look-Talk ui.py IDLE_BG/IDLE_BORDER/HOVER_BG/HOVER_BORDER/KEY_TEXT_COLOR(385-393행)를
-   그대로 옮긴 색상이다.
-   width는 여기서 값을 정하지 않는다 — VirtualKeyboard.css의 .keyboard-row--10/--9/
-   --function이 실제 Grid 컬럼(width:100%)으로 강제한다(이전엔 calc()로 유도한
-   --char-key-width 커스텀 프로퍼티를 썼는데, 실제 렌더 결과가 계산값과 맞지 않아 —
-   원인을 확정하지 못한 채 — 더 이상 그 방식에 의존하지 않기로 했다. Grid는 부모가
-   실제로 렌더된 폭을 컬럼 수로 나누는 것이라 중간에 깨질 여지가 없다). 여기 width는
-   Grid로 감싸지 않은 예외적 컨텍스트(topbar 확인 키 등, 각자 더 구체적인 selector로
-   override함)를 위한 최소 fallback일 뿐이다.
-   height는 고정 clamp() 값이다(row 자체가 flex:1로 남는 공간을 나눠 갖지 않기 때문에
-   row 높이 = key 높이가 되어, row 사이에 의도치 않은 큰 공백이 생기지 않는다). */
+/* =========================================================
+   Keyboard Key
+
+   - 키 크기는 부모 Grid에 따라 반응형
+   - 폰트 크기도 반응형
+   - 단, 최소 폰트 크기를 충분히 크게 잡아서
+     화면 크기가 바뀌어도 갑자기 너무 작아지지 않도록 한다.
+========================================================= */
+
 .keyboard-key {
   position: relative;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  width: clamp(78px, 8vw, 140px);
-  height: clamp(88px, 10vh, 104px);
-  padding: 0 10px;
+
+  width: 100%;
+  height: 100%;
+
+  min-width: 0;
+  min-height: 0;
+
+  padding: 0 clamp(5px, 0.7vw, 12px);
+
   border: 1px solid #cdced2;
-  border-radius: clamp(12px, 1.2vw, 22px);
+
+  border-radius: clamp(10px, 1vw, 22px);
+
   background: #ebecf0;
-  font-size: clamp(28px, 2.2vw, 40px);
+
+  /* 최소 26px 이하로는 작아지지 않음 */
+  font-size: clamp(26px, 2vw, 40px);
+
   font-weight: 600;
+
   color: #1e293b;
+
   cursor: pointer;
+
   overflow: hidden;
-  flex-shrink: 0;
+
   white-space: nowrap;
 }
+
+/* =========================================================
+   Hover
+========================================================= */
 
 .keyboard-key:hover {
   background: #dbeafe;
   border-color: #93c5fd;
 }
+
+/* =========================================================
+   Active
+========================================================= */
 
 .keyboard-key:active {
   transform: scale(0.97);
@@ -41,14 +62,22 @@
 .keyboard-key--active {
   border-color: #2563eb;
   border-width: 2px;
+
   color: #2563eb;
 }
 
-/* Space가 가장 넓은 것은 VirtualKeyboard.css의 .keyboard-row--function grid-template-columns
-   (Shift 1.1fr / 한영 1.1fr / Space 4.5fr / 되돌리기 1.4fr)가 담당한다 — .keyboard-key--wide
-   자체는 더 이상 폭을 정하지 않는다(마킹용 클래스로만 남는다). */
+/* =========================================================
+   Function Row
+========================================================= */
 
-/* gaze dwell hover 상태 — 진행률을 아래에서 차오르는 바로 표시한다. */
+.keyboard-row--function .keyboard-key {
+  font-size: clamp(22px, 1.7vw, 32px);
+}
+
+/* =========================================================
+   Gaze Dwell Hover
+========================================================= */
+
 .keyboard-key--hovered {
   border-color: #2563eb;
   border-width: 2px;
@@ -56,22 +85,27 @@
 
 .keyboard-key--hovered::after {
   content: '';
+
   position: absolute;
+
   left: 0;
   bottom: 0;
+
   width: 100%;
+
   height: calc(var(--dwell-progress, 0) * 100%);
+
   background: rgba(37, 99, 235, 0.25);
+
   pointer-events: none;
+
   transition: height 60ms linear;
 }
 
-/* Front Step 14 §41/§42 — Chat의 VirtualKeyboard는 useKeyboardGazeTargets를 통해 Global
-   Gaze Target Registry(KEYBOARD scope)에 등록되므로, hover 시각 상태는 React prop이
-   아니라 GazeInteractionProvider가 DOM에 직접 붙이는 data-gaze-hovered/--gaze-progress로
-   온다(MainPage.css의 [data-gaze-hovered] 패턴과 동일한 언어를 재사용, §42). `/patient`
-   QA route는 두 경로(prop 기반 .keyboard-key--hovered + 아래 attribute selector)가 동시에
-   적용되지만 시각적으로 동일한 progress를 그리므로 문제되지 않는다. */
+/* =========================================================
+   Global Gaze Target
+========================================================= */
+
 [data-key-id][data-gaze-hovered='true'] {
   border-color: #2563eb;
   border-width: 2px;
@@ -79,12 +113,153 @@
 
 [data-key-id][data-gaze-hovered='true']::after {
   content: '';
+
   position: absolute;
+
   left: 0;
   bottom: 0;
+
   width: 100%;
+
   height: calc(var(--gaze-progress, 0) * 100%);
+
   background: rgba(37, 99, 235, 0.25);
+
   pointer-events: none;
+
   transition: height 60ms linear;
+}
+
+/* =========================================================
+   Enlarged Mode
+========================================================= */
+
+.virtual-keyboard--enlarged .keyboard-key {
+  font-size: clamp(32px, 2.5vw, 46px);
+}
+
+.virtual-keyboard--enlarged .keyboard-row--function .keyboard-key {
+  font-size: clamp(26px, 2vw, 36px);
+}
+
+/* =========================================================
+   1600px 이하
+========================================================= */
+
+@media (max-width: 1600px) {
+  .keyboard-key {
+    padding: 0 clamp(5px, 0.6vw, 10px);
+
+    font-size: clamp(26px, 1.9vw, 36px);
+
+    border-radius: clamp(10px, 0.9vw, 18px);
+  }
+
+  .keyboard-row--function .keyboard-key {
+    font-size: clamp(22px, 1.6vw, 30px);
+  }
+}
+
+/* =========================================================
+   1400px 이하
+========================================================= */
+
+@media (max-width: 1400px) {
+  .keyboard-key {
+    padding: 0 7px;
+
+    font-size: clamp(25px, 1.85vw, 34px);
+
+    border-radius: 14px;
+  }
+
+  .keyboard-row--function .keyboard-key {
+    font-size: clamp(21px, 1.55vw, 28px);
+  }
+}
+
+/* =========================================================
+   1200px 이하
+========================================================= */
+
+@media (max-width: 1200px) {
+  .keyboard-key {
+    padding: 0 6px;
+
+    font-size: clamp(24px, 1.8vw, 32px);
+
+    border-radius: 12px;
+  }
+
+  .keyboard-row--function .keyboard-key {
+    font-size: clamp(20px, 1.5vw, 27px);
+  }
+}
+
+/* =========================================================
+   1024px 이하
+========================================================= */
+
+@media (max-width: 1024px) {
+  .keyboard-key {
+    padding: 0 4px;
+
+    /* 작은 화면에서도 최소 23px 유지 */
+    font-size: clamp(23px, 1.75vw, 30px);
+
+    border-radius: 10px;
+  }
+
+  .keyboard-row--function .keyboard-key {
+    font-size: clamp(19px, 1.5vw, 25px);
+  }
+}
+
+/* =========================================================
+   세로 높이가 작은 화면
+========================================================= */
+
+@media (max-height: 700px) {
+  .keyboard-key {
+    /* 기존 16px까지 내려가던 부분 방지 */
+    font-size: clamp(23px, 3.2vh, 30px);
+
+    border-radius: 10px;
+  }
+
+  .keyboard-row--function .keyboard-key {
+    font-size: clamp(19px, 2.7vh, 25px);
+  }
+}
+
+/* =========================================================
+   세로 높이가 큰 화면
+========================================================= */
+
+@media (min-height: 1000px) {
+  .keyboard-key {
+    font-size: clamp(28px, 3.2vh, 44px);
+  }
+
+  .keyboard-row--function .keyboard-key {
+    font-size: clamp(23px, 2.6vh, 34px);
+  }
+}
+
+/* =========================================================
+   Ultra Wide
+========================================================= */
+
+@media (min-width: 2200px) {
+  .keyboard-key {
+    padding: 0 14px;
+
+    font-size: clamp(34px, 1.8vw, 48px);
+
+    border-radius: 24px;
+  }
+
+  .keyboard-row--function .keyboard-key {
+    font-size: clamp(28px, 1.4vw, 38px);
+  }
 }

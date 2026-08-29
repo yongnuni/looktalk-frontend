@@ -1,30 +1,22 @@
-/* 기존 patient-home-gaze-cursor(Front Step 0~11)와 동일한 모양/색을 그대로 옮겼다 —
-   이유 없이 새 디자인을 만들지 않는다(§8). 진행률 ring만 calibration-target-ring
-   (--calibration-progress scale 패턴)과 동일한 방식으로 추가했다(§22). */
 .gaze-cursor-overlay {
   position: fixed;
+
   z-index: 3000;
-  width: 18px;
-  height: 18px;
+
+  width: 36px;
+  height: 36px;
+
   transform: translate(-50%, -50%);
+
+  object-fit: contain;
+
   pointer-events: none;
-  transition: left 40ms linear, top 40ms linear;
-}
 
-.gaze-cursor-overlay__dot {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: #f97316;
-  border: 2px solid #ffffff;
-}
+  user-select: none;
 
-.gaze-cursor-overlay__ring {
-  position: absolute;
-  inset: -7px;
-  border-radius: 50%;
-  border: 2px solid rgba(249, 115, 22, 0.55);
-  transform: scale(calc(0.4 + var(--gaze-cursor-progress, 0) * 0.6));
-  opacity: var(--gaze-cursor-progress, 0);
-  transition: transform 60ms linear, opacity 60ms linear;
+  -webkit-user-drag: none;
+
+  transition:
+    left 40ms linear,
+    top 40ms linear;
 }
