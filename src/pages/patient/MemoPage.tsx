@@ -5,6 +5,7 @@ import SettingIcon from '../../assets/setting.png';
 import UpArrow from '../../assets/up_arrow.png';
 import DownArrow from '../../assets/down_arrow.png';
 import TrashIcon from '../../assets/trash.png';
+import TtsIcon from '../../assets/tts.png';
 
 import { Link, useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -17,7 +18,10 @@ import { usePageScope } from '../../features/gazeInteraction/usePageScope';
 import { useGazeTarget } from '../../features/gazeInteraction/useGazeTarget';
 import FullViewportKeyboardOverlay from '../../features/keyboard/components/FullViewportKeyboardOverlay';
 import { useKeyboardInput } from '../../features/keyboard/hooks/useKeyboardInput';
-import { canOpenMemoKeyboard, isSavableMemoText } from '../../features/memo/memoKeyboard';
+import {
+  canOpenMemoKeyboard,
+  isSavableMemoText,
+} from '../../features/memo/memoKeyboard';
 import { useUserSettings } from '../../features/userSetting/hooks/useUserSettings';
 import { useUserSettingStore } from '../../features/userSetting/store/userSettingStore';
 import {
@@ -245,7 +249,14 @@ export default function MemoPage() {
   const clearTextRef = useRef<() => void>(() => {});
 
   const handleOpenKeyboard = useCallback(() => {
-    if (!canOpenMemoKeyboard({ isLoading, isAdding, hasEncryptionKey: Boolean(currentKey) })) return;
+    if (
+      !canOpenMemoKeyboard({
+        isLoading,
+        isAdding,
+        hasEncryptionKey: Boolean(currentKey),
+      })
+    )
+      return;
 
     setErrorMessage('');
     setIsKeyboardOpen(true);
@@ -347,6 +358,64 @@ export default function MemoPage() {
   useEffect(() => {
     clearTextRef.current = clearText;
   }, [clearText]);
+
+  // =========================
+  // TTS
+  // Web Speech API를 사용하여 메모 내용을 음성으로 읽는다.
+  // =========================
+  const handleTtsClick = useCallback((memoText: string) => {
+    const synth = (
+      window as Window & {
+        speechSynthesis?: SpeechSynthesis;
+      }
+    ).speechSynthesis;
+
+    if (!synth) {
+      window.alert('현재 브라우저에서는 음성 읽기 기능을 지원하지 않습니다.');
+      return;
+    }
+
+    const trimmedText = memoText.trim();
+
+    if (!trimmedText) {
+      return;
+    }
+
+    // 기존에 읽고 있는 음성이 있다면 중지 후 새 메모를 읽는다.
+    synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(trimmedText);
+
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.7;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    // 사용 가능한 한국어 음성이 있으면 우선 적용
+    const voices = synth.getVoices();
+    const koreanVoice = voices.find((voice) =>
+      voice.lang.toLowerCase().startsWith('ko'),
+    );
+
+    if (koreanVoice) {
+      utterance.voice = koreanVoice;
+    }
+
+    synth.speak(utterance);
+  }, []);
+
+  // 페이지를 벗어날 때 재생 중인 TTS를 정리한다.
+  useEffect(() => {
+    return () => {
+      const synth = (
+        window as Window & {
+          speechSynthesis?: SpeechSynthesis;
+        }
+      ).speechSynthesis;
+
+      synth?.cancel();
+    };
+  }, []);
 
   // =========================
   // 삭제 버튼 클릭
@@ -457,18 +526,38 @@ export default function MemoPage() {
   // 범위에서는 제외한다 — 삭제는 파괴적 action이라 확인 모달까지 거쳐야 하므로 우선순위도
   // 낮다(§52).
   // =========================
-  const logoTargetRef = useGazeTarget({ id: 'memo-logo', scope: 'MAIN', onSelect: () => navigate('/main') });
+  const logoTargetRef = useGazeTarget({
+    id: 'memo-logo',
+    scope: 'MAIN',
+    onSelect: () => navigate('/main'),
+  });
   // §10 — 이 target의 의미는 "작성 완료"가 아니라 "입력 시작"이다. 아직 아무 문장도
   // 입력하지 않았다는 이유로 키보드 진입 버튼이 disabled되면 안 된다.
   const addMemoTargetRef = useGazeTarget({
     id: 'memo-add',
     scope: 'MAIN',
-    enabled: canOpenMemoKeyboard({ isLoading, isAdding, hasEncryptionKey: Boolean(currentKey) }),
+    enabled: canOpenMemoKeyboard({
+      isLoading,
+      isAdding,
+      hasEncryptionKey: Boolean(currentKey),
+    }),
     onSelect: handleOpenKeyboard,
   });
-  const settingsTargetRef = useGazeTarget({ id: 'memo-settings', scope: 'MAIN', onSelect: () => navigate(ROUTES.MYPAGE) });
-  const scrollUpTargetRef = useGazeTarget({ id: 'memo-scroll-up', scope: 'MAIN', onSelect: handleScrollUp });
-  const scrollDownTargetRef = useGazeTarget({ id: 'memo-scroll-down', scope: 'MAIN', onSelect: handleScrollDown });
+  const settingsTargetRef = useGazeTarget({
+    id: 'memo-settings',
+    scope: 'MAIN',
+    onSelect: () => navigate(ROUTES.MYPAGE),
+  });
+  const scrollUpTargetRef = useGazeTarget({
+    id: 'memo-scroll-up',
+    scope: 'MAIN',
+    onSelect: handleScrollUp,
+  });
+  const scrollDownTargetRef = useGazeTarget({
+    id: 'memo-scroll-down',
+    scope: 'MAIN',
+    onSelect: handleScrollDown,
+  });
 
   return (
     <div className="memo-page">
@@ -516,6 +605,21 @@ export default function MemoPage() {
                 </button>
 
                 <div className="memo-text">{memo.text}</div>
+
+                <button
+                  type="button"
+                  className="tts-button"
+                  onClick={() => handleTtsClick(memo.text)}
+                  aria-label="메모 음성으로 듣기"
+                  title="음성으로 듣기"
+                >
+                  <img
+                    src={TtsIcon}
+                    alt=""
+                    className="tts-icon"
+                    aria-hidden="true"
+                  />
+                </button>
               </div>
             ))}
 
@@ -561,7 +665,13 @@ export default function MemoPage() {
           type="button"
           className="keyboard-button"
           onClick={handleOpenKeyboard}
-          disabled={!canOpenMemoKeyboard({ isLoading, isAdding, hasEncryptionKey: Boolean(currentKey) })}
+          disabled={
+            !canOpenMemoKeyboard({
+              isLoading,
+              isAdding,
+              hasEncryptionKey: Boolean(currentKey),
+            })
+          }
         >
           {isAdding ? '저장 중...' : '가상 키보드로 입력하기'}
         </button>
