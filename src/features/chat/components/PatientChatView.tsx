@@ -582,9 +582,14 @@ export default function PatientChatView({
     [addMessage, mode],
   );
 
-  const { keyboardState, text, handleKeySelect, clearText } = useKeyboardInput({
-    onConfirm: handleConfirmSend,
-  });
+  const {
+    keyboardState,
+    text,
+    handleKeySelect,
+    handleSuggestionSelect,
+    pendingWordBoundary,
+    clearText,
+  } = useKeyboardInput({ onConfirm: handleConfirmSend });
 
   useEffect(() => {
     clearTextRef.current = clearText;
@@ -960,6 +965,9 @@ export default function PatientChatView({
           closeDisabled={isSending}
           keyboardState={keyboardState}
           onKeySelect={handleKeySelect}
+          onSuggestionSelect={handleSuggestionSelect}
+          pendingWordBoundary={pendingWordBoundary}
+          suggestionsEnabled
           keyEnlarged={settings?.keyEnlarged ?? false}
         />
       )}

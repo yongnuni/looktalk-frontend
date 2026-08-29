@@ -4,7 +4,7 @@ import type { CameraPermissionState } from '../camera/types';
 import type { GazeCalibrationResult } from '../calibration/types';
 import type { CalibrationCompatibility } from '../calibration/viewportCompatibility';
 import type { FaceLandmarkerLoadState } from '../faceTracking/hooks/useFaceTracking';
-import type { GazeSignal } from '../faceTracking/types';
+import type { FaceTrackingFrame, GazeSignal } from '../faceTracking/types';
 
 /**
  * Front Step 11 — Global Gaze Runtime의 context 계약. Provider 구현은 별도 파일
@@ -27,6 +27,7 @@ export interface GazeFrame {
 }
 
 export type FrameListener = (frame: GazeFrame) => void;
+export type TrackingFrameListener = (frame: FaceTrackingFrame) => void;
 
 export interface GazeRuntimeContextValue {
   permission: CameraPermissionState;
@@ -49,9 +50,11 @@ export interface GazeRuntimeContextValue {
   activeCalibration: GazeCalibrationResult | null;
   compatibility: CalibrationCompatibility | null;
 
-  /** 매 프레임(throttle 없이) 호출되는 구독. Dwell/Mouth처럼 시간 기반 판정이 필요한
+  /** 매 프레임(throttle 없이) 호출되는 구독. Dwell/Blink/Mouth처럼 시간 기반 판정이 필요한
    * 소비자를 위한 것 — React state(위 필드들)는 UI 표시용으로만 50ms 간격 throttle된다. */
   subscribeFrame: (listener: FrameListener) => () => void;
+  /** 전체 canonical landmark가 필요한 Canvas 시각화용 구독. React state를 갱신하지 않는다. */
+  subscribeTrackingFrame: (listener: TrackingFrameListener) => () => void;
 }
 
 export const GazeRuntimeContext = createContext<GazeRuntimeContextValue | null>(null);

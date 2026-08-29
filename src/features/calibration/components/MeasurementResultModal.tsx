@@ -1,5 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { InputMethod } from '../../../shared/types/backend';
+import type {
+  CalibrationCompletionGazeTarget,
+  SubscribeCalibrationCompletionGaze,
+} from '../completionGaze/types';
+import { useCalibrationCompletionGaze } from '../completionGaze/useCalibrationCompletionGaze';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
 import { createCalibration } from '../api/calibrationApi';
 import { CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED } from '../constants';
@@ -13,22 +18,18 @@ type ModalState = 'SELECTING' | 'SAVING' | 'ERROR';
 interface MethodOption {
   method: InputMethod;
   label: string;
-  disabled?: boolean;
-  disabledReason?: string;
 }
 
-// Integration Plan §10.2 — BLINK는 Look-Talk Python에 참조 구현이 없고 Web 쪽 confirm
-// UX 계약도 아직 없어(Front Step 9) 선택은 노출하되 비활성화한다. 실제 Look-Talk에
-// 없는 기능을 새로 만들어 넣지 않는다는 원칙(Front Step 2-9 지침)에 따른 것이다.
 const METHOD_OPTIONS: MethodOption[] = [
   { method: 'EYE_TRACKING', label: '시선(gaze)' },
-  { method: 'BLINK', label: '눈 깜빡임(blink)', disabled: true, disabledReason: '준비 중' },
+  { method: 'BLINK', label: '눈 깜빡임(blink)' },
   { method: 'MOUTH', label: '입 움직임(mouth)' },
 ];
 
 interface MeasurementResultModalProps {
   candidate: GazeCalibrationResult;
   pointDiagnostics: HomographyPointDiagnostic[] | null;
+  subscribeCompletionGaze: SubscribeCalibrationCompletionGaze;
   onRetest: () => void;
   onApplied: (method: InputMethod) => void;
 }
@@ -39,21 +40,27 @@ interface MeasurementResultModalProps {
 export default function MeasurementResultModal({
   candidate,
   pointDiagnostics,
+  subscribeCompletionGaze,
   onRetest,
   onApplied,
 }: MeasurementResultModalProps) {
   const [modalState, setModalState] = useState<ModalState>('SELECTING');
   const [pendingMethod, setPendingMethod] = useState<InputMethod | null>(null);
   const [savedCalibrationId, setSavedCalibrationId] = useState<string | null>(null);
+  const methodButtonRefs = useRef(new Map<InputMethod, HTMLButtonElement>());
+  const retryButtonRef = useRef<HTMLButtonElement | null>(null);
+  const retestButtonRef = useRef<HTMLButtonElement | null>(null);
+  const selectionInFlightRef = useRef(false);
 
   const setActiveCalibration = useCalibrationStore((state) => state.setActive);
   const { updateSettings } = useUserSettings();
 
-  const handleSelect = async (method: InputMethod) => {
-    if (modalState === 'SAVING') {
+  const handleSelect = useCallback(async (method: InputMethod) => {
+    if (modalState === 'SAVING' || selectionInFlightRef.current) {
       return;
     }
 
+    selectionInFlightRef.current = true;
     setPendingMethod(method);
     setModalState('SAVING');
 
@@ -74,12 +81,57 @@ export default function MeasurementResultModal({
 
       onApplied(method);
     } catch {
+      selectionInFlightRef.current = false;
       setModalState('ERROR');
     }
-  };
+  }, [
+    candidate,
+    modalState,
+    onApplied,
+    savedCalibrationId,
+    setActiveCalibration,
+    updateSettings,
+  ]);
 
   const isSaving = modalState === 'SAVING';
   const rmseTooHigh = candidate.reprojectionRmseNormalized > CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED;
+
+  const getCompletionTargets = useCallback(() => {
+    const targets: CalibrationCompletionGazeTarget[] = METHOD_OPTIONS.map((option) => ({
+      id: `calibration-method-${option.method}`,
+      element: methodButtonRefs.current.get(option.method) ?? null,
+      enabled: !isSaving,
+      onSelect: () => {
+        void handleSelect(option.method);
+      },
+    }));
+
+    if (modalState === 'ERROR' && pendingMethod) {
+      targets.push({
+        id: 'calibration-method-retry',
+        element: retryButtonRef.current,
+        enabled: !isSaving,
+        onSelect: () => {
+          void handleSelect(pendingMethod);
+        },
+      });
+    }
+
+    targets.push({
+      id: 'calibration-retest',
+      element: retestButtonRef.current,
+      enabled: !isSaving,
+      onSelect: onRetest,
+    });
+
+    return targets;
+  }, [handleSelect, isSaving, modalState, onRetest, pendingMethod]);
+
+  useCalibrationCompletionGaze({
+    active: true,
+    subscribe: subscribeCompletionGaze,
+    getTargets: getCompletionTargets,
+  });
 
   return (
     <div className="measurement-result-modal" role="dialog" aria-modal="true">
@@ -100,15 +152,19 @@ export default function MeasurementResultModal({
         {METHOD_OPTIONS.map((option) => (
           <button
             key={option.method}
+            ref={(node) => {
+              if (node) {
+                methodButtonRefs.current.set(option.method, node);
+              } else {
+                methodButtonRefs.current.delete(option.method);
+              }
+            }}
             type="button"
             className="measurement-result-modal__method-button"
-            disabled={option.disabled || isSaving}
+            disabled={isSaving}
             onClick={() => void handleSelect(option.method)}
           >
             {option.label}
-            {option.disabledReason && (
-              <span className="measurement-result-modal__method-note"> ({option.disabledReason})</span>
-            )}
           </button>
         ))}
       </div>
@@ -117,14 +173,24 @@ export default function MeasurementResultModal({
         <div className="measurement-result-modal__error" aria-live="assertive">
           <p>저장에 실패했습니다. 다시 시도해주세요.</p>
           {pendingMethod && (
-            <button type="button" onClick={() => void handleSelect(pendingMethod)}>
+            <button
+              ref={retryButtonRef}
+              type="button"
+              onClick={() => void handleSelect(pendingMethod)}
+            >
               다시 시도
             </button>
           )}
         </div>
       )}
 
-      <button type="button" className="measurement-result-modal__retest-button" disabled={isSaving} onClick={onRetest}>
+      <button
+        ref={retestButtonRef}
+        type="button"
+        className="measurement-result-modal__retest-button"
+        disabled={isSaving}
+        onClick={onRetest}
+      >
         재측정
       </button>
 

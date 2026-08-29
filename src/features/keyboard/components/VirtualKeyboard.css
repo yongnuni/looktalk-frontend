@@ -43,7 +43,7 @@
 }
 
 /* 기능행 — 문자 keyboard와 동일한 폭 기준선(min(92vw,1500px))을 쓰고, 그 안에서
-   Shift/한영/Space/뒤돌리기 비율(1.1 / 1.1 / 4.5 / 1.4)을 Grid 컬럼으로 지정한다. */
+   Shift/한영/Space/되돌리기 비율(1.1 / 1.1 / 4.5 / 1.4)을 Grid 컬럼으로 지정한다. */
 .keyboard-row--function {
   display: grid;
   grid-template-columns: 1.1fr 1.1fr 4.5fr 1.4fr;

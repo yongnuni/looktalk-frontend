@@ -63,6 +63,16 @@ describe('MouthController (Look-Talk mouth.py MouthClickDetector 포팅)', () =>
     expect(result.selectedKeyId).toBe('A');
   });
 
+  it('잠근 키를 벗어난 뒤 입을 벌리면 이전 키를 선택하지 않는다', () => {
+    const controller = new MouthController();
+    lockKeyA(controller, BASE);
+
+    controller.update(1000, 1000, TARGETS, OPEN_MAR, BASE + 300);
+    const result = controller.update(1000, 1000, TARGETS, OPEN_MAR, BASE + 600);
+
+    expect(result.selectedKeyId).toBeNull();
+  });
+
   it('잠긴 키 없이 입을 벌리면 hold_time을 채워도 선택되지 않는다', () => {
     const controller = new MouthController();
     // 응시 없이(먼 위치) 바로 입을 연다 — locked_key가 없는 상태.
