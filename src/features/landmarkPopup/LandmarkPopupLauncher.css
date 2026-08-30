@@ -1,28 +1,28 @@
 .landmark-popup-launcher {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2200;
 }
 
 .landmark-popup-launcher button {
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 1px solid #111111;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #111111;
+  min-height: 42px;
+  padding: 9px 15px;
+  border: 2px solid #ffffff;
+  border-radius: 10px;
+  background: #111827;
+  color: #ffffff;
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 .landmark-popup-launcher button:hover {
-  background: #f3f3f3;
+  background: #1f2937;
 }
 
-.landmark-popup-launcher .landmark-popup-launcher__button--active {
-  border-color: #d90000;
-  background: #ff2020;
-  color: #ffffff;
+.landmark-popup-launcher button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
 }

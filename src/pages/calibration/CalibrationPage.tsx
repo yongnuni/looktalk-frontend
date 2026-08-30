@@ -8,10 +8,14 @@ import InputMethodTestInteractionProvider from '../../features/calibration/compo
 import InputMethodTestPanel from '../../features/calibration/components/InputMethodTestPanel';
 import MeasurementResultModal from '../../features/calibration/components/MeasurementResultModal';
 import SettingCompleteModal from '../../features/calibration/components/SettingCompleteModal';
+import GazeCursorImage from '../../features/gazeInteraction/GazeCursorImage';
 import { useCalibrationRunner } from '../../features/calibration/hooks/useCalibrationRunner';
 import { viewportNormalizedToCssPx } from '../../features/calibration/viewportTargets';
 import LandmarkPopupAutoOpen from '../../features/landmarkPopup/LandmarkPopupAutoOpen';
-import { LandmarkPopupProvider } from '../../features/landmarkPopup/LandmarkPopupProvider';
+import {
+  LandmarkPopupProvider,
+  type LandmarkPopupProviderHandle,
+} from '../../features/landmarkPopup/LandmarkPopupProvider';
 import './CalibrationPage.css';
 
 function formatPercent(ratio: number): string {
@@ -25,6 +29,7 @@ export default function CalibrationPage() {
     searchParams.get('mode') === 'retest' && searchParams.get('source') === 'analysis';
 
   const [settingApplied, setSettingApplied] = useState(false);
+  const [landmarkSessionId, setLandmarkSessionId] = useState(0);
 
   const {
     permission,
@@ -80,7 +85,18 @@ export default function CalibrationPage() {
       ? { blink: blinkProgress.result, mouth: mouthProgress.result }
       : null;
   const retestActionStartedRef = useRef(false);
-  const popupRequest = resolvePatientCalibrationPopup(flowStage, showMeasurementOverlay);
+  const landmarkPopupRef = useRef<LandmarkPopupProviderHandle | null>(null);
+  const popupRequest = resolvePatientCalibrationPopup(
+    flowStage,
+    showMeasurementOverlay,
+    `session-${landmarkSessionId}`,
+  );
+
+  const handleStartCalibration = useCallback(() => {
+    setLandmarkSessionId((current) => current + 1);
+    landmarkPopupRef.current?.prepareWindow();
+    startCalibration();
+  }, [startCalibration]);
 
   const handleBackToAnalysis = useCallback(() => {
     navigate('/analysis');
@@ -95,6 +111,8 @@ export default function CalibrationPage() {
 
     retestActionStartedRef.current = true;
     setSettingApplied(false);
+    setLandmarkSessionId((current) => current + 1);
+    landmarkPopupRef.current?.prepareWindow();
     restart();
   }, [restart]);
 
@@ -121,6 +139,7 @@ export default function CalibrationPage() {
 
   return (
     <LandmarkPopupProvider
+      ref={landmarkPopupRef}
       videoRef={videoRef}
       subscribeTrackingFrame={subscribeTrackingFrame}
     >
@@ -145,7 +164,7 @@ export default function CalibrationPage() {
             <p>16개 지점을 순서대로 응시해 시선-화면 매핑을 측정합니다.</p>
             <p>측정 중에는 브라우저 창의 LookTalk 페이지 영역 전체를 사용합니다(주소창/탭은 그대로 보입니다).</p>
             {cameraError && <p className="calibration-error">카메라 오류: {cameraError}</p>}
-            <button type="button" className="calibration-start-button" onClick={startCalibration}>
+            <button type="button" className="calibration-start-button" onClick={handleStartCalibration}>
               카메라로 캘리브레이션 시작
             </button>
           </section>
@@ -262,9 +281,10 @@ export default function CalibrationPage() {
               (() => {
                 const cssPx = viewportNormalizedToCssPx(cursorNormalized);
                 return (
-                  <div
-                    className="calibration-cursor calibration-cursor--viewport"
-                    style={{ left: `${cssPx.x}px`, top: `${cssPx.y}px` }}
+                  <GazeCursorImage
+                    x={cssPx.x}
+                    y={cssPx.y}
+                    className="calibration-cursor--viewport"
                   />
                 );
               })()}

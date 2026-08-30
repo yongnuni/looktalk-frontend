@@ -1,7 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useGazeRuntime } from '../gazeRuntime/GazeRuntimeContext';
-import cursorImage from '../../assets/cursor.png';
-import './GazeCursorOverlay.css';
+import GazeCursorImage from './GazeCursorImage';
 
 /**
  * PATIENT 전체에서 공통으로 사용하는 Gaze Cursor.
@@ -15,16 +14,7 @@ export default function GazeCursorOverlay() {
   }
 
   return createPortal(
-    <img
-      src={cursorImage}
-      alt=""
-      className="gaze-cursor-overlay"
-      draggable={false}
-      style={{
-        left: `${cursorCssPx.x}px`,
-        top: `${cursorCssPx.y}px`,
-      }}
-    />,
+    <GazeCursorImage x={cursorCssPx.x} y={cursorCssPx.y} />,
     document.body,
   );
 }

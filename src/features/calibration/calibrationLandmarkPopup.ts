@@ -15,12 +15,17 @@ const PATIENT_STAGE_POPUPS: Partial<
 export function resolvePatientCalibrationPopup(
   stage: PatientCalibrationStage,
   trackingReady: boolean,
+  sessionKey = 'default',
 ): LandmarkAutoOpenRequest | null {
-  return trackingReady ? (PATIENT_STAGE_POPUPS[stage] ?? null) : null;
+  const request = trackingReady ? (PATIENT_STAGE_POPUPS[stage] ?? null) : null;
+  return request ? { ...request, key: `${request.key}:${sessionKey}` } : null;
 }
 
 export function resolvePreCalibrationPopup(
   calibrationRunning: boolean,
+  sessionKey = 'default',
 ): LandmarkAutoOpenRequest | null {
-  return calibrationRunning ? { key: 'pre-gaze', variant: 'full' } : null;
+  return calibrationRunning
+    ? { key: `pre-gaze:${sessionKey}`, variant: 'full' }
+    : null;
 }

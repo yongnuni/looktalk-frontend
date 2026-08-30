@@ -22,7 +22,16 @@ describe('calibration Landmark PiP stage mapping', () => {
   });
 
   it('9점 측정 중에만 full PiP를 연다', () => {
-    expect(resolvePreCalibrationPopup(true)).toEqual({ key: 'pre-gaze', variant: 'full' });
+    expect(resolvePreCalibrationPopup(true)).toEqual({ key: 'pre-gaze:default', variant: 'full' });
     expect(resolvePreCalibrationPopup(false)).toBeNull();
+  });
+
+  it('같은 stage도 새 calibration session이면 다른 자동 열기 key를 사용한다', () => {
+    expect(resolvePatientCalibrationPopup('GAZE_RUNNING', true, 'session-1')?.key)
+      .toBe('patient-gaze:session-1');
+    expect(resolvePatientCalibrationPopup('GAZE_RUNNING', true, 'session-2')?.key)
+      .toBe('patient-gaze:session-2');
+    expect(resolvePreCalibrationPopup(true, 'session-2')?.key)
+      .toBe('pre-gaze:session-2');
   });
 });

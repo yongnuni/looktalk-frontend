@@ -120,22 +120,10 @@
   background: #ffffff;
 }
 
-.calibration-cursor {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #facc15;
-  border: 2px solid #0f172a;
-  transform: translate(-50%, -50%);
-  transition: left 40ms linear, top 40ms linear;
-}
-
 /* document.body에 portal로 렌더링 — cursorNormalized는 진짜 viewport 좌표이므로
    position:fixed + viewport CSS px로 그려야 카드 위치/스크롤과 무관하게 정확하다. */
 .calibration-cursor--viewport {
-  position: fixed;
-  z-index: 1000;
-  pointer-events: none;
+  z-index: 3000;
 }
 
 .calibration-overlay-status {

@@ -22,6 +22,8 @@ export interface LandmarkPopupContextValue {
   variant: LandmarkPopupState;
   open: (variant: LandmarkPopupVariant) => void;
   close: () => void;
+  reopen: () => void;
+  needsUserOpen: boolean;
   requestAutoOpen: (key: string, variant: LandmarkPopupVariant) => void;
   releaseAutoOpen: (key: string) => void;
 }
