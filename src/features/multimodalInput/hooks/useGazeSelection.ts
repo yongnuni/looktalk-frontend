@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGazeRuntime, type GazeFrame } from '../../gazeRuntime/GazeRuntimeContext';
+import { BlinkController } from '../BlinkController';
 import { DwellController } from '../DwellController';
 import type { GazeInputMode } from '../gazeInputMode';
 import { IDLE_SELECTION, processGazeFrameForSelection } from '../gazeFrameSelection';
@@ -21,7 +22,7 @@ interface UseGazeSelectionOptions {
 }
 
 export interface UseGazeSelectionResult {
-  /** dwell/mouth 공용 선택 상태. inputMode==='MOUTH'일 때는 hoveredKeyId가 잠긴(locked) 키를 우선한다. */
+  /** 세 입력 모드의 공용 선택 상태. gesture 모드에서는 잠긴(locked) target을 우선한다. */
   dwell: InputSelectionState;
 }
 
@@ -29,7 +30,7 @@ export interface UseGazeSelectionResult {
  * Front Step 11 — Global Gaze Runtime(카메라/FaceLandmarker/Homography/GazeFilter)을
  * 소비하는 keyboard-selection adapter. Step 0~9의 옛 `useGazeInput()`이 카메라부터
  * Dwell/Mouth 선택까지 한 hook 안에서 전부 소유하던 것과 달리, 이 hook은 Runtime이
- * `subscribeFrame()`으로 흘려주는 매 프레임 신호를 받아 선택(Dwell/Mouth)만 담당한다.
+ * `subscribeFrame()`으로 흘려주는 매 프레임 신호를 받아 선택(Dwell/Blink/Mouth)만 담당한다.
  *
  * 실제 판정 로직은 `processGazeFrameForSelection`(순수 함수, gazeFrameSelection.ts)에
  * 있다 — 여기서는 controller 인스턴스 보관과 React state throttle만 담당한다.
@@ -42,6 +43,7 @@ export function useGazeSelection({
   const { subscribeFrame } = useGazeRuntime();
 
   const dwellControllerRef = useRef(new DwellController());
+  const blinkControllerRef = useRef(new BlinkController());
   const mouthControllerRef = useRef(new MouthController());
   const getTargetsRef = useRef(getTargets);
   const onKeySelectRef = useRef(onKeySelect);
@@ -60,6 +62,7 @@ export function useGazeSelection({
     inputModeRef.current = inputMode;
     // 입력 방식이 바뀌면 이전 모드가 진행 중이던 hover/lock/hold 진행 상태를 남기지 않는다.
     dwellControllerRef.current.reset();
+    blinkControllerRef.current.reset();
     mouthControllerRef.current.reset();
   }, [inputMode]);
 
@@ -72,6 +75,7 @@ export function useGazeSelection({
         getTargetsRef.current(),
         inputModeRef.current,
         dwellControllerRef.current,
+        blinkControllerRef.current,
         mouthControllerRef.current,
       );
 

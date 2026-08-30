@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useGazeRuntime, type GazeFrame } from '../gazeRuntime/GazeRuntimeContext';
+import { BlinkController } from '../multimodalInput/BlinkController';
 import { DwellController } from '../multimodalInput/DwellController';
 import { processGazeFrameForSelection } from '../multimodalInput/gazeFrameSelection';
 import { resolveGazeInputMode } from '../multimodalInput/gazeInputMode';
@@ -13,13 +14,13 @@ import { createTargetRegistry } from './targetRegistry';
 import type { GazeTargetEntry, InteractionScope } from './types';
 
 /**
- * Front Step 12 — Global Gaze Target Registry + Dwell/Mouth selection engine.
+ * Global Gaze Target Registry + Dwell/Blink/Mouth selection engine.
  *
  * GazeRuntimeProvider(Step 11)와 책임을 분리한다: Runtime은 tracking/좌표 생성만 담당하고,
  * 이 Provider가 target registry·hit detection·selection·action dispatch를 담당한다
- * (§4). Runtime의 `subscribeFrame()`을 구독해 매 프레임 처리하되, DwellController/
- * MouthController/processGazeFrameForSelection은 Step 0~11에서 이미 검증된 것을 그대로
- * 재사용한다 — keyboard(useGazeSelection)와 완전히 별도의 인스턴스라 같은 프레임에서
+ * (§4). Runtime의 `subscribeFrame()`을 구독해 매 프레임 처리하되, 각 input controller와
+ * processGazeFrameForSelection을 공통으로 재사용한다. keyboard(useGazeSelection)와는
+ * 완전히 별도의 인스턴스라 같은 프레임에서
  * 두 selection engine이 동시에 select를 낼 수 없다(서로 다른 registry/controller이며,
  * `/patient`는 이 registry에 아무 target도 등록하지 않는다, §16/J).
  */
@@ -38,14 +39,11 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
   const { settings } = useUserSettings();
   const inputMode = resolveGazeInputMode(settings?.currentInputMethod);
 
-  const inputModeRef = useRef(inputMode);
-  useEffect(() => {
-    inputModeRef.current = inputMode;
-  }, [inputMode]);
-
   const registryRef = useRef(createTargetRegistry());
   const dwellControllerRef = useRef(new DwellController());
+  const blinkControllerRef = useRef(new BlinkController());
   const mouthControllerRef = useRef(new MouthController());
+  const inputModeRef = useRef(inputMode);
   const activeScopeRef = useRef<InteractionScope>(DEFAULT_SCOPE);
   const lastHoveredElementRef = useRef<HTMLElement | null>(null);
   const lastUiUpdateRef = useRef(0);
@@ -54,6 +52,13 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
   const [hoveredTargetId, setHoveredTargetId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [mouthOpen, setMouthOpen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    inputModeRef.current = inputMode;
+    dwellControllerRef.current.reset();
+    blinkControllerRef.current.reset();
+    mouthControllerRef.current.reset();
+  }, [inputMode]);
 
   const registerTarget = useCallback((entry: GazeTargetEntry) => {
     registryRef.current.register(entry);
@@ -100,7 +105,9 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
         selectionTargets,
         inputModeRef.current,
         dwellControllerRef.current,
+        blinkControllerRef.current,
         mouthControllerRef.current,
+        new Set(eligibleTargets.map((target) => target.id)),
       );
 
       if (selection.selectedKeyId) {
@@ -127,7 +134,7 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
       registerTarget,
       unregisterTarget,
       hoveredTargetId,
-      progress,
+      progress: inputMode === 'DWELL' ? progress : 0,
       activeScope,
       setActiveScope,
       inputMode,

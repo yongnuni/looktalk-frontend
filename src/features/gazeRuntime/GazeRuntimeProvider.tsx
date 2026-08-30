@@ -5,9 +5,14 @@ import { useActiveCalibration } from '../calibration/hooks/useActiveCalibration'
 import { GazeFilter } from '../faceTracking/gaze/GazeFilter';
 import { useFaceTracking } from '../faceTracking/hooks/useFaceTracking';
 import { DEFAULT_MIRROR_STRATEGY } from '../faceTracking/mediapipe/mirrorStrategy';
-import type { GazeSignal } from '../faceTracking/types';
+import type { FaceTrackingFrame, GazeSignal } from '../faceTracking/types';
 import { buildGazeFrame } from './gazeFrameBuilder';
-import { GazeRuntimeContext, type FrameListener, type GazeRuntimeContextValue } from './GazeRuntimeContext';
+import {
+  GazeRuntimeContext,
+  type FrameListener,
+  type GazeRuntimeContextValue,
+  type TrackingFrameListener,
+} from './GazeRuntimeContext';
 
 /**
  * Front Step 11 — Global Gaze Runtime Provider.
@@ -45,6 +50,7 @@ export function GazeRuntimeProvider({ children }: GazeRuntimeProviderProps) {
 
   const gazeFilterRef = useRef(new GazeFilter());
   const listenersRef = useRef(new Set<FrameListener>());
+  const trackingListenersRef = useRef(new Set<TrackingFrameListener>());
   const lastUiUpdateRef = useRef(0);
   const lastValidCursorRef = useRef<{ x: number; y: number } | null>(null);
   const activeCalibrationRef = useRef(activeCalibration);
@@ -64,6 +70,19 @@ export function GazeRuntimeProvider({ children }: GazeRuntimeProviderProps) {
     return () => {
       listenersRef.current.delete(listener);
     };
+  }, []);
+
+  const subscribeTrackingFrame = useCallback((listener: TrackingFrameListener) => {
+    trackingListenersRef.current.add(listener);
+    return () => {
+      trackingListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const handleTrackingFrame = useCallback((frame: FaceTrackingFrame) => {
+    for (const listener of trackingListenersRef.current) {
+      listener(frame);
+    }
   }, []);
 
   const handleFrame = useCallback((signal: GazeSignal | null) => {
@@ -101,6 +120,7 @@ export function GazeRuntimeProvider({ children }: GazeRuntimeProviderProps) {
     active: permission === 'granted',
     mirrorStrategy: DEFAULT_MIRROR_STRATEGY,
     onFrame: handleFrame,
+    onTrackingFrame: handleTrackingFrame,
   });
 
   const startInput = useCallback(() => {
@@ -139,6 +159,7 @@ export function GazeRuntimeProvider({ children }: GazeRuntimeProviderProps) {
       activeCalibration,
       compatibility,
       subscribeFrame,
+      subscribeTrackingFrame,
     }),
     [
       permission,
@@ -155,6 +176,7 @@ export function GazeRuntimeProvider({ children }: GazeRuntimeProviderProps) {
       activeCalibration,
       compatibility,
       subscribeFrame,
+      subscribeTrackingFrame,
     ],
   );
 

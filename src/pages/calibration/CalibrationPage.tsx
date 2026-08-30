@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resolveCalibrationCompletionPath } from '../../features/calibration/calibrationGate';
@@ -34,6 +34,7 @@ export default function CalibrationPage() {
     pointDiagnostics,
     cursorNormalized,
     gazeSignal,
+    subscribeCompletionGaze,
     restart,
   } = useCalibrationRunner();
 
@@ -42,30 +43,42 @@ export default function CalibrationPage() {
   const showMeasurementOverlay = permission === 'granted' && faceLoadState === 'ready';
   const showCalibrationStage = showMeasurementOverlay && !progress.done;
   const showResultStage = showMeasurementOverlay && progress.done;
+  const retestActionStartedRef = useRef(false);
 
-  const handleBackToAnalysis = () => {
+  const handleBackToAnalysis = useCallback(() => {
     navigate('/analysis');
-  };
+  }, [navigate]);
 
   // §10.4 재측정 — 현재 candidate만 폐기하고 기존 active calibration은 그대로 둔다.
   // restart()가 sessionRef 리셋 + candidate clear를 모두 수행한다(useCalibrationRunner).
-  const handleRetest = () => {
+  const handleRetest = useCallback(() => {
+    if (retestActionStartedRef.current) {
+      return;
+    }
+
+    retestActionStartedRef.current = true;
     restart();
-  };
+  }, [restart]);
 
   // §10.3 완료 — 두 요청(Calibration POST, UserSetting PATCH) 모두 성공한 뒤에만 호출된다
   // (MeasurementResultModal 내부에서 보장). 측정 결과 모달을 닫고 설정 완료 모달을 띄운다.
-  const handleApplied = () => {
+  const handleApplied = useCallback(() => {
     setSettingApplied(true);
-  };
+  }, []);
 
   // §10/§11 — 최초 Bootstrap Calibration은 실제 PATIENT Main인 ROUTES.MAIN(/main)으로,
   // Analysis 재측정은 기존 계약대로 /analysis로 돌아간다(/patient는 VirtualKeyboard가
   // 연결된 개발용/고아 route일 뿐 실제 서비스 Main이 아니다). isRetestFlow는 기존
   // ?mode=retest&source=analysis 계약을 그대로 재사용한다(새 query parameter 추가 안 함).
-  const handleSuccessConfirm = () => {
+  const handleSuccessConfirm = useCallback(() => {
     navigate(resolveCalibrationCompletionPath(isRetestFlow));
-  };
+  }, [isRetestFlow, navigate]);
+
+  useEffect(() => {
+    if (!showResultStage) {
+      retestActionStartedRef.current = false;
+    }
+  }, [showResultStage]);
 
   return (
     <main className="page calibration-page">
@@ -149,13 +162,19 @@ export default function CalibrationPage() {
               <MeasurementResultModal
                 candidate={result}
                 pointDiagnostics={pointDiagnostics}
+                subscribeCompletionGaze={subscribeCompletionGaze}
                 onRetest={handleRetest}
                 onApplied={handleApplied}
               />
             )}
 
             {/* §11 — 설정 저장이 실제로 성공한 뒤에만 표시. 확인 클릭 시 /analysis로 이동. */}
-            {showResultStage && settingApplied && <SettingCompleteModal onConfirm={handleSuccessConfirm} />}
+            {showResultStage && settingApplied && (
+              <SettingCompleteModal
+                subscribeCompletionGaze={subscribeCompletionGaze}
+                onConfirm={handleSuccessConfirm}
+              />
+            )}
 
             {showResultStage &&
               cursorNormalized &&

@@ -57,7 +57,11 @@ export default function StaffChatDashboard() {
 
   const { name: staffName } = useStaffProfile();
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  /*
+   * 기존 messagesEndRef + scrollIntoView 방식 대신
+   * 채팅 메시지 영역 자체를 스크롤하기 위한 ref
+   */
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const roomRequestsRef = useRef(new Map<string, Promise<number>>());
 
@@ -279,10 +283,23 @@ export default function StaffChatDashboard() {
 
   /* =========================================================
      메시지 자동 스크롤
+
+     기존 scrollIntoView()는 채팅 영역뿐 아니라
+     브라우저 페이지 자체까지 움직일 수 있으므로 사용하지 않음.
+
+     staff-chat-messages 컨테이너의 scrollTop만 변경하여
+     채팅 내부에서만 스크롤되도록 처리.
   ========================================================= */
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
+    const container = messagesContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    container.scrollTo({
+      top: container.scrollHeight,
       behavior: 'smooth',
     });
   }, [selectedPatientMessages.length, selectedPatientUserId]);
@@ -482,7 +499,11 @@ export default function StaffChatDashboard() {
               Messages
           ================================================= */}
 
-          <div className="staff-chat-messages" aria-live="polite">
+          <div
+            ref={messagesContainerRef}
+            className="staff-chat-messages"
+            aria-live="polite"
+          >
             {/* E2EE */}
 
             {e2eeStatus === 'loading' && (
@@ -565,8 +586,6 @@ export default function StaffChatDashboard() {
             ) : (
               <p className="staff-chat-empty">아직 대화가 없습니다.</p>
             )}
-
-            <div ref={messagesEndRef} />
           </div>
 
           {/* =================================================

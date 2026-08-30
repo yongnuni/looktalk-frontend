@@ -4,7 +4,7 @@
    자체가 화면이다.
 
    세로 구성(위→아래, 전부 flex:0 0 auto — 아무 것도 flex:1로 남는 공간을 자동 배분하지
-   않는다): topbar → 추천 2행(자동완성/자주 쓰는 문장) → 숫자/자모/기능 키보드(고정 높이,
+   않는다): topbar → 추천 1행(자동완성/자주 쓰는 문장) → 숫자/자모/기능 키보드(고정 높이,
    VirtualKeyboard.css) → 하단 reserved 고정 영역. 이전 버전은 .fv-keyboard-bottom-reserved에
    flex:1을 줘서 남는 뷰포트 높이를 전부 흡수했다(min-height는 "최소값"이지 "고정값"이
    아니므로 flex:1과 같이 쓰면 그 이상 계속 늘어난다) — 지금은 flex:0 0 <fixed>로 완전히
@@ -95,62 +95,10 @@
   color: #6b7280;
 }
 
-/* §4 — 추천 6슬롯(자동완성 3 + 자주 쓰는 문장 3), 2행. 문자 keyboard와 같은 폭
-   기준선(min(92vw,1500px))을 쓴다. */
+/* 입력 상태에 따라 자주 쓰는 문장/자동완성을 교체하는 단일 3슬롯 행. */
 .fv-keyboard-recommend-group {
   flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(8px, 1vh, 12px);
   margin-bottom: clamp(14px, 1.8vh, 22px);
-}
-
-.fv-keyboard-recommend-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(10px, 1.2vw, 20px);
-  width: min(92vw, 1500px);
-  margin-inline: auto;
-}
-
-/* 일반 keycap과 동일한 높이 bound를 써서 gaze/dwell target 크기를 유지한다 — 작은
-   chip으로 만들지 않는다(§4). */
-.fv-keyboard-recommend-button {
-  min-width: 0;
-  height: clamp(88px, 10vh, 104px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 clamp(12px, 1.2vw, 24px);
-  border: 1px solid #cdced2;
-  border-radius: clamp(12px, 1.2vw, 22px);
-  background: #ebecf0;
-  color: #1e293b;
-  font-size: clamp(18px, 1.6vw, 26px);
-  font-weight: 600;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fv-keyboard-recommend-button:hover {
-  background: #dbeafe;
-  border-color: #93c5fd;
-}
-
-.fv-keyboard-recommend-button[data-gaze-hovered='true'] {
-  border-color: #2563eb;
-  border-width: 2px;
-}
-
-/* 자동완성(실제 데이터 소스 없음, §4)과 등록되지 않은 "자주 쓰는 문장" slot 둘 다 이
-   상태 — 자리만 예약하고 클릭/gaze 불가능, mock 텍스트 없음. */
-.fv-keyboard-recommend-button--empty {
-  background: #f3f4f6;
-  border-style: dashed;
-  cursor: default;
-  pointer-events: none;
 }
 
 /* §1 — 남는 세로 공간을 keyboard row 사이나 여기로 자동 배분하지 않는다. Studio/

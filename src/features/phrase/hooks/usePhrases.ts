@@ -34,17 +34,21 @@ async function toPhrase(dto: PhraseDto, userId: string): Promise<Phrase> {
 }
 
 /** 자주 쓰는 문장 관리 (E2EE 암호화, 서버 FIFO로 최대 {@link MAX_PHRASES}개 유지) */
-export function usePhrases() {
+export function usePhrases(enabled = true) {
   const phrases = usePhraseStore((state) => state.phrases);
   const setPhrases = usePhraseStore((state) => state.setPhrases);
   const addPhraseToStore = usePhraseStore((state) => state.addPhrase);
   const removePhraseFromStore = usePhraseStore((state) => state.removePhrase);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [hasError, setHasError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    if (!enabled) {
+      return undefined;
+    }
+
     let isMounted = true;
 
     const loadPhrases = async () => {
@@ -71,7 +75,7 @@ export function usePhrases() {
     return () => {
       isMounted = false;
     };
-  }, [setPhrases]);
+  }, [enabled, setPhrases]);
 
   const registerPhrase = useCallback(
     async (text: string) => {

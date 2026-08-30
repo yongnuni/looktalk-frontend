@@ -4,10 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../../assets/Logo.png';
 import DownArrow from '../../../assets/down_arrow.png';
 import Setting from '../../../assets/setting.png';
-import Sos from '../../../assets/sos.png';
 import UpArrow from '../../../assets/up_arrow.png';
 
 import { BaseModal } from '../../../shared/components/modal';
+import EmergencyButton from '../../emergency/components/EmergencyButton';
 import { ROUTES } from '../../../shared/constants/routes';
 import { useGazeInteraction } from '../../gazeInteraction/GazeInteractionContext';
 import { usePageScope } from '../../gazeInteraction/usePageScope';
@@ -15,7 +15,10 @@ import { useGazeTarget } from '../../gazeInteraction/useGazeTarget';
 import FullViewportKeyboardOverlay from '../../keyboard/components/FullViewportKeyboardOverlay';
 import { useKeyboardInput } from '../../keyboard/hooks/useKeyboardInput';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
-import { sendHospitalChatMessage, sendSmsChatMessage } from '../api/chatMessages';
+import {
+  sendHospitalChatMessage,
+  sendSmsChatMessage,
+} from '../api/chatMessages';
 import { isSendableMessage } from '../chatSend';
 import { useChatRoomMessages } from '../hooks/useChatRoomMessages';
 import type { ChatRoom } from '../types/chat';
@@ -24,8 +27,6 @@ import { formatChatTime } from '../utils/formatChatTime';
 import { RequestIcon } from './ChatIcons';
 
 import './PatientChatView.css';
-
-type OpenEmergencyState = 'closed' | 'countdown' | 'complete';
 
 type PhoneVerificationStatus = 'loading' | 'verified' | 'unverified' | 'error';
 
@@ -135,16 +136,9 @@ export default function PatientChatView({
      Modal
   =========================== */
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
-
   const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(
     resolvedPhoneVerificationStatus === 'unverified',
   );
-
-  const [emergencyState, setEmergencyState] =
-    useState<OpenEmergencyState>('closed');
-
-  const [countdown, setCountdown] = useState(5);
 
   /* ===========================
      채팅방 표시 이름
@@ -190,8 +184,9 @@ export default function PatientChatView({
   // fallback이 이 카드로 떨어지면 message-entry가 영구적으로 disabled로 보이므로(Front
   // Step 17 BUG A/B), selectedRoomId가 우연히 그 카드를 가리키더라도 항상 건너뛴다.
   const selectedRoom =
-    rooms.find((room) => room.id === selectedRoomId && room.icon !== 'request') ??
-    rooms.find((room) => room.icon !== 'request');
+    rooms.find(
+      (room) => room.id === selectedRoomId && room.icon !== 'request',
+    ) ?? rooms.find((room) => room.icon !== 'request');
 
   /* ===========================
      실시간 메시지
@@ -383,30 +378,6 @@ export default function PatientChatView({
   }, [onRequirePhoneVerification, resolvedPhoneVerificationStatus]);
 
   /* ===========================
-     비상호출 카운트다운
-  =========================== */
-
-  useEffect(() => {
-    if (emergencyState !== 'countdown') {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      if (countdown <= 1) {
-        setCountdown(0);
-
-        setEmergencyState('complete');
-
-        return;
-      }
-
-      setCountdown((previous) => previous - 1);
-    }, 1000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [countdown, emergencyState]);
-
-  /* ===========================
      메시지 추가 후
      자동 아래 스크롤
   =========================== */
@@ -433,22 +404,6 @@ export default function PatientChatView({
     onRequirePhoneVerification?.();
 
     setPhoneVerificationOpen(true);
-  };
-
-  /* ===========================
-     설정 열기
-  =========================== */
-
-  const handleSettingsOpen = () => {
-    if (!phoneVerified) {
-      if (resolvedPhoneVerificationStatus === 'unverified') {
-        requestPhoneVerification();
-      }
-
-      return;
-    }
-
-    setSettingsOpen(true);
   };
 
   // Front Step 17 — room 생성/선택은 prepareRoom 이펙트가 selectedRoom 변화에 반응해
@@ -526,26 +481,6 @@ export default function PatientChatView({
                 : '메 시 지\u00a0 보 내 기';
 
   /* ===========================
-     비상호출 열기
-  =========================== */
-
-  const handleEmergencyOpen = () => {
-    setCountdown(5);
-
-    setEmergencyState('countdown');
-  };
-
-  /* ===========================
-     비상호출 닫기
-  =========================== */
-
-  const handleEmergencyClose = () => {
-    setEmergencyState('closed');
-
-    setCountdown(5);
-  };
-
-  /* ===========================
      메시지 스크롤
   =========================== */
 
@@ -617,7 +552,11 @@ export default function PatientChatView({
       try {
         const result =
           mode === 'hospital'
-            ? await sendHospitalChatMessage(room.chatRoomId, room.targetUserId ?? '', composedText)
+            ? await sendHospitalChatMessage(
+                room.chatRoomId,
+                room.targetUserId ?? '',
+                composedText,
+              )
             : await sendSmsChatMessage(room.chatRoomId, composedText);
 
         // 서버가 MESSAGE_CREATED 웹소켓 이벤트를 발신자에게도 되돌려주지만, 그 왕복을
@@ -643,15 +582,30 @@ export default function PatientChatView({
     [addMessage, mode],
   );
 
-  const { keyboardState, text, handleKeySelect, clearText } = useKeyboardInput({ onConfirm: handleConfirmSend });
+  const {
+    keyboardState,
+    text,
+    handleKeySelect,
+    handleSuggestionSelect,
+    pendingWordBoundary,
+    clearText,
+  } = useKeyboardInput({ onConfirm: handleConfirmSend });
 
   useEffect(() => {
     clearTextRef.current = clearText;
   }, [clearText]);
 
   // ── Gaze targets(§13, 실제 존재하는 최소 navigation/action만) ──
-  const brandTargetRef = useGazeTarget({ id: 'chat-brand', scope: 'CHAT', onSelect: () => navigate(ROUTES.MAIN) });
-  const switchTargetRef = useGazeTarget({ id: 'chat-switch', scope: 'CHAT', onSelect: () => navigate(switchPath) });
+  const brandTargetRef = useGazeTarget({
+    id: 'chat-brand',
+    scope: 'CHAT',
+    onSelect: () => navigate(ROUTES.MAIN),
+  });
+  const switchTargetRef = useGazeTarget({
+    id: 'chat-switch',
+    scope: 'CHAT',
+    onSelect: () => navigate(switchPath),
+  });
   const prevPageTargetRef = useGazeTarget({
     id: 'chat-page-prev',
     scope: 'CHAT',
@@ -662,7 +616,8 @@ export default function PatientChatView({
     id: 'chat-page-next',
     scope: 'CHAT',
     enabled: phoneVerified && listPage < roomPageCount - 1,
-    onSelect: () => setListPage((page) => Math.min(roomPageCount - 1, page + 1)),
+    onSelect: () =>
+      setListPage((page) => Math.min(roomPageCount - 1, page + 1)),
   });
   const messageSendTargetRef = useGazeTarget({
     id: 'chat-message-send',
@@ -670,8 +625,11 @@ export default function PatientChatView({
     enabled: canSendMessage,
     onSelect: handleMessageSend,
   });
-  const settingsTargetRef = useGazeTarget({ id: 'chat-settings', scope: 'CHAT', onSelect: handleSettingsOpen });
-  const emergencyTargetRef = useGazeTarget({ id: 'chat-emergency', scope: 'CHAT', onSelect: handleEmergencyOpen });
+  const settingsTargetRef = useGazeTarget({
+    id: 'chat-settings',
+    scope: 'CHAT',
+    onSelect: () => navigate(ROUTES.MYPAGE),
+  });
 
   // 4개 고정 slot(§10 주석) — room 개수/순서가 바뀌어도 hook 호출 횟수는 항상 4번이다.
   const roomSlot0Ref = useGazeTarget({
@@ -719,14 +677,22 @@ export default function PatientChatView({
                 to={ROUTES.MAIN}
                 aria-label="Look Talk 메인 페이지로 이동"
               >
-                <img className="patient-chat-brand-image" src={Logo} alt="Look Talk 로고" />
+                <img
+                  className="patient-chat-brand-image"
+                  src={Logo}
+                  alt="Look Talk 로고"
+                />
               </Link>
 
               <h1 className="patient-chat-sidebar-title">{title}</h1>
             </div>
 
             <div className="patient-chat-sidebar-actions">
-              <Link ref={switchTargetRef} className="patient-chat-link-action" to={switchPath}>
+              <Link
+                ref={switchTargetRef}
+                className="patient-chat-link-action"
+                to={switchPath}
+              >
                 {switchLabel}
               </Link>
             </div>
@@ -743,7 +709,9 @@ export default function PatientChatView({
           )}
           {!loadError && rooms.length === 0 && (
             <p className="patient-chat-empty-state">
-              {mode === 'hospital' ? '표시할 병원 채팅 상대가 없습니다.' : '등록된 친구가 없습니다.'}
+              {mode === 'hospital'
+                ? '표시할 병원 채팅 상대가 없습니다.'
+                : '등록된 친구가 없습니다.'}
             </p>
           )}
 
@@ -782,7 +750,9 @@ export default function PatientChatView({
               disabled={
                 !phoneVerified ||
                 (roomPagination
-                  ? Boolean(roomPagination.isLoading || !canGoToPreviousRoomPage)
+                  ? Boolean(
+                      roomPagination.isLoading || !canGoToPreviousRoomPage,
+                    )
                   : listPage === 0)
               }
               type="button"
@@ -821,15 +791,7 @@ export default function PatientChatView({
             <h2 className="patient-chat-current-title">{selectedRoomName}</h2>
 
             <div className="patient-chat-header-actions">
-              <button
-                ref={emergencyTargetRef}
-                aria-label="비상호출"
-                className="patient-chat-emergency-button"
-                type="button"
-                onClick={handleEmergencyOpen}
-              >
-                <img src={Sos} alt="" />
-              </button>
+              <EmergencyButton />
             </div>
           </header>
 
@@ -915,9 +877,14 @@ export default function PatientChatView({
                     key={message.id}
                     className={`patient-chat-message patient-chat-message--${message.direction}`}
                   >
-                    <span className="patient-chat-message-text">{message.text}</span>
+                    <span className="patient-chat-message-text">
+                      {message.text}
+                    </span>
                     {formattedTime && (
-                      <time className="patient-chat-message-time" dateTime={message.createdAt ?? undefined}>
+                      <time
+                        className="patient-chat-message-time"
+                        dateTime={message.createdAt ?? undefined}
+                      >
                         {formattedTime}
                       </time>
                     )}
@@ -969,14 +936,14 @@ export default function PatientChatView({
               <span>{isSending ? '전송 중...' : messageEntryLabel}</span>
             </button>
 
-            {/* 설정 */}
+            {/* 마이페이지 */}
 
             <button
               ref={settingsTargetRef}
-              aria-label="채팅 설정 열기"
+              aria-label="마이페이지로 이동"
               className="patient-chat-settings-button"
               type="button"
-              onClick={handleSettingsOpen}
+              onClick={() => navigate(ROUTES.MYPAGE)}
             >
               <img src={Setting} alt="" />
             </button>
@@ -998,41 +965,12 @@ export default function PatientChatView({
           closeDisabled={isSending}
           keyboardState={keyboardState}
           onKeySelect={handleKeySelect}
+          onSuggestionSelect={handleSuggestionSelect}
+          pendingWordBoundary={pendingWordBoundary}
+          suggestionsEnabled
           keyEnlarged={settings?.keyEnlarged ?? false}
         />
       )}
-
-      {/* ===========================
-          Setting Modal
-      =========================== */}
-
-      <BaseModal
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        actions={[
-          {
-            label: '분석페이지로 이동',
-
-            tone: 'positive',
-
-            onClick: () => {
-              setSettingsOpen(false);
-
-              navigate('/analysis');
-            },
-          },
-
-          {
-            label: '취소',
-
-            tone: 'neutral',
-
-            onClick: () => setSettingsOpen(false),
-          },
-        ]}
-      >
-        이동할 화면을 선택해 주세요.
-      </BaseModal>
 
       {/* ===========================
           Phone Verification
@@ -1066,52 +1004,6 @@ export default function PatientChatView({
         해당 페이지는 전화번호 인증 후에 사용할 수 있습니다.
         <br />
         인증하시겠습니까?
-      </BaseModal>
-
-      {/* ===========================
-          Emergency
-      =========================== */}
-
-      <BaseModal
-        isOpen={emergencyState !== 'closed'}
-        variant={emergencyState === 'complete' ? 'emergency' : 'default'}
-        onClose={handleEmergencyClose}
-        actions={
-          emergencyState === 'complete'
-            ? [
-                {
-                  label: '확인',
-
-                  tone: 'neutral',
-
-                  onClick: handleEmergencyClose,
-                },
-              ]
-            : [
-                {
-                  label: '취소',
-
-                  tone: 'neutral',
-
-                  onClick: handleEmergencyClose,
-                },
-              ]
-        }
-      >
-        {emergencyState === 'complete' ? (
-          '달려오고 있어요! 조금만 기다려주세요!'
-        ) : (
-          <>
-            <p>응답이 없을 경우 5초 후 비상호출이 전송됩니다.</p>
-
-            <strong
-              className="base-modal-countdown"
-              aria-label={`${countdown}초`}
-            >
-              {countdown}
-            </strong>
-          </>
-        )}
       </BaseModal>
     </main>
   );
