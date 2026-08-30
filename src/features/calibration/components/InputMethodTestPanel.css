@@ -35,6 +35,28 @@
   line-height: 1.05;
 }
 
+.input-method-test-keyboard {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.input-method-test-keyboard .fv-keyboard-topbar {
+  height: clamp(88px, 10vh, 104px);
+  align-items: stretch;
+}
+
+.input-method-test-keyboard .fv-keyboard-draft {
+  padding-inline: clamp(24px, 2.2vw, 32px);
+  font-size: clamp(26px, 2.35vw, 32px);
+  line-height: 1.25;
+}
+
+.input-method-test-keyboard .fv-keyboard-topbar > .keyboard-key,
+.input-method-test-keyboard .fv-keyboard-close {
+  height: 100%;
+  align-self: center;
+}
+
 @media (max-height: 760px) {
   .input-method-test-card {
     padding-block: 9px;
@@ -42,5 +64,9 @@
 
   .input-method-test-card__target {
     font-size: 40px;
+  }
+
+  .input-method-test-keyboard .fv-keyboard-topbar {
+    height: clamp(68px, 11vh, 88px);
   }
 }

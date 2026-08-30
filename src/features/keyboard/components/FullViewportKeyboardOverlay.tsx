@@ -10,6 +10,7 @@ import { useLandmarkAutoOpen } from '../../landmarkPopup/useLandmarkAutoOpen';
 import './FullViewportKeyboardOverlay.css';
 
 interface FullViewportKeyboardOverlayProps {
+  overlayClassName?: string;
   ariaLabel: string;
   draftText: string;
   draftPlaceholder: string;
@@ -46,6 +47,7 @@ interface FullViewportKeyboardOverlayProps {
  * 먹지 않는다).
  */
 export default function FullViewportKeyboardOverlay({
+  overlayClassName,
   ariaLabel,
   draftText,
   draftPlaceholder,
@@ -123,7 +125,7 @@ export default function FullViewportKeyboardOverlay({
   return (
     <div
       ref={containerRef}
-      className="fv-keyboard-overlay"
+      className={`fv-keyboard-overlay${overlayClassName ? ` ${overlayClassName}` : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}

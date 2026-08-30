@@ -7,8 +7,8 @@ import { useOptionalGazeInteraction } from '../gazeInteraction/GazeInteractionCo
  * Target Registry(KEYBOARD scope)에 등록하는 adapter. VirtualKeyboard/KeyboardKey/
  * keyboardStateMachine/HangulComposer/DwellController/MouthController는 전혀 수정하지
  * 않는다 — 이미 있는 `collectKeyTargets`(domKeyTargets.ts)와 동일하게 컨테이너를
- * `querySelectorAll('[data-key-id]')`로 스윕하되, 그 결과를 (기존 `useGazeSelection`처럼)
- * 로컬 DwellController에 매 프레임 넘기는 대신 Global registry에 등록해 Global
+ * `querySelectorAll('[data-key-id]')`로 스윕하되, 그 결과를 로컬 controller에 매 프레임
+ * 넘기는 대신 Global registry에 등록해 Global
  * DwellController/MouthController(§36, GazeInteractionProvider가 소유하는 단 하나의
  * 인스턴스) 하나가 처리하게 한다.
  *

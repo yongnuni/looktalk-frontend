@@ -27,6 +27,7 @@ export interface GazeFrame {
 }
 
 export type FrameListener = (frame: GazeFrame) => void;
+export type SubscribeGazeFrame = (listener: FrameListener) => () => void;
 export type TrackingFrameListener = (frame: FaceTrackingFrame) => void;
 
 export interface GazeRuntimeContextValue {
@@ -52,7 +53,7 @@ export interface GazeRuntimeContextValue {
 
   /** 매 프레임(throttle 없이) 호출되는 구독. Dwell/Blink/Mouth처럼 시간 기반 판정이 필요한
    * 소비자를 위한 것 — React state(위 필드들)는 UI 표시용으로만 50ms 간격 throttle된다. */
-  subscribeFrame: (listener: FrameListener) => () => void;
+  subscribeFrame: SubscribeGazeFrame;
   /** 전체 canonical landmark가 필요한 Canvas 시각화용 구독. React state를 갱신하지 않는다. */
   subscribeTrackingFrame: (listener: TrackingFrameListener) => () => void;
 }

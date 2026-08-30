@@ -8,6 +8,7 @@ import {
   useFaceTracking,
   type FaceLandmarkerLoadState,
 } from '../../faceTracking/hooks/useFaceTracking';
+import { GazeFilter } from '../../faceTracking/gaze/GazeFilter';
 
 import { DEFAULT_MIRROR_STRATEGY } from '../../faceTracking/mediapipe/mirrorStrategy';
 import type { FaceTrackingFrame, GazeSignal } from '../../faceTracking/types';
@@ -15,6 +16,7 @@ import type {
   FrameListener,
   TrackingFrameListener,
 } from '../../gazeRuntime/GazeRuntimeContext';
+import { buildGazeFrame } from '../../gazeRuntime/gazeFrameBuilder';
 
 import {
   CalibrationSession,
@@ -33,6 +35,7 @@ import {
   type MouthCalibrationSnapshot,
 } from '../inputCalibration';
 import type { InputMethodTestResult } from '../inputMethodTest';
+import { resolveBlinkThresholdsFromResult } from '../runtimeInputThresholds';
 
 import {
   CALIBRATION_GRID_POINTS,
@@ -244,6 +247,8 @@ export function useCalibrationRunner(
   const patientFlowRef = useRef(new PatientCalibrationFlow());
   const blinkSessionRef = useRef(new BlinkCalibrationSession());
   const mouthSessionRef = useRef(new MouthCalibrationSession());
+  const inputGazeFilterRef = useRef(new GazeFilter());
+  const gazeResultRef = useRef<GazeCalibrationResult | null>(null);
 
   const resultBuiltRef = useRef(false);
   const lastUiUpdateRef = useRef(0);
@@ -275,6 +280,10 @@ export function useCalibrationRunner(
   const [flowStage, setFlowStage] = useState<PatientCalibrationStage>('GAZE_RUNNING');
   const [blinkProgress, setBlinkProgress] = useState<BlinkCalibrationSnapshot | null>(null);
   const [mouthProgress, setMouthProgress] = useState<MouthCalibrationSnapshot | null>(null);
+  const blinkThresholds = useMemo(
+    () => resolveBlinkThresholdsFromResult(blinkProgress?.result ?? null),
+    [blinkProgress?.result],
+  );
   const [inputTestTargets, setInputTestTargets] = useState<PatientInputTestTargets>({
     gaze: null,
     blink: null,
@@ -478,6 +487,7 @@ export function useCalibrationRunner(
           snapshot.reprojectionRmseNormalized,
         );
 
+        gazeResultRef.current = builtResult;
         setResult(builtResult);
 
         // 기존 로그인 후 16점에서만 candidate를 저장한다.
@@ -562,7 +572,13 @@ export function useCalibrationRunner(
       const cursorCssPx = nextCursor
         ? viewportNormalizedToCssPx(nextCursor)
         : null;
-      const inputFrame = {
+      const inputFrame = buildGazeFrame(
+        gazeResultRef.current,
+        inputGazeFilterRef.current,
+        signal,
+        now,
+      );
+      const completionFrame = {
         now,
         hasSignal: signal !== null && cursorCssPx !== null,
         signal,
@@ -575,7 +591,7 @@ export function useCalibrationRunner(
       }
 
       for (const listener of completionGazeListenersRef.current) {
-        listener(inputFrame);
+        listener(completionFrame);
       }
     },
     [
@@ -600,6 +616,8 @@ export function useCalibrationRunner(
       active: permission === 'granted',
 
       mirrorStrategy: DEFAULT_MIRROR_STRATEGY,
+
+      blinkThresholds,
 
       onFrame: handleFrame,
 
@@ -684,6 +702,8 @@ export function useCalibrationRunner(
     mouthSessionRef.current = new MouthCalibrationSession();
 
     resultBuiltRef.current = false;
+    gazeResultRef.current = null;
+    inputGazeFilterRef.current.reset();
 
     setResult(null);
 

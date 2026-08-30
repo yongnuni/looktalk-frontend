@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   INPUT_TEST_ENTRY_LOCK_MS,
+  INPUT_TEST_DUPLICATE_SELECTION_LOCK_MS,
   INPUT_TEST_WORDS,
+  InputMethodTestSelectionGate,
   InputMethodTestSession,
   isInputTestEntryUnlocked,
   selectInputTestWord,
@@ -53,5 +55,14 @@ describe('inputMethodTest', () => {
   it('stage 진입 직후에는 직전 gesture 입력을 잠근다', () => {
     expect(isInputTestEntryUnlocked(1_000, 1_000 + INPUT_TEST_ENTRY_LOCK_MS - 1)).toBe(false);
     expect(isInputTestEntryUnlocked(1_000, 1_000 + INPUT_TEST_ENTRY_LOCK_MS)).toBe(true);
+  });
+
+  it('pointer와 gesture가 같은 key를 거의 동시에 선택하면 한 번만 통과시킨다', () => {
+    const gate = new InputMethodTestSelectionGate();
+
+    expect(gate.accept('ㅂ', 1_000)).toBe(true);
+    expect(gate.accept('ㅂ', 1_000 + INPUT_TEST_DUPLICATE_SELECTION_LOCK_MS)).toBe(false);
+    expect(gate.accept('ㅏ', 1_100)).toBe(true);
+    expect(gate.accept('ㅂ', 1_100 + INPUT_TEST_DUPLICATE_SELECTION_LOCK_MS + 1)).toBe(true);
   });
 });

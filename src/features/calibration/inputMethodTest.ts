@@ -83,6 +83,23 @@ export class InputMethodTestSession {
 }
 
 export const INPUT_TEST_ENTRY_LOCK_MS = 350;
+export const INPUT_TEST_DUPLICATE_SELECTION_LOCK_MS = 400;
+
+/** Pointer와 gesture가 거의 동시에 같은 key를 선택할 때 한 번만 통과시킨다. */
+export class InputMethodTestSelectionGate {
+  private lastKeyValue: string | null = null;
+  private lockedUntilMs = Number.NEGATIVE_INFINITY;
+
+  accept(keyValue: string, nowMs: number): boolean {
+    if (keyValue === this.lastKeyValue && nowMs <= this.lockedUntilMs) {
+      return false;
+    }
+
+    this.lastKeyValue = keyValue;
+    this.lockedUntilMs = nowMs + INPUT_TEST_DUPLICATE_SELECTION_LOCK_MS;
+    return true;
+  }
+}
 
 export function isInputTestEntryUnlocked(
   enteredAtMs: number,

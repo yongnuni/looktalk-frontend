@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resolveCalibrationCompletionPath } from '../../features/calibration/calibrationGate';
 import { resolvePatientCalibrationPopup } from '../../features/calibration/calibrationLandmarkPopup';
 import InputCalibrationPanel from '../../features/calibration/components/InputCalibrationPanel';
+import InputMethodTestInteractionProvider from '../../features/calibration/components/InputMethodTestInteractionProvider';
 import InputMethodTestPanel from '../../features/calibration/components/InputMethodTestPanel';
 import MeasurementResultModal from '../../features/calibration/components/MeasurementResultModal';
 import SettingCompleteModal from '../../features/calibration/components/SettingCompleteModal';
@@ -216,15 +217,19 @@ export default function CalibrationPage() {
             )}
 
             {showInputTestStage && activeInputTest && (
-              <InputMethodTestPanel
+              <InputMethodTestInteractionProvider
                 key={flowStage}
                 method={activeInputTest.method}
-                targetWord={activeInputTest.targetWord}
                 subscribeFrame={subscribeInputFrame}
                 blinkCalibration={blinkProgress?.result ?? null}
                 mouthCalibration={mouthProgress?.result ?? null}
-                onComplete={completeInputTest}
-              />
+              >
+                <InputMethodTestPanel
+                  method={activeInputTest.method}
+                  targetWord={activeInputTest.targetWord}
+                  onComplete={completeInputTest}
+                />
+              </InputMethodTestInteractionProvider>
             )}
 
             {/* §10.1 — X/닫기, background click, ESC로 닫히지 않는다. 사용자는 입력 방식
