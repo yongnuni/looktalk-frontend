@@ -48,6 +48,9 @@ export interface UseCalibrationRunnerResult {
   // (window.innerWidth/innerHeight 기준). 화면에 그리려면 viewportNormalizedToCssPx()로
   // CSS px 변환 후 position:fixed로 렌더링한다.
   cursorNormalized: { x: number; y: number } | null;
+  /** 가장 최근 GazeSignal(50ms throttle, UI state 갱신 시점과 동일) — CalibrationRealtimeMetricsBridge가
+   * EAR/MAR/eyeClosed를 그대로 표시하기 위해 재사용한다(새 tracking 없음). */
+  gazeSignal: GazeSignal | null;
   restart: () => void;
 }
 
@@ -64,6 +67,7 @@ export function useCalibrationRunner(): UseCalibrationRunnerResult {
   const [result, setResult] = useState<GazeCalibrationResult | null>(null);
   const [pointDiagnostics, setPointDiagnostics] = useState<HomographyPointDiagnostic[] | null>(null);
   const [cursorNormalized, setCursorNormalized] = useState<{ x: number; y: number } | null>(null);
+  const [gazeSignal, setGazeSignal] = useState<GazeSignal | null>(null);
 
   // Step 5(Backend persistence) 이전까지는 candidate 하나만 세션 메모리(zustand)에 보관한다.
   // active/candidate 이중 트랙은 Step 5에서 Backend GET/POST와 함께 store를 확장한다.
@@ -135,6 +139,7 @@ export function useCalibrationRunner(): UseCalibrationRunnerResult {
         lastUiUpdateRef.current = now;
         setProgress(snapshot);
         setCursorNormalized(nextCursor);
+        setGazeSignal(signal);
       }
     },
     [buildResult, setCandidate],
@@ -162,6 +167,7 @@ export function useCalibrationRunner(): UseCalibrationRunnerResult {
     setResult(null);
     setPointDiagnostics(null);
     setCursorNormalized(null);
+    setGazeSignal(null);
     setProgress(sessionRef.current.getSnapshot(performance.now()));
     clearCandidate();
   }, [clearCandidate]);
@@ -177,6 +183,7 @@ export function useCalibrationRunner(): UseCalibrationRunnerResult {
     result,
     pointDiagnostics,
     cursorNormalized,
+    gazeSignal,
     restart,
   };
 }

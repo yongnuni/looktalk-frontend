@@ -19,8 +19,10 @@ import { DwellController } from './DwellController';
  * Final Audit에 별도 기록한다.
  */
 
-const OPEN_THRESHOLD = 0.3;
-const CLOSE_THRESHOLD = 0.23;
+// export: RealtimeMetricsBridge(실시간 분석값 팝업)가 이 값을 그대로 재사용해 threshold를
+// 중복 하드코딩하지 않는다(features/realtimeMetrics/buildRealtimeMetricsPayload.ts).
+export const OPEN_THRESHOLD = 0.3;
+export const CLOSE_THRESHOLD = 0.23;
 const HOLD_TIME_SEC = 0.3;
 const COOLDOWN_SEC = 0.5;
 const LOCK_TIME_SEC = 0.25;

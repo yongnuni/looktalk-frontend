@@ -6,6 +6,8 @@ import MeasurementResultModal from '../../features/calibration/components/Measur
 import SettingCompleteModal from '../../features/calibration/components/SettingCompleteModal';
 import { useCalibrationRunner } from '../../features/calibration/hooks/useCalibrationRunner';
 import { viewportNormalizedToCssPx } from '../../features/calibration/viewportTargets';
+import { CalibrationRealtimeMetricsBridge } from '../../features/realtimeMetrics/CalibrationRealtimeMetricsBridge';
+import RealtimeMetricsLauncherButton from '../../features/realtimeMetrics/RealtimeMetricsLauncherButton';
 import './CalibrationPage.css';
 
 function formatPercent(ratio: number): string {
@@ -31,6 +33,7 @@ export default function CalibrationPage() {
     result,
     pointDiagnostics,
     cursorNormalized,
+    gazeSignal,
     restart,
   } = useCalibrationRunner();
 
@@ -103,6 +106,13 @@ export default function CalibrationPage() {
 
       {/* FaceLandmarker 입력용 video. 화면에는 안 보이지만 재생 상태여야 detectForVideo가 동작한다. */}
       <video ref={videoRef} className="calibration-hidden-video" playsInline muted />
+
+      {/* Realtime Metrics Window(별도 브라우저 창) producer/launcher. 카메라/FaceLandmarker를
+          새로 열지 않고 위 useCalibrationRunner()가 이미 계산한 gazeSignal/cursorNormalized만
+          읽어 내보낸다. PatientGazeRuntimeLayout과 /calibration은 router상 서로 배타적인
+          route라 launcher가 동시에 두 곳에 존재하지 않는다. */}
+      <CalibrationRealtimeMetricsBridge signal={gazeSignal} cursorNormalized={cursorNormalized} />
+      <RealtimeMetricsLauncherButton />
 
       {showMeasurementOverlay &&
         createPortal(

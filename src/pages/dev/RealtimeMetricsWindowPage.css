@@ -1,0 +1,97 @@
+.realtime-metrics-window {
+  box-sizing: border-box;
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #0b1220;
+  color: #e5e9f5;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.realtime-metrics-window__header h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #93c5fd;
+  letter-spacing: 0.02em;
+}
+
+.realtime-metrics-window__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.realtime-metrics-window__rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.realtime-metrics-window__rows > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.realtime-metrics-window__rows dt {
+  font-size: 12px;
+  color: #8ea0c2;
+  letter-spacing: 0.02em;
+}
+
+.realtime-metrics-window__rows dd {
+  margin: 0;
+  min-width: 96px;
+  text-align: right;
+  font-size: 22px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.realtime-metrics-window__rows--sub {
+  margin-top: 4px;
+  opacity: 0.85;
+}
+
+.realtime-metrics-window__rows--sub dd {
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.realtime-metrics-window__footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+
+.realtime-metrics-window__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #f97316;
+}
+
+.realtime-metrics-window__dot--ok {
+  background: #22c55e;
+}

@@ -41,6 +41,9 @@ export function processGazeFrameForSelection(
       hoveredKeyId: mouthState.lockedKeyId ?? mouthState.hoveredKeyId,
       progress: mouthState.progress,
       selectedKeyId: mouthState.selectedKeyId,
+      // 실제 MouthController 판정 결과를 그대로 위로 전달한다(§realtimeMetrics) —
+      // 팝업이 mar>=threshold 같은 별도 판정을 새로 만들지 않도록 하기 위함.
+      mouthOpen: mouthState.isOpen,
     };
   }
 

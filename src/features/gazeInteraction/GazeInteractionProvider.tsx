@@ -53,6 +53,7 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
   const [activeScope, setActiveScopeState] = useState<InteractionScope>(DEFAULT_SCOPE);
   const [hoveredTargetId, setHoveredTargetId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [mouthOpen, setMouthOpen] = useState<boolean | null>(null);
 
   const registerTarget = useCallback((entry: GazeTargetEntry) => {
     registryRef.current.register(entry);
@@ -114,6 +115,7 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
         lastUiUpdateRef.current = frame.now;
         setHoveredTargetId(selection.hoveredKeyId);
         setProgress(selection.progress);
+        setMouthOpen(selection.mouthOpen ?? null);
       }
     };
 
@@ -129,8 +131,9 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
       activeScope,
       setActiveScope,
       inputMode,
+      mouthOpen,
     }),
-    [registerTarget, unregisterTarget, hoveredTargetId, progress, activeScope, setActiveScope, inputMode],
+    [registerTarget, unregisterTarget, hoveredTargetId, progress, activeScope, setActiveScope, inputMode, mouthOpen],
   );
 
   return <GazeInteractionContext.Provider value={value}>{children}</GazeInteractionContext.Provider>;

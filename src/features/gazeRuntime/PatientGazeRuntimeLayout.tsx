@@ -1,6 +1,8 @@
 import { Outlet } from 'react-router-dom';
 import GazeCursorOverlay from '../gazeInteraction/GazeCursorOverlay';
 import { GazeInteractionProvider } from '../gazeInteraction/GazeInteractionProvider';
+import RealtimeMetricsLauncherButton from '../realtimeMetrics/RealtimeMetricsLauncherButton';
+import { RealtimeMetricsBridge } from '../realtimeMetrics/RealtimeMetricsBridge';
 import { GazeRuntimeProvider } from './GazeRuntimeProvider';
 
 /**
@@ -15,12 +17,19 @@ import { GazeRuntimeProvider } from './GazeRuntimeProvider';
  *
  * GazeCursorOverlay는 여기서 한 번만 렌더링한다 — 페이지마다 자기 cursor를 만들지 않는다
  * (§5, §8).
+ *
+ * RealtimeMetricsBridge/RealtimeMetricsLauncherButton — Realtime Metrics Window(별도
+ * 브라우저 창) 기능의 producer/launcher. GazeInteractionProvider의 자식으로 한 번만
+ * 마운트해 hoveredTargetId/progress/mouthOpen을 그대로 재사용한다(새 계산 없음). UI가
+ * 없는 Bridge와 corner의 작은 launcher 버튼뿐이라 페이지별 화면 구성에는 영향을 주지 않는다.
  */
 export default function PatientGazeRuntimeLayout() {
   return (
     <GazeRuntimeProvider>
       <GazeInteractionProvider>
         <GazeCursorOverlay />
+        <RealtimeMetricsBridge />
+        <RealtimeMetricsLauncherButton />
         <Outlet />
       </GazeInteractionProvider>
     </GazeRuntimeProvider>
