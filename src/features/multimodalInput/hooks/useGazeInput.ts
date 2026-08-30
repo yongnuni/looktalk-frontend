@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { useCamera } from '../../camera/hooks/useCamera';
 import type { CameraPermissionState } from '../../camera/types';
@@ -7,6 +7,11 @@ import { useFaceTracking, type FaceLandmarkerLoadState } from '../../faceTrackin
 import { DEFAULT_MIRROR_STRATEGY } from '../../faceTracking/mediapipe/mirrorStrategy';
 import type { GazeSignal } from '../../faceTracking/types';
 import type { GazeCalibrationResult } from '../../calibration/types';
+import {
+  resolveBlinkThresholds,
+  resolveMouthThresholds,
+} from '../../calibration/runtimeInputThresholds';
+import { useCalibrationStore } from '../../calibration/store/calibrationStore';
 import { BlinkController } from '../BlinkController';
 import { DwellController } from '../DwellController';
 import { processGazeFrameForSelection } from '../gazeFrameSelection';
@@ -61,11 +66,20 @@ export function useGazeInput({
   inputMode = 'DWELL',
 }: UseGazeInputOptions): UseGazeInputResult {
   const { permission, videoRef, errorMessage: cameraError, start } = useCamera();
+  const inputCalibration = useCalibrationStore((state) => state.inputCalibration);
+  const blinkThresholds = useMemo(
+    () => resolveBlinkThresholds(inputCalibration),
+    [inputCalibration],
+  );
+  const mouthThresholds = useMemo(
+    () => resolveMouthThresholds(inputCalibration),
+    [inputCalibration],
+  );
 
   const gazeFilterRef = useRef(new GazeFilter());
   const dwellControllerRef = useRef(new DwellController());
-  const blinkControllerRef = useRef(new BlinkController());
-  const mouthControllerRef = useRef(new MouthController());
+  const blinkControllerRef = useRef(new BlinkController(blinkThresholds));
+  const mouthControllerRef = useRef(new MouthController(mouthThresholds));
   const lastValidCursorRef = useRef<{ x: number; y: number } | null>(null);
   const getTargetsRef = useRef(getTargets);
   const onKeySelectRef = useRef(onKeySelect);
@@ -84,9 +98,9 @@ export function useGazeInput({
     inputModeRef.current = inputMode;
     // 입력 방식이 바뀌면 이전 모드가 진행 중이던 hover/lock/hold 진행 상태를 남기지 않는다.
     dwellControllerRef.current.reset();
-    blinkControllerRef.current.reset();
-    mouthControllerRef.current.reset();
-  }, [inputMode]);
+    blinkControllerRef.current = new BlinkController(blinkThresholds);
+    mouthControllerRef.current = new MouthController(mouthThresholds);
+  }, [blinkThresholds, inputMode, mouthThresholds]);
 
   const [cursorCssPx, setCursorCssPx] = useState<{ x: number; y: number } | null>(null);
   const [fixationCount, setFixationCount] = useState(0);
@@ -162,6 +176,7 @@ export function useGazeInput({
     videoRef,
     active: permission === 'granted',
     mirrorStrategy: DEFAULT_MIRROR_STRATEGY,
+    blinkThresholds,
     onFrame: handleFrame,
   });
 

@@ -60,6 +60,9 @@ export async function createCalibration(candidate: GazeCalibrationResult): Promi
 export async function getActiveCalibration(): Promise<PersistedCalibration | null> {
   try {
     const response = await apiClient.get<ApiResponse<CalibrationResponseDto>>('/calibrations/active');
+    if (response.status === 204) {
+      return null;
+    }
     return fromResponse(response.data.data);
   } catch (error) {
     if (isAxiosError(error) && error.response?.status === 404) {

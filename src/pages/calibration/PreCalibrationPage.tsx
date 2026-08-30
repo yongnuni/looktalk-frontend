@@ -1,11 +1,18 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
 import { useCalibrationCompletionGaze } from '../../features/calibration/completionGaze/useCalibrationCompletionGaze';
+import { resolvePreCalibrationPopup } from '../../features/calibration/calibrationLandmarkPopup';
 import { useCalibrationRunner } from '../../features/calibration/hooks/useCalibrationRunner';
 import { viewportNormalizedToCssPx } from '../../features/calibration/viewportTargets';
+import GazeCursorImage from '../../features/gazeInteraction/GazeCursorImage';
 import { ROUTES } from '../../shared/constants/routes';
+import LandmarkPopupAutoOpen from '../../features/landmarkPopup/LandmarkPopupAutoOpen';
+import {
+  LandmarkPopupProvider,
+  type LandmarkPopupProviderHandle,
+} from '../../features/landmarkPopup/LandmarkPopupProvider';
 
 import './CalibrationPage.css';
 
@@ -15,6 +22,7 @@ function formatPercent(ratio: number): string {
 
 export default function PreCalibrationPage() {
   const navigate = useNavigate();
+  const [landmarkSessionId, setLandmarkSessionId] = useState(0);
 
   const {
     permission,
@@ -27,6 +35,7 @@ export default function PreCalibrationPage() {
     result,
     cursorNormalized,
     subscribeCompletionGaze,
+    subscribeTrackingFrame,
     restart,
   } = useCalibrationRunner({
     mode: 'pre',
@@ -43,10 +52,21 @@ export default function PreCalibrationPage() {
 
   const showResultStage =
     showMeasurementOverlay && progress.done && result !== null;
+  const popupRequest = resolvePreCalibrationPopup(
+    showCalibrationStage,
+    `session-${landmarkSessionId}`,
+  );
 
   const retestButtonRef = useRef<HTMLButtonElement | null>(null);
   const loginButtonRef = useRef<HTMLButtonElement | null>(null);
   const completionActionStartedRef = useRef(false);
+  const landmarkPopupRef = useRef<LandmarkPopupProviderHandle | null>(null);
+
+  const handleStartCalibration = useCallback(() => {
+    setLandmarkSessionId((current) => current + 1);
+    landmarkPopupRef.current?.prepareWindow();
+    startCalibration();
+  }, [startCalibration]);
 
   // =========================================================
   // 다시 측정
@@ -58,6 +78,8 @@ export default function PreCalibrationPage() {
     }
 
     completionActionStartedRef.current = true;
+    setLandmarkSessionId((current) => current + 1);
+    landmarkPopupRef.current?.prepareWindow();
     restart();
   }, [restart]);
 
@@ -122,7 +144,19 @@ export default function PreCalibrationPage() {
   });
 
   return (
-    <main className="page calibration-page">
+    <LandmarkPopupProvider
+      ref={landmarkPopupRef}
+      videoRef={videoRef}
+      subscribeTrackingFrame={subscribeTrackingFrame}
+    >
+      {popupRequest && (
+        <LandmarkPopupAutoOpen
+          key={popupRequest.key}
+          requestKey={popupRequest.key}
+          variant={popupRequest.variant}
+        />
+      )}
+      <main className="page calibration-page">
       <section className="card wide calibration-card">
         <header className="calibration-header">
           <div>
@@ -152,7 +186,7 @@ export default function PreCalibrationPage() {
             <button
               type="button"
               className="calibration-start-button"
-              onClick={startCalibration}
+              onClick={handleStartCalibration}
             >
               카메라로 9점 캘리브레이션 시작
             </button>
@@ -281,18 +315,17 @@ export default function PreCalibrationPage() {
                 const cssPx = viewportNormalizedToCssPx(cursorNormalized);
 
                 return (
-                  <div
-                    className="calibration-cursor calibration-cursor--viewport"
-                    style={{
-                      left: `${cssPx.x}px`,
-                      top: `${cssPx.y}px`,
-                    }}
+                  <GazeCursorImage
+                    x={cssPx.x}
+                    y={cssPx.y}
+                    className="calibration-cursor--viewport"
                   />
                 );
               })()}
           </div>,
           document.body,
         )}
-    </main>
+      </main>
+    </LandmarkPopupProvider>
   );
 }

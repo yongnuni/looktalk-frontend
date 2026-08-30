@@ -32,3 +32,7 @@ export function useGazeInteraction(): GazeInteractionContextValue {
 
   return context;
 }
+
+export function useOptionalGazeInteraction(): GazeInteractionContextValue | null {
+  return useContext(GazeInteractionContext);
+}

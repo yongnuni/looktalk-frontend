@@ -101,6 +101,10 @@
   margin-bottom: clamp(14px, 1.8vh, 22px);
 }
 
+.fv-keyboard-topbar--no-close {
+  grid-template-columns: 1fr auto;
+}
+
 /* §1 — 남는 세로 공간을 keyboard row 사이나 여기로 자동 배분하지 않는다. Studio/
    입력방식/Dwell·Fixation 등 향후 상태 표시를 위해 고정 높이만 예약한다. */
 .fv-keyboard-bottom-reserved {

@@ -3,6 +3,23 @@ import GazeCursorOverlay from '../gazeInteraction/GazeCursorOverlay';
 import { GazeInteractionProvider } from '../gazeInteraction/GazeInteractionProvider';
 import { LandmarkPopupProvider } from '../landmarkPopup/LandmarkPopupProvider';
 import { GazeRuntimeProvider } from './GazeRuntimeProvider';
+import { useGazeRuntime } from './GazeRuntimeContext';
+
+function PatientGazeRuntimeContent() {
+  const { videoRef, subscribeTrackingFrame } = useGazeRuntime();
+
+  return (
+    <LandmarkPopupProvider
+      videoRef={videoRef}
+      subscribeTrackingFrame={subscribeTrackingFrame}
+    >
+      <GazeInteractionProvider>
+        <GazeCursorOverlay />
+        <Outlet />
+      </GazeInteractionProvider>
+    </LandmarkPopupProvider>
+  );
+}
 
 /**
  * Front Step 11/12 — router.tsx에서 PatientCalibrationGate의 자식으로 배치되는 pathless
@@ -20,12 +37,7 @@ import { GazeRuntimeProvider } from './GazeRuntimeProvider';
 export default function PatientGazeRuntimeLayout() {
   return (
     <GazeRuntimeProvider>
-      <LandmarkPopupProvider>
-        <GazeInteractionProvider>
-          <GazeCursorOverlay />
-          <Outlet />
-        </GazeInteractionProvider>
-      </LandmarkPopupProvider>
+      <PatientGazeRuntimeContent />
     </GazeRuntimeProvider>
   );
 }

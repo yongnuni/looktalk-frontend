@@ -1,11 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useGazeRuntime, type GazeFrame } from '../gazeRuntime/GazeRuntimeContext';
-import { BlinkController } from '../multimodalInput/BlinkController';
+import {
+  resolveBlinkThresholds,
+  resolveMouthThresholds,
+} from '../calibration/runtimeInputThresholds';
+import { useCalibrationStore } from '../calibration/store/calibrationStore';
+import {
+  useGazeRuntime,
+  type GazeFrame,
+  type SubscribeGazeFrame,
+} from '../gazeRuntime/GazeRuntimeContext';
+import {
+  BlinkController,
+  type BlinkControllerThresholds,
+} from '../multimodalInput/BlinkController';
 import { DwellController } from '../multimodalInput/DwellController';
 import { processGazeFrameForSelection } from '../multimodalInput/gazeFrameSelection';
-import { resolveGazeInputMode } from '../multimodalInput/gazeInputMode';
-import { MouthController } from '../multimodalInput/MouthController';
+import { resolveGazeInputMode, type GazeInputMode } from '../multimodalInput/gazeInputMode';
+import {
+  MouthController,
+  type MouthControllerThresholds,
+} from '../multimodalInput/MouthController';
 import { useUserSettings } from '../userSetting/hooks/useUserSettings';
 import { GazeInteractionContext, type GazeInteractionContextValue } from './GazeInteractionContext';
 import { buildSelectionTargets } from './scopeSelectionTargets';
@@ -16,13 +31,9 @@ import type { GazeTargetEntry, InteractionScope } from './types';
 /**
  * Global Gaze Target Registry + Dwell/Blink/Mouth selection engine.
  *
- * GazeRuntimeProvider(Step 11)와 책임을 분리한다: Runtime은 tracking/좌표 생성만 담당하고,
- * 이 Provider가 target registry·hit detection·selection·action dispatch를 담당한다
- * (§4). Runtime의 `subscribeFrame()`을 구독해 매 프레임 처리하되, 각 input controller와
- * processGazeFrameForSelection을 공통으로 재사용한다. keyboard(useGazeSelection)와는
- * 완전히 별도의 인스턴스라 같은 프레임에서
- * 두 selection engine이 동시에 select를 낼 수 없다(서로 다른 registry/controller이며,
- * `/patient`는 이 registry에 아무 target도 등록하지 않는다, §16/J).
+ * Runtime은 tracking/좌표 생성만 담당하고, 이 provider가 target registry·hit detection·
+ * selection·action dispatch를 담당한다. `/patient`와 calibration 입력 테스트 모두 아래
+ * frame provider를 사용하므로 화면마다 별도 controller를 만들지 않는다.
  */
 
 const UI_UPDATE_INTERVAL_MS = 50;
@@ -32,32 +43,42 @@ interface GazeInteractionProviderProps {
   children: ReactNode;
 }
 
-export function GazeInteractionProvider({ children }: GazeInteractionProviderProps) {
-  const { subscribeFrame } = useGazeRuntime();
-  // §18 — 새 API client를 만들지 않고 기존 useUserSettings()를 재사용한다. store의
-  // status 가드 덕분에 PatientHomePage 등 다른 소비자와 중복 GET이 발생하지 않는다.
-  const { settings } = useUserSettings();
-  const inputMode = resolveGazeInputMode(settings?.currentInputMethod);
+interface GazeInteractionFrameProviderProps {
+  children: ReactNode;
+  subscribeFrame: SubscribeGazeFrame;
+  inputMode: GazeInputMode;
+  blinkThresholds?: BlinkControllerThresholds;
+  mouthThresholds?: MouthControllerThresholds;
+  initialScope?: InteractionScope;
+}
 
+export function GazeInteractionFrameProvider({
+  children,
+  subscribeFrame,
+  inputMode,
+  blinkThresholds,
+  mouthThresholds,
+  initialScope = DEFAULT_SCOPE,
+}: GazeInteractionFrameProviderProps) {
   const registryRef = useRef(createTargetRegistry());
   const dwellControllerRef = useRef(new DwellController());
-  const blinkControllerRef = useRef(new BlinkController());
-  const mouthControllerRef = useRef(new MouthController());
+  const blinkControllerRef = useRef(new BlinkController(blinkThresholds));
+  const mouthControllerRef = useRef(new MouthController(mouthThresholds));
   const inputModeRef = useRef(inputMode);
-  const activeScopeRef = useRef<InteractionScope>(DEFAULT_SCOPE);
+  const activeScopeRef = useRef<InteractionScope>(initialScope);
   const lastHoveredElementRef = useRef<HTMLElement | null>(null);
   const lastUiUpdateRef = useRef(0);
 
-  const [activeScope, setActiveScopeState] = useState<InteractionScope>(DEFAULT_SCOPE);
+  const [activeScope, setActiveScopeState] = useState<InteractionScope>(initialScope);
   const [hoveredTargetId, setHoveredTargetId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     inputModeRef.current = inputMode;
     dwellControllerRef.current.reset();
-    blinkControllerRef.current.reset();
-    mouthControllerRef.current.reset();
-  }, [inputMode]);
+    blinkControllerRef.current = new BlinkController(blinkThresholds);
+    mouthControllerRef.current = new MouthController(mouthThresholds);
+  }, [blinkThresholds, inputMode, mouthThresholds]);
 
   const registerTarget = useCallback((entry: GazeTargetEntry) => {
     registryRef.current.register(entry);
@@ -141,4 +162,31 @@ export function GazeInteractionProvider({ children }: GazeInteractionProviderPro
   );
 
   return <GazeInteractionContext.Provider value={value}>{children}</GazeInteractionContext.Provider>;
+}
+
+/** `/patient` runtime과 저장된 사용자 입력 설정을 공통 frame provider에 연결한다. */
+export function GazeInteractionProvider({ children }: GazeInteractionProviderProps) {
+  const { subscribeFrame } = useGazeRuntime();
+  const { settings } = useUserSettings();
+  const inputMode = resolveGazeInputMode(settings?.currentInputMethod);
+  const inputCalibration = useCalibrationStore((state) => state.inputCalibration);
+  const blinkThresholds = useMemo(
+    () => resolveBlinkThresholds(inputCalibration),
+    [inputCalibration],
+  );
+  const mouthThresholds = useMemo(
+    () => resolveMouthThresholds(inputCalibration),
+    [inputCalibration],
+  );
+
+  return (
+    <GazeInteractionFrameProvider
+      subscribeFrame={subscribeFrame}
+      inputMode={inputMode}
+      blinkThresholds={blinkThresholds}
+      mouthThresholds={mouthThresholds}
+    >
+      {children}
+    </GazeInteractionFrameProvider>
+  );
 }

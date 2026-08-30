@@ -33,7 +33,6 @@
 .keyboard-row--function {
   min-width: 0;
   min-height: 0;
-
   margin-inline: auto;
 }
 
@@ -50,7 +49,7 @@
   /* 세로 공간을 각 행이 나누어 가짐 */
   flex: 1 1 0;
 
-  width: min(92vw, 1500px);
+  width: min(100%, 92vw, 1500px);
 
   gap: clamp(6px, 0.7vw, 12px);
 }
@@ -68,7 +67,7 @@
   /* 10키 행과 동일한 세로 비율 */
   flex: 1 1 0;
 
-  width: min(82vw, 1340px);
+  width: min(90%, 82vw, 1340px);
 
   gap: clamp(6px, 0.7vw, 12px);
 }
@@ -105,7 +104,7 @@
 
   flex: 1 1 0;
 
-  width: min(92vw, 1500px);
+  width: min(100%, 92vw, 1500px);
 
   gap: clamp(6px, 1vw, 18px);
 }
@@ -128,6 +127,7 @@
 ========================================================= */
 
 .virtual-keyboard--enlarged .keyboard-key {
+  height: clamp(96px, 11vh, 112px);
   font-size: clamp(30px, 2.5vw, 48px);
 }
 
@@ -145,15 +145,15 @@
   }
 
   .keyboard-row--10 {
-    width: 90vw;
+    width: min(100%, 90vw, 1500px);
   }
 
   .keyboard-row--9 {
-    width: 81vw;
+    width: min(90%, 81vw, 1340px);
   }
 
   .keyboard-row--function {
-    width: 90vw;
+    width: min(100%, 90vw, 1500px);
   }
 }
 
@@ -176,15 +176,15 @@
   }
 
   .keyboard-row--10 {
-    width: 90vw;
+    width: min(100%, 90vw, 1500px);
   }
 
   .keyboard-row--9 {
-    width: 81vw;
+    width: min(90%, 81vw, 1340px);
   }
 
   .keyboard-row--function {
-    width: 90vw;
+    width: min(100%, 90vw, 1500px);
   }
 }
 
@@ -207,15 +207,15 @@
   }
 
   .keyboard-row--10 {
-    width: 90vw;
+    width: min(100%, 90vw, 1500px);
   }
 
   .keyboard-row--9 {
-    width: 81vw;
+    width: min(90%, 81vw, 1340px);
   }
 
   .keyboard-row--function {
-    width: 90vw;
+    width: min(100%, 90vw, 1500px);
   }
 }
 
@@ -238,15 +238,15 @@
   }
 
   .keyboard-row--10 {
-    width: 92vw;
+    width: min(100%, 92vw, 1500px);
   }
 
   .keyboard-row--9 {
-    width: 82vw;
+    width: min(90%, 82vw, 1340px);
   }
 
   .keyboard-row--function {
-    width: 92vw;
+    width: min(100%, 92vw, 1500px);
   }
 }
 
@@ -295,15 +295,15 @@
   }
 
   .keyboard-row--10 {
-    width: min(92vw, 1800px);
+    width: min(100%, 92vw, 1800px);
   }
 
   .keyboard-row--9 {
-    width: min(82vw, 1610px);
+    width: min(90%, 82vw, 1610px);
   }
 
   .keyboard-row--function {
-    width: min(92vw, 1800px);
+    width: min(100%, 92vw, 1800px);
   }
 
   .keyboard-row--10,
@@ -314,4 +314,27 @@
   .keyboard-row--function {
     gap: 20px;
   }
+}
+
+/* The embedded /patient keyboard uses explicit responsive height variables.
+   Let those real key heights determine the row sizes instead of distributing
+   the card's auto height as full-viewport flex rows. */
+.patient-home-keyboard .virtual-keyboard {
+  height: auto;
+  justify-content: flex-start;
+}
+
+.patient-home-keyboard .keyboard-row--10,
+.patient-home-keyboard .keyboard-row--9,
+.patient-home-keyboard .keyboard-row--function {
+  flex: 0 0 auto;
+}
+
+.patient-home-keyboard .keyboard-row--10,
+.patient-home-keyboard .keyboard-row--9 {
+  gap: clamp(4px, 0.7vw, 12px);
+}
+
+.patient-home-keyboard .keyboard-row--function {
+  gap: clamp(6px, 1.2vw, 20px);
 }

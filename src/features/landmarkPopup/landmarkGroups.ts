@@ -1,8 +1,4 @@
 import { FaceLandmarker } from '@mediapipe/tasks-vision';
-import {
-  LEFT_IRIS_LANDMARK_INDICES,
-  RIGHT_IRIS_LANDMARK_INDICES,
-} from '../faceTracking/gaze/iris';
 import { MAR_LANDMARK_INDICES } from '../faceTracking/gaze/mar';
 
 export interface LandmarkConnection {
@@ -14,11 +10,13 @@ export interface LandmarkConnection {
 export const FULL_FACE_CONTOUR_CONNECTIONS: ReadonlyArray<LandmarkConnection> =
   FaceLandmarker.FACE_LANDMARKS_CONTOURS;
 
-/** 핵심 모드의 눈 윤곽 역시 MediaPipe 공식 좌/우 눈 연결을 그대로 사용한다. */
-export const LOOKTALK_LEFT_EYE_CONNECTIONS: ReadonlyArray<LandmarkConnection> =
-  FaceLandmarker.FACE_LANDMARKS_LEFT_EYE;
-export const LOOKTALK_RIGHT_EYE_CONNECTIONS: ReadonlyArray<LandmarkConnection> =
-  FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE;
+/** Python src/tracking/eye_tracking.py의 draw_eye_contour() 입력 순서를 그대로 쓴다. */
+export const LOOKTALK_LEFT_EYE_INDICES = [
+  33, 133, 159, 145, 160, 161, 246,
+] as const;
+export const LOOKTALK_RIGHT_EYE_INDICES = [
+  362, 263, 386, 374, 385, 384, 466,
+] as const;
 
 export function collectConnectionIndices(
   connections: ReadonlyArray<LandmarkConnection>,
@@ -41,16 +39,15 @@ export const FULL_FACE_CONTOUR_INDICES = collectConnectionIndices(
   FULL_FACE_CONTOUR_CONNECTIONS,
 );
 
-export const LOOKTALK_EYE_INDICES = collectConnectionIndices([
-  ...LOOKTALK_LEFT_EYE_CONNECTIONS,
-  ...LOOKTALK_RIGHT_EYE_CONNECTIONS,
-]);
-
-/** 실제 iris 계산 코드가 export하는 좌/우 인덱스를 중심점 평균에 재사용한다. */
+/** Python은 각 홍채 중심점과 링 4점으로 반지름을 계산한다. */
 export const LOOKTALK_IRIS_INDEX_GROUPS = [
-  LEFT_IRIS_LANDMARK_INDICES,
-  RIGHT_IRIS_LANDMARK_INDICES,
+  { center: 468, ring: [469, 470, 471, 472] },
+  { center: 473, ring: [474, 475, 476, 477] },
 ] as const;
 
-/** 실제 MAR 계산에 쓰이는 네 점만 표시한다. */
+/** Python draw_mouth()가 표시하며 MAR 계산에도 쓰는 네 점. */
 export const LOOKTALK_MOUTH_INDICES = [...new Set(Object.values(MAR_LANDMARK_INDICES))];
+export const LOOKTALK_MOUTH_VERTICAL_CONNECTION: LandmarkConnection = {
+  start: MAR_LANDMARK_INDICES.upperLip,
+  end: MAR_LANDMARK_INDICES.lowerLip,
+};

@@ -21,6 +21,7 @@ interface VirtualKeyboardProps {
   onKeySelect: (keyValue: string) => void;
   /** UserSetting.keyEnlarged(Step 4에서 실제 연동) 대응. */
   keyEnlarged?: boolean;
+  pointerSelectionEnabled?: boolean;
 }
 
 export default function VirtualKeyboard({
@@ -29,6 +30,7 @@ export default function VirtualKeyboard({
   dwellProgress = 0,
   onKeySelect,
   keyEnlarged = false,
+  pointerSelectionEnabled = true,
 }: VirtualKeyboardProps) {
   const rows = getLayoutRows(keyboardState);
 
@@ -41,6 +43,7 @@ export default function VirtualKeyboard({
       active={value === FUNCTION_KEY_SHIFT && keyboardState.isShift}
       wide={wide}
       onSelect={onKeySelect}
+      pointerSelectionEnabled={pointerSelectionEnabled}
     />
   );
 

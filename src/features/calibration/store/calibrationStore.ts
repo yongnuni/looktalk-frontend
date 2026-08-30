@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { InputCalibrationResult } from '../inputCalibration';
 import type { GazeCalibrationResult } from '../types';
 
 // Front Step 5/6 — Integration Plan §12.2 active/candidate 이중 트랙.
@@ -11,6 +12,11 @@ interface CalibrationState {
   candidate: GazeCalibrationResult | null;
   setCandidate: (result: GazeCalibrationResult) => void;
   clearCandidate: () => void;
+
+  /** 현재 SPA 메모리에서만 유지되는 blink/mouth 개인 threshold. */
+  inputCalibration: InputCalibrationResult | null;
+  setInputCalibration: (result: InputCalibrationResult) => void;
+  clearInputCalibration: () => void;
 
   active: GazeCalibrationResult | null;
   activeCalibrationId: string | null;
@@ -36,6 +42,10 @@ export const useCalibrationStore = create<CalibrationState>((set) => ({
   setCandidate: (result) => set({ candidate: result }),
   clearCandidate: () => set({ candidate: null }),
 
+  inputCalibration: null,
+  setInputCalibration: (result) => set({ inputCalibration: result }),
+  clearInputCalibration: () => set({ inputCalibration: null }),
+
   active: null,
   activeCalibrationId: null,
   activeStatus: 'idle',
@@ -47,5 +57,12 @@ export const useCalibrationStore = create<CalibrationState>((set) => ({
   setActiveLoading: () => set({ activeStatus: 'loading' }),
   setActiveError: (error) => set({ activeStatus: 'error', activeError: error }),
   reset: () =>
-    set({ candidate: null, active: null, activeCalibrationId: null, activeStatus: 'idle', activeError: null }),
+    set({
+      candidate: null,
+      inputCalibration: null,
+      active: null,
+      activeCalibrationId: null,
+      activeStatus: 'idle',
+      activeError: null,
+    }),
 }));
