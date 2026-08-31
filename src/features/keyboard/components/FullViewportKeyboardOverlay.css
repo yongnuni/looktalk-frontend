@@ -10,13 +10,19 @@
    아니므로 flex:1과 같이 쓰면 그 이상 계속 늘어난다) — 지금은 flex:0 0 <fixed>로 완전히
    고정한다. */
 .fv-keyboard-overlay {
+  --keyboard-layout-width: 92vw;
+  --keyboard-layout-max-width: 1500px;
+  --keyboard-key-gap-x: clamp(4px, 0.6vw, 20px);
+  --keyboard-row-height: clamp(60px, 11dvh, 130px);
+  --keyboard-row-gap: clamp(3px, 1.5dvh, 20px);
+  --keyboard-section-gap: clamp(8px, 1.5dvh, 18px);
   position: fixed;
   inset: 0;
   z-index: 200;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: clamp(12px, 1.6vh, 20px) clamp(16px, 3vw, 40px);
+  padding: clamp(12px, 3dvh, 32px) clamp(16px, 3vw, 40px);
   background: #ffffff;
   overflow: hidden;
 }
@@ -28,8 +34,8 @@
   grid-template-columns: auto 1fr auto;
   gap: clamp(12px, 1.6vw, 24px);
   flex: 0 0 auto;
-  height: clamp(64px, 8vh, 96px);
-  margin-bottom: clamp(14px, 1.8vh, 22px);
+  height: clamp(48px, 8dvh, 72px);
+  margin-bottom: var(--keyboard-section-gap);
 }
 
 .fv-keyboard-draft {
@@ -98,7 +104,7 @@
 /* 입력 상태에 따라 자주 쓰는 문장/자동완성을 교체하는 단일 3슬롯 행. */
 .fv-keyboard-recommend-group {
   flex: 0 0 auto;
-  margin-bottom: clamp(14px, 1.8vh, 22px);
+  margin-bottom: var(--keyboard-section-gap);
 }
 
 .fv-keyboard-topbar--no-close {
@@ -110,4 +116,10 @@
 .fv-keyboard-bottom-reserved {
   flex: 0 0 clamp(60px, 8vh, 85px);
   height: clamp(60px, 8vh, 85px);
+}
+
+@media (min-width: 2200px) {
+  .fv-keyboard-overlay {
+    --keyboard-layout-max-width: 1800px;
+  }
 }

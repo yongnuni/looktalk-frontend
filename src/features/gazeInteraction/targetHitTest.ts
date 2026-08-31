@@ -14,7 +14,9 @@ export function hitTestTargets(
   for (const target of targets) {
     const rect = target.element.getBoundingClientRect();
 
-    if (cursor.x >= rect.left && cursor.x <= rect.right && cursor.y >= rect.top && cursor.y <= rect.bottom) {
+    // Python KeyRect.contains()와 같은 반열린 경계다. left/top은 포함하고
+    // right/bottom은 제외해 맞닿은 두 target이 한 점을 동시에 소유하지 않게 한다.
+    if (cursor.x >= rect.left && cursor.x < rect.right && cursor.y >= rect.top && cursor.y < rect.bottom) {
       return target;
     }
   }
