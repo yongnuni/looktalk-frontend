@@ -9,8 +9,8 @@ export const IDLE_SELECTION: InputSelectionState = { hoveredKeyId: null, progres
 
 /**
  * Global Gaze Runtime이 흘려주는 한 프레임(GazeFrame)을 Dwell/Blink/Mouth
- * controller에 적용해 선택 상태를 계산하는 순수 판정 로직. `useGazeSelection`의 RAF/구독
- * 배선에서 분리해 React 없이 deterministic하게 테스트한다.
+ * controller에 적용해 선택 상태를 계산하는 순수 판정 로직. `GazeInteractionFrameProvider`의
+ * 구독 배선에서 분리해 React 없이 deterministic하게 테스트한다.
  *
  * Look-Talk main.py 1287-1341행과 동일한 분기를 유지한다: 신호가 없으면(hasSignal=false)
  * update()를 호출하지 않고 명시적으로 reset()만 한다 — DwellController.update(-1,-1,...)로

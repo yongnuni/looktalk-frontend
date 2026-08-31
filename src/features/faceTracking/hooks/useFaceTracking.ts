@@ -8,7 +8,10 @@ import { computeAvgIris } from '../gaze/iris';
 import { computeAverageEar } from '../gaze/ear';
 import { computeMouthAspectRatio } from '../gaze/mar';
 import { computeIrisConfidence } from '../gaze/irisConfidence';
-import { nextEyeClosedState } from '../gaze/blinkGate';
+import {
+  nextEyeClosedState,
+  type EyeClosureThresholds,
+} from '../gaze/blinkGate';
 import type { FaceTrackingFrame, GazeSignal } from '../types';
 
 export type FaceLandmarkerLoadState = 'idle' | 'loading' | 'ready' | 'error';
@@ -25,6 +28,8 @@ interface UseFaceTrackingOptions {
   videoRef: RefObject<HTMLVideoElement | null>;
   active: boolean;
   mirrorStrategy: MirrorStrategy;
+  /** 생략하면 기존 0.18/0.22를 사용한다. EAR 계산식 자체는 바꾸지 않는다. */
+  blinkThresholds?: EyeClosureThresholds;
   /**
    * 매 프레임(throttle 없이) 호출된다. Python Look-Talk의 Calibrator.update()처럼
    * 프레임 단위 샘플 수집이 필요한 소비자(Step 1 calibration 등)를 위한 것 — debug
@@ -63,6 +68,7 @@ export function useFaceTracking({
   videoRef,
   active,
   mirrorStrategy,
+  blinkThresholds,
   onFrame,
   onTrackingFrame,
 }: UseFaceTrackingOptions): UseFaceTrackingResult {
@@ -85,6 +91,7 @@ export function useFaceTracking({
   const mirrorFlipCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const eyeClosedRef = useRef(false);
   const mirrorStrategyRef = useRef(mirrorStrategy);
+  const blinkThresholdsRef = useRef(blinkThresholds);
 
   const frameCountRef = useRef(0);
   const fpsWindowStartRef = useRef(0);
@@ -106,6 +113,11 @@ export function useFaceTracking({
     // 전략을 바꾸면 이전 전략에서 누적된 눈 감김 히스테리시스가 섞이지 않도록 리셋한다.
     eyeClosedRef.current = false;
   }, [mirrorStrategy]);
+
+  useEffect(() => {
+    blinkThresholdsRef.current = blinkThresholds;
+    eyeClosedRef.current = false;
+  }, [blinkThresholds]);
 
   // FaceLandmarker 로드/정리
   useEffect(() => {
@@ -216,7 +228,11 @@ export function useFaceTracking({
           const mar = computeMouthAspectRatio(canonical);
           const irisConfidence = computeIrisConfidence(canonical);
 
-          eyeClosedRef.current = nextEyeClosedState(ear, eyeClosedRef.current);
+          eyeClosedRef.current = nextEyeClosedState(
+            ear,
+            eyeClosedRef.current,
+            blinkThresholdsRef.current,
+          );
 
           signal = {
             irisX: iris.x,

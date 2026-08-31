@@ -5,6 +5,25 @@ import { LandmarkPopupProvider } from '../landmarkPopup/LandmarkPopupProvider';
 import RealtimeMetricsLauncherButton from '../realtimeMetrics/RealtimeMetricsLauncherButton';
 import { RealtimeMetricsBridge } from '../realtimeMetrics/RealtimeMetricsBridge';
 import { GazeRuntimeProvider } from './GazeRuntimeProvider';
+import { useGazeRuntime } from './GazeRuntimeContext';
+
+function PatientGazeRuntimeContent() {
+  const { videoRef, subscribeTrackingFrame } = useGazeRuntime();
+
+  return (
+    <LandmarkPopupProvider
+      videoRef={videoRef}
+      subscribeTrackingFrame={subscribeTrackingFrame}
+    >
+      <GazeInteractionProvider>
+        <GazeCursorOverlay />
+        <RealtimeMetricsBridge />
+        <RealtimeMetricsLauncherButton />
+        <Outlet />
+      </GazeInteractionProvider>
+    </LandmarkPopupProvider>
+  );
+}
 
 /**
  * Front Step 11/12 — router.tsx에서 PatientCalibrationGate의 자식으로 배치되는 pathless
@@ -33,14 +52,7 @@ import { GazeRuntimeProvider } from './GazeRuntimeProvider';
 export default function PatientGazeRuntimeLayout() {
   return (
     <GazeRuntimeProvider>
-      <LandmarkPopupProvider>
-        <GazeInteractionProvider>
-          <GazeCursorOverlay />
-          <RealtimeMetricsBridge />
-          <RealtimeMetricsLauncherButton />
-          <Outlet />
-        </GazeInteractionProvider>
-      </LandmarkPopupProvider>
+      <PatientGazeRuntimeContent />
     </GazeRuntimeProvider>
   );
 }

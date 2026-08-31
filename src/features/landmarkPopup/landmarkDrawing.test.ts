@@ -1,11 +1,20 @@
 import type { NormalizedLandmark } from '@mediapipe/tasks-vision';
 import { describe, expect, it, vi } from 'vitest';
+import {
+  LEFT_IRIS_LANDMARK_INDICES,
+  RIGHT_IRIS_LANDMARK_INDICES,
+} from '../faceTracking/gaze/iris';
 import { MAR_LANDMARK_INDICES } from '../faceTracking/gaze/mar';
 import {
+  EYE_CONTOUR_STYLE,
+  IRIS_RING_STYLE,
   LANDMARK_POINT_STYLES,
-  averageLandmarkPoint,
+  MOUTH_VERTICAL_LINE_STYLE,
   calculateCanvasBackingSize,
   calculateCoverRect,
+  calculateLandmarkVisualMetrics,
+  calculateLandmarkVisualScale,
+  drawLandmarkFrame,
   drawMirroredCoverVideo,
   projectCanonicalLandmark,
   visitLandmarks,
@@ -22,10 +31,16 @@ describe('landmark drawing geometry', () => {
       landmark(index / 1000, 0.5),
     );
     const visited: number[] = [];
+    const irisIndices = new Set<number>([
+      ...LEFT_IRIS_LANDMARK_INDICES,
+      ...RIGHT_IRIS_LANDMARK_INDICES,
+    ]);
 
     visitLandmarks(landmarks, 'full', (_point, index) => visited.push(index));
 
     expect(visited).toEqual(FULL_FACE_CONTOUR_INDICES);
+    expect(visited).toHaveLength(128);
+    expect(visited.some((index) => irisIndices.has(index))).toBe(false);
     expect(visited.length).toBeLessThan(landmarks.length);
   });
 
@@ -43,18 +58,6 @@ describe('landmark drawing geometry', () => {
       new Set(Object.values(MAR_LANDMARK_INDICES)),
     );
     expect(visited.every(({ group }) => group === 'mouth')).toBe(true);
-  });
-
-  it('기존 iris 인덱스들의 평균으로 중심점 하나를 계산한다', () => {
-    const landmarks: NormalizedLandmark[] = [];
-    landmarks[1] = landmark(0.2, 0.4, -0.1);
-    landmarks[2] = landmark(0.4, 0.6, 0.1);
-
-    const center = averageLandmarkPoint(landmarks, [1, 2]);
-    expect(center?.x).toBeCloseTo(0.3);
-    expect(center?.y).toBeCloseTo(0.5);
-    expect(center?.z).toBeCloseTo(0);
-    expect(averageLandmarkPoint(landmarks, [1, 3])).toBeNull();
   });
 
   it('16:9 영상은 16:9 영역을 자르지 않고 채운다', () => {
@@ -104,8 +107,117 @@ describe('landmark drawing geometry', () => {
       height: 450,
       dpr: 2,
     });
-    expect(LANDMARK_POINT_STYLES.full.radius).toBe(2.75);
-    expect(LANDMARK_POINT_STYLES.iris.radius).toBe(5.5);
-    expect(LANDMARK_POINT_STYLES.mouth.radius).toBe(5);
+    expect(LANDMARK_POINT_STYLES.full.radius).toBe(2.8);
+    expect(LANDMARK_POINT_STYLES.mouth.radius).toBe(6);
+  });
+
+  it('480px CSS 너비를 기준으로 visual scale 1을 사용한다', () => {
+    const metrics = calculateLandmarkVisualMetrics(480);
+
+    expect(metrics.visualScale).toBe(1);
+    expect(metrics.pointStyles.full.radius).toBe(2.8);
+    expect(metrics.pointStyles.full.strokeWidth).toBe(1);
+    expect(metrics.pointStyles.mouth.radius).toBe(6);
+    expect(metrics.pointStyles.mouth.strokeWidth).toBe(0);
+    expect(metrics.eyeContourStyle.width).toBe(1);
+    expect(metrics.irisRingStyle.minimumRadius).toBe(3);
+    expect(metrics.irisRingStyle.centerRadius).toBe(2);
+    expect(metrics.mouthVerticalLineStyle.width).toBe(2);
+  });
+
+  it('작은 PiP에는 최소 visual scale 0.9를 적용한다', () => {
+    expect(calculateLandmarkVisualScale(240)).toBe(0.9);
+    expect(
+      calculateLandmarkVisualMetrics(240).pointStyles.full.radius,
+    ).toBeCloseTo(2.52);
+  });
+
+  it('큰 창에서는 full 점이 최대 약 3.78px에서 제한된다', () => {
+    const metrics = calculateLandmarkVisualMetrics(720);
+
+    expect(metrics.visualScale).toBe(1.35);
+    expect(metrics.pointStyles.full.radius).toBeCloseTo(3.78);
+    expect(metrics.pointStyles.full.strokeWidth).toBeCloseTo(1.35);
+    expect(metrics.pointStyles.mouth.radius).toBeCloseTo(8.1);
+    expect(metrics.eyeContourStyle.width).toBeCloseTo(1.35);
+  });
+
+  it('매우 큰 창에서도 visual scale 상한 1.35를 넘지 않는다', () => {
+    const metrics = calculateLandmarkVisualMetrics(1920);
+
+    expect(metrics.visualScale).toBe(1.35);
+    expect(metrics.pointStyles.full.radius).toBeCloseTo(3.78);
+    expect(metrics.pointStyles.mouth.radius).toBeCloseTo(8.1);
+    expect(metrics.eyeContourStyle.width).toBeCloseTo(1.35);
+  });
+
+  it('DPR은 backing size만 바꾸고 CSS 너비 기반 visual scale에는 반영되지 않는다', () => {
+    const cssWidth = 480;
+    const dprOneBacking = calculateCanvasBackingSize(cssWidth, 270, 1);
+    const dprTwoBacking = calculateCanvasBackingSize(cssWidth, 270, 2);
+
+    expect(dprOneBacking.width).toBe(480);
+    expect(dprTwoBacking.width).toBe(960);
+    expect(calculateLandmarkVisualScale(cssWidth)).toBe(1);
+  });
+
+  it('looktalk 표시 색상은 Python OpenCV BGR을 Canvas RGB로 변환한다', () => {
+    expect(LANDMARK_POINT_STYLES.full).toMatchObject({
+      fill: '#ffffff',
+      stroke: '#111111',
+    });
+    expect(EYE_CONTOUR_STYLE).toMatchObject({
+      color: '#db7093',
+    });
+    expect(IRIS_RING_STYLE).toMatchObject({
+      color: '#ffc800',
+    });
+    expect(LANDMARK_POINT_STYLES.mouth).toMatchObject({
+      fill: '#00ff00',
+      strokeWidth: 0,
+    });
+    expect(MOUTH_VERTICAL_LINE_STYLE).toMatchObject({
+      color: '#ffff00',
+      width: 2,
+    });
+  });
+
+  it('looktalk은 landmarks 배열이 짧아도 범위 밖 점을 안전하게 건너뛴다', () => {
+    const context = {
+      setTransform: vi.fn(),
+      clearRect: vi.fn(),
+      fillRect: vi.fn(),
+      save: vi.fn(),
+      translate: vi.fn(),
+      scale: vi.fn(),
+      drawImage: vi.fn(),
+      restore: vi.fn(),
+      beginPath: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      closePath: vi.fn(),
+    } as unknown as CanvasRenderingContext2D;
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: vi.fn(() => context),
+    } as unknown as HTMLCanvasElement;
+    const video = {
+      videoWidth: 640,
+      videoHeight: 360,
+    } as HTMLVideoElement;
+
+    expect(() => drawLandmarkFrame({
+      canvas,
+      video,
+      landmarks: [landmark(0.5, 0.5)],
+      variant: 'looktalk',
+      cssWidth: 480,
+      cssHeight: 270,
+      devicePixelRatio: 2,
+    })).not.toThrow();
   });
 });

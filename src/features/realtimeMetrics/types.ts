@@ -47,7 +47,7 @@ export interface RealtimeMetricsPayload {
     mar: number | null;
     /** MouthController가 실제로 판정한 isOpen 결과. 팝업이 mar>=threshold를 직접 재판정하지 않는다. */
     mouthOpen: boolean | null;
-    /** MouthController.OPEN_THRESHOLD/CLOSE_THRESHOLD를 그대로 가져온다. */
+    /** MouthController.MOUTH_OPEN_THRESHOLD/MOUTH_CLOSE_THRESHOLD를 그대로 가져온다. */
     openThreshold: number;
     closeThreshold: number;
   };

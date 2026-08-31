@@ -13,7 +13,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 100%;
   height: 100%;
 
@@ -21,16 +20,13 @@
   min-height: 0;
 
   padding: 0 clamp(5px, 0.7vw, 12px);
-
   border: 1px solid #cdced2;
 
   border-radius: clamp(10px, 1vw, 22px);
 
   background: #ebecf0;
-
   /* 최소 26px 이하로는 작아지지 않음 */
   font-size: clamp(26px, 2vw, 40px);
-
   font-weight: 600;
 
   color: #1e293b;
@@ -59,19 +55,24 @@
   transform: scale(0.97);
 }
 
+.keyboard-key--pointer-disabled {
+  cursor: default;
+}
+
+.keyboard-key--pointer-disabled:hover {
+  border-color: #cdced2;
+  background: #ebecf0;
+}
+
+.keyboard-key--pointer-disabled:active {
+  transform: none;
+}
+
 .keyboard-key--active {
   border-color: #2563eb;
   border-width: 2px;
 
   color: #2563eb;
-}
-
-/* =========================================================
-   Function Row
-========================================================= */
-
-.keyboard-row--function .keyboard-key {
-  font-size: clamp(22px, 1.7vw, 32px);
 }
 
 /* =========================================================
@@ -128,18 +129,6 @@
   pointer-events: none;
 
   transition: height 60ms linear;
-}
-
-/* =========================================================
-   Enlarged Mode
-========================================================= */
-
-.virtual-keyboard--enlarged .keyboard-key {
-  font-size: clamp(32px, 2.5vw, 46px);
-}
-
-.virtual-keyboard--enlarged .keyboard-row--function .keyboard-key {
-  font-size: clamp(26px, 2vw, 36px);
 }
 
 /* =========================================================
@@ -262,4 +251,27 @@
   .keyboard-row--function .keyboard-key {
     font-size: clamp(28px, 1.4vw, 38px);
   }
+}
+
+/* The /patient QA card is narrower than the viewport. Keep its key text and
+   padding tied to the real card-sized keys instead of the global viewport
+   minimums above, so height, spacing, and labels shrink together. */
+.patient-home-keyboard .keyboard-key {
+  padding: 0 clamp(2px, 0.6vw, 10px);
+  font-size: clamp(14px, 2.2vw, 40px);
+}
+
+.patient-home-keyboard .keyboard-row--function .keyboard-key {
+  font-size: clamp(14px, 1.6vw, 30px);
+}
+
+.patient-home-keyboard .virtual-keyboard--enlarged .keyboard-key {
+  font-size: clamp(20px, 2.5vw, 46px);
+}
+
+.patient-home-keyboard
+  .virtual-keyboard--enlarged
+  .keyboard-row--function
+  .keyboard-key {
+  font-size: clamp(16px, 1.9vw, 34px);
 }

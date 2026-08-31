@@ -1,0 +1,72 @@
+.input-method-test-card {
+  flex: 0 0 auto;
+  margin: 0 0 clamp(10px, 1.4vh, 16px);
+  padding: clamp(12px, 1.7vh, 18px) clamp(18px, 2.5vw, 32px);
+  border: 1px solid #bfdbfe;
+  border-radius: 18px;
+  background: #eff6ff;
+  text-align: center;
+}
+
+.input-method-test-card__title,
+.input-method-test-card__instruction {
+  margin: 0;
+}
+
+.input-method-test-card__title {
+  color: #1e3a8a;
+  font-size: clamp(18px, 2vw, 26px);
+  font-weight: 800;
+}
+
+.input-method-test-card__instruction {
+  margin-top: 4px;
+  color: #475569;
+  font-size: clamp(14px, 1.4vw, 19px);
+  font-weight: 600;
+}
+
+.input-method-test-card__target {
+  display: block;
+  margin-top: 2px;
+  color: #2563eb;
+  font-size: clamp(42px, 5vw, 70px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.input-method-test-keyboard {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.input-method-test-keyboard .fv-keyboard-topbar {
+  height: clamp(88px, 10vh, 104px);
+  align-items: stretch;
+}
+
+.input-method-test-keyboard .fv-keyboard-draft {
+  padding-inline: clamp(24px, 2.2vw, 32px);
+  font-size: clamp(26px, 2.35vw, 32px);
+  line-height: 1.25;
+}
+
+.input-method-test-keyboard .fv-keyboard-topbar > .keyboard-key,
+.input-method-test-keyboard .fv-keyboard-close {
+  height: 100%;
+  align-self: center;
+}
+
+@media (max-height: 760px) {
+  .input-method-test-card {
+    padding-block: 9px;
+  }
+
+  .input-method-test-card__target {
+    font-size: 40px;
+  }
+
+  .input-method-test-keyboard .fv-keyboard-topbar {
+    height: clamp(68px, 11vh, 88px);
+  }
+}

@@ -12,17 +12,15 @@ import { DwellController } from './DwellController';
  * 즉 어떤 키를 "보고 있는지"는 DwellController의 nearest-key+반경 히스테리시스를 그대로
  * 재사용하고(별도 hit-test 로직을 새로 만들지 않음), 실제 선택 확정은 입벌림으로만 한다.
  *
- * Threshold(open=0.30/close=0.23)는 MouthClickDetector.__init__ 기본값이다. Look-Talk의
- * 개인별 MAR 캘리브레이션(src/calibrations/mouth_calibration.py, 5회 시행 + baseline.json
- * 분석 지표 산출)은 Python CSV/baseline 연구용 로깅과 강하게 얽혀 있어(Front Step 2-9 지침의
- * 제외 목록 "Python CSV/debug logging") 포팅하지 않는다 — 이 결정과 남은 개인화 격차는
- * Final Audit에 별도 기록한다.
+ * Threshold(open=0.30/close=0.23)는 MouthClickDetector.__init__ 기본값이다. 생성자에
+ * 현재 SPA 세션의 개인 threshold가 전달되면 그 값을 사용하고, 결과가 없거나 fallback이면
+ * 이 기존 기본값을 그대로 유지한다. hold/cooldown/target lock 시간 분류는 바꾸지 않는다.
  */
 
 // export: RealtimeMetricsBridge(실시간 분석값 팝업)가 이 값을 그대로 재사용해 threshold를
 // 중복 하드코딩하지 않는다(features/realtimeMetrics/buildRealtimeMetricsPayload.ts).
-export const OPEN_THRESHOLD = 0.3;
-export const CLOSE_THRESHOLD = 0.23;
+export const MOUTH_OPEN_THRESHOLD = 0.3;
+export const MOUTH_CLOSE_THRESHOLD = 0.23;
 const HOLD_TIME_SEC = 0.3;
 const COOLDOWN_SEC = 0.5;
 const LOCK_TIME_SEC = 0.25;
@@ -32,6 +30,11 @@ export interface MouthSelectionState extends InputSelectionState {
   isOpen: boolean;
   /** 입을 벌리기 전 시선으로 잠근 키. hoveredKeyId와 별개로 UI에 "잠김" 표시를 위해 노출. */
   lockedKeyId: string | null;
+}
+
+export interface MouthControllerThresholds {
+  openThreshold: number;
+  closeThreshold: number;
 }
 
 const IDLE_STATE: Omit<MouthSelectionState, 'mar'> = {
@@ -44,6 +47,8 @@ const IDLE_STATE: Omit<MouthSelectionState, 'mar'> = {
 
 export class MouthController {
   private readonly hoverDetector = new DwellController();
+  private readonly openThreshold: number;
+  private readonly closeThreshold: number;
 
   private isOpen = false;
   private openStartMs: number | null = null;
@@ -55,6 +60,11 @@ export class MouthController {
   // Python MouthClickDetector.__init__: self.last_click_time = 0.0, reset()에서도 건드리지
   // 않는다 — DwellController의 cooldownEndMs와 동일한 이유로 reset()에서 유지한다.
   private lastClickMs = 0;
+
+  constructor(thresholds?: MouthControllerThresholds) {
+    this.openThreshold = thresholds?.openThreshold ?? MOUTH_OPEN_THRESHOLD;
+    this.closeThreshold = thresholds?.closeThreshold ?? MOUTH_CLOSE_THRESHOLD;
+  }
 
   reset(): void {
     this.hoverDetector.reset();
@@ -78,10 +88,10 @@ export class MouthController {
     }
 
     if (!this.isOpen) {
-      if (mar >= OPEN_THRESHOLD) {
+      if (mar >= this.openThreshold) {
         this.isOpen = true;
       }
-    } else if (mar <= CLOSE_THRESHOLD) {
+    } else if (mar <= this.closeThreshold) {
       this.isOpen = false;
     }
 

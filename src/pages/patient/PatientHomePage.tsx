@@ -8,7 +8,7 @@ import { useKeyboardGazeTargets } from '../../features/keyboard/useKeyboardGazeT
 import { useGazeRuntime } from '../../features/gazeRuntime/GazeRuntimeContext';
 import { useGazeInteraction } from '../../features/gazeInteraction/GazeInteractionContext';
 import { usePageScope } from '../../features/gazeInteraction/usePageScope';
-import LandmarkPopupLauncher from '../../features/landmarkPopup/LandmarkPopupLauncher';
+import { useLandmarkAutoOpen } from '../../features/landmarkPopup/useLandmarkAutoOpen';
 import { resolveGazeInputMode } from '../../features/multimodalInput/gazeInputMode';
 import { useUserSettings } from '../../features/userSetting/hooks/useUserSettings';
 import KeyboardSuggestionRow from '../../features/autocomplete/KeyboardSuggestionRow';
@@ -21,6 +21,7 @@ import './PatientHomePage.css';
 // HospitalChatContactSearch 화면 전체가 중복이 되어 제거했다 — HospitalChatContactSearch
 // 컴포넌트 자체도 삭제되어 더 이상 존재하지 않는다.
 export default function PatientHomePage() {
+  useLandmarkAutoOpen('looktalk', 'patient-keyboard');
   // useKeyboardInput()이 반환하는 clearText는 handleConfirm보다 나중에 생기므로(순환
   // 참조), ref로 최신 함수를 받아둔다 — onFrameRef 등과 동일한 패턴.
   const clearTextRef = useRef<() => void>(() => {});
@@ -88,8 +89,8 @@ export default function PatientHomePage() {
   const hoveredKeyValue = hoveredTargetId?.startsWith('keyboard:') ? hoveredTargetId.slice('keyboard:'.length) : null;
 
   return (
-    <main className="page">
-      <section className="card wide">
+    <main className="page patient-home-page">
+      <section className="card wide patient-home-card">
         <header className="page-header">
           <div>
             <h1>환자 메인</h1>
@@ -127,14 +128,13 @@ export default function PatientHomePage() {
               <strong>{faceLoadState}</strong> / 추적: <strong>{String(trackingValid)}</strong>
             </p>
           )}
-          <LandmarkPopupLauncher />
         </div>
 
         {/* Front Step 18(Python parity) — VirtualKeyboard는 더 이상 확인 키를 렌더링하지
             않는다(keyboard.py의 confirm_rect처럼 입력창 옆에 둔다). 실제 서비스 화면은
             FullViewportKeyboardOverlay를 쓰지만, 이 QA route는 페이지 전체가 이미 키보드
             화면이라 별도 overlay 없이 텍스트 영역 옆에 확인 키만 추가한다. */}
-        <div ref={keyboardContainerRef}>
+        <div ref={keyboardContainerRef} className="patient-home-keyboard">
           <div className="patient-home-draft-row">
             <textarea
               className="message-box"

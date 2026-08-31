@@ -3,7 +3,7 @@ import { viewportNormalizedToCssPx } from '../calibration/viewportTargets';
 import { EAR_CLOSE_THRESHOLD, EAR_OPEN_THRESHOLD } from '../faceTracking/gaze/blinkGate';
 import type { GazeSignal } from '../faceTracking/types';
 import type { GazeFrame } from '../gazeRuntime/GazeRuntimeContext';
-import { CLOSE_THRESHOLD as MOUTH_CLOSE_THRESHOLD, OPEN_THRESHOLD as MOUTH_OPEN_THRESHOLD } from '../multimodalInput/MouthController';
+import { MOUTH_CLOSE_THRESHOLD, MOUTH_OPEN_THRESHOLD } from '../multimodalInput/MouthController';
 import { REALTIME_METRICS_FRAME_MESSAGE } from './types';
 import type { RealtimeMetricsFrameMessage, RealtimeMetricsPayload } from './types';
 

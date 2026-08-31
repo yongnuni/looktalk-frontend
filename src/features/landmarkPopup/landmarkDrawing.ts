@@ -3,13 +3,13 @@ import type { LandmarkPopupVariant } from './LandmarkPopupContext';
 import {
   FULL_FACE_CONTOUR_INDICES,
   LOOKTALK_IRIS_INDEX_GROUPS,
-  LOOKTALK_LEFT_EYE_CONNECTIONS,
+  LOOKTALK_LEFT_EYE_INDICES,
   LOOKTALK_MOUTH_INDICES,
-  LOOKTALK_RIGHT_EYE_CONNECTIONS,
-  type LandmarkConnection,
+  LOOKTALK_MOUTH_VERTICAL_CONNECTION,
+  LOOKTALK_RIGHT_EYE_INDICES,
 } from './landmarkGroups';
 
-export type DrawableLandmarkGroup = 'full' | 'iris' | 'mouth';
+export type DrawableLandmarkGroup = 'full' | 'mouth';
 
 export interface LandmarkPointStyle {
   radius: number;
@@ -20,31 +20,116 @@ export interface LandmarkPointStyle {
 
 export const LANDMARK_POINT_STYLES: Record<DrawableLandmarkGroup, LandmarkPointStyle> = {
   full: {
-    radius: 2.75,
+    radius: 2.8,
     fill: '#ffffff',
     stroke: '#111111',
-    strokeWidth: 1.25,
-  },
-  iris: {
-    radius: 5.5,
-    fill: '#ff2020',
-    stroke: '#ffffff',
-    strokeWidth: 1.5,
+    strokeWidth: 1,
   },
   mouth: {
-    radius: 5,
-    fill: '#33e06f',
-    stroke: '#111111',
-    strokeWidth: 1.5,
+    radius: 6,
+    fill: '#00ff00',
+    stroke: '#00ff00',
+    strokeWidth: 0,
   },
 };
 
 export const EYE_CONTOUR_STYLE = {
-  haloColor: '#111111',
-  haloWidth: 3.5,
-  color: '#ffe000',
-  width: 1.5,
+  color: '#db7093',
+  width: 1,
 } as const;
+
+export const IRIS_RING_STYLE = {
+  color: '#ffc800',
+  width: 1,
+  minimumRadius: 3,
+  centerRadius: 2,
+} as const;
+
+export const MOUTH_VERTICAL_LINE_STYLE = {
+  color: '#ffff00',
+  width: 2,
+} as const;
+
+export const LANDMARK_VISUAL_SCALE_REFERENCE_WIDTH = 480;
+export const LANDMARK_VISUAL_SCALE_MIN = 0.9;
+export const LANDMARK_VISUAL_SCALE_MAX = 1.35;
+
+export interface ScaledEyeContourStyle {
+  color: string;
+  width: number;
+}
+
+export interface ScaledIrisRingStyle {
+  color: string;
+  width: number;
+  minimumRadius: number;
+  centerRadius: number;
+}
+
+export interface ScaledLineStyle {
+  color: string;
+  width: number;
+}
+
+export interface LandmarkVisualMetrics {
+  visualScale: number;
+  pointStyles: Record<DrawableLandmarkGroup, LandmarkPointStyle>;
+  eyeContourStyle: ScaledEyeContourStyle;
+  irisRingStyle: ScaledIrisRingStyle;
+  mouthVerticalLineStyle: ScaledLineStyle;
+}
+
+/** CSS 표시 너비만 사용한다. Canvas backing size와 DPR은 이 배율에 관여하지 않는다. */
+export function calculateLandmarkVisualScale(cssWidth: number): number {
+  if (!Number.isFinite(cssWidth)) {
+    return LANDMARK_VISUAL_SCALE_MIN;
+  }
+
+  return Math.min(
+    LANDMARK_VISUAL_SCALE_MAX,
+    Math.max(
+      LANDMARK_VISUAL_SCALE_MIN,
+      cssWidth / LANDMARK_VISUAL_SCALE_REFERENCE_WIDTH,
+    ),
+  );
+}
+
+function scalePointStyle(
+  style: LandmarkPointStyle,
+  visualScale: number,
+): LandmarkPointStyle {
+  return {
+    ...style,
+    radius: style.radius * visualScale,
+    strokeWidth: style.strokeWidth * visualScale,
+  };
+}
+
+export function calculateLandmarkVisualMetrics(cssWidth: number): LandmarkVisualMetrics {
+  const visualScale = calculateLandmarkVisualScale(cssWidth);
+
+  return {
+    visualScale,
+    pointStyles: {
+      full: scalePointStyle(LANDMARK_POINT_STYLES.full, visualScale),
+      mouth: scalePointStyle(LANDMARK_POINT_STYLES.mouth, visualScale),
+    },
+    eyeContourStyle: {
+      ...EYE_CONTOUR_STYLE,
+      width: EYE_CONTOUR_STYLE.width * visualScale,
+    },
+    irisRingStyle: {
+      ...IRIS_RING_STYLE,
+      width: IRIS_RING_STYLE.width * visualScale,
+      minimumRadius: IRIS_RING_STYLE.minimumRadius * visualScale,
+      centerRadius: IRIS_RING_STYLE.centerRadius * visualScale,
+    },
+    mouthVerticalLineStyle: {
+      ...MOUTH_VERTICAL_LINE_STYLE,
+      width: MOUTH_VERTICAL_LINE_STYLE.width * visualScale,
+    },
+  };
+}
 
 export interface CoverRect {
   x: number;
@@ -115,35 +200,6 @@ export function projectCanonicalLandmark(
   };
 }
 
-export function averageLandmarkPoint(
-  landmarks: ReadonlyArray<NormalizedLandmark>,
-  indices: ReadonlyArray<number>,
-): Pick<NormalizedLandmark, 'x' | 'y' | 'z'> | null {
-  if (indices.length === 0) {
-    return null;
-  }
-
-  let x = 0;
-  let y = 0;
-  let z = 0;
-
-  for (const index of indices) {
-    const point = landmarks[index];
-    if (!point) {
-      return null;
-    }
-    x += point.x;
-    y += point.y;
-    z += point.z ?? 0;
-  }
-
-  return {
-    x: x / indices.length,
-    y: y / indices.length,
-    z: z / indices.length,
-  };
-}
-
 export type LandmarkVisitor = (
   point: NormalizedLandmark,
   index: number,
@@ -198,30 +254,65 @@ function drawPoint(
   context.arc(point.x, point.y, style.radius, 0, Math.PI * 2);
   context.fillStyle = style.fill;
   context.fill();
-  context.lineWidth = style.strokeWidth;
-  context.strokeStyle = style.stroke;
+  if (style.strokeWidth > 0) {
+    context.lineWidth = style.strokeWidth;
+    context.strokeStyle = style.stroke;
+    context.stroke();
+  }
+}
+
+function drawClosedPolyline(
+  context: CanvasRenderingContext2D,
+  landmarks: ReadonlyArray<NormalizedLandmark>,
+  indices: ReadonlyArray<number>,
+  coverRect: CoverRect,
+  style: ScaledLineStyle,
+): void {
+  const points: NormalizedLandmark[] = [];
+  for (const index of indices) {
+    const point = landmarks[index];
+    if (!point) {
+      return;
+    }
+    points.push(point);
+  }
+
+  context.beginPath();
+  points.forEach((point, index) => {
+    const projected = projectCanonicalLandmark(point, coverRect);
+    if (index === 0) {
+      context.moveTo(projected.x, projected.y);
+    } else {
+      context.lineTo(projected.x, projected.y);
+    }
+  });
+  context.closePath();
+  context.strokeStyle = style.color;
+  context.lineWidth = style.width;
   context.stroke();
 }
 
-function traceConnections(
+function drawConnection(
   context: CanvasRenderingContext2D,
   landmarks: ReadonlyArray<NormalizedLandmark>,
-  connections: ReadonlyArray<LandmarkConnection>,
+  startIndex: number,
+  endIndex: number,
   coverRect: CoverRect,
+  style: ScaledLineStyle,
 ): void {
-  context.beginPath();
-  for (const { start, end } of connections) {
-    const startPoint = landmarks[start];
-    const endPoint = landmarks[end];
-    if (!startPoint || !endPoint) {
-      continue;
-    }
-
-    const projectedStart = projectCanonicalLandmark(startPoint, coverRect);
-    const projectedEnd = projectCanonicalLandmark(endPoint, coverRect);
-    context.moveTo(projectedStart.x, projectedStart.y);
-    context.lineTo(projectedEnd.x, projectedEnd.y);
+  const start = landmarks[startIndex];
+  const end = landmarks[endIndex];
+  if (!start || !end) {
+    return;
   }
+
+  const projectedStart = projectCanonicalLandmark(start, coverRect);
+  const projectedEnd = projectCanonicalLandmark(end, coverRect);
+  context.beginPath();
+  context.moveTo(projectedStart.x, projectedStart.y);
+  context.lineTo(projectedEnd.x, projectedEnd.y);
+  context.strokeStyle = style.color;
+  context.lineWidth = style.width;
   context.stroke();
 }
 
@@ -229,20 +320,74 @@ function drawEyeContours(
   context: CanvasRenderingContext2D,
   landmarks: ReadonlyArray<NormalizedLandmark>,
   coverRect: CoverRect,
+  style: ScaledEyeContourStyle,
 ): void {
-  const eyeConnections = [
-    ...LOOKTALK_LEFT_EYE_CONNECTIONS,
-    ...LOOKTALK_RIGHT_EYE_CONNECTIONS,
-  ];
-
   context.lineCap = 'round';
   context.lineJoin = 'round';
-  context.strokeStyle = EYE_CONTOUR_STYLE.haloColor;
-  context.lineWidth = EYE_CONTOUR_STYLE.haloWidth;
-  traceConnections(context, landmarks, eyeConnections, coverRect);
-  context.strokeStyle = EYE_CONTOUR_STYLE.color;
-  context.lineWidth = EYE_CONTOUR_STYLE.width;
-  traceConnections(context, landmarks, eyeConnections, coverRect);
+  drawClosedPolyline(
+    context,
+    landmarks,
+    LOOKTALK_LEFT_EYE_INDICES,
+    coverRect,
+    style,
+  );
+  drawClosedPolyline(
+    context,
+    landmarks,
+    LOOKTALK_RIGHT_EYE_INDICES,
+    coverRect,
+    style,
+  );
+}
+
+function drawIrisRing(
+  context: CanvasRenderingContext2D,
+  landmarks: ReadonlyArray<NormalizedLandmark>,
+  group: (typeof LOOKTALK_IRIS_INDEX_GROUPS)[number],
+  coverRect: CoverRect,
+  style: ScaledIrisRingStyle,
+): void {
+  const center = landmarks[group.center];
+  if (!center) {
+    return;
+  }
+
+  const ring: NormalizedLandmark[] = [];
+  for (const index of group.ring) {
+    const point = landmarks[index];
+    if (!point) {
+      return;
+    }
+    ring.push(point);
+  }
+
+  const projectedCenter = projectCanonicalLandmark(center, coverRect);
+  const radii = ring.map((point) => {
+    const projected = projectCanonicalLandmark(point, coverRect);
+    return Math.hypot(
+      projected.x - projectedCenter.x,
+      projected.y - projectedCenter.y,
+    );
+  });
+  const meanRadius = radii.reduce((sum, radius) => sum + radius, 0) / radii.length;
+  const radius = Math.max(style.minimumRadius, meanRadius);
+
+  context.beginPath();
+  context.arc(projectedCenter.x, projectedCenter.y, radius, 0, Math.PI * 2);
+  context.strokeStyle = style.color;
+  context.lineWidth = style.width;
+  context.stroke();
+
+  context.beginPath();
+  context.arc(
+    projectedCenter.x,
+    projectedCenter.y,
+    style.centerRadius,
+    0,
+    Math.PI * 2,
+  );
+  context.fillStyle = style.color;
+  context.fill();
 }
 
 interface DrawLandmarkFrameOptions {
@@ -297,18 +442,24 @@ export function drawLandmarkFrame({
     return;
   }
 
-  if (variant === 'looktalk') {
-    drawEyeContours(context, landmarks, coverRect);
+  const visualMetrics = calculateLandmarkVisualMetrics(cssWidth);
 
-    for (const irisIndices of LOOKTALK_IRIS_INDEX_GROUPS) {
-      const center = averageLandmarkPoint(landmarks, irisIndices);
-      if (center) {
-        drawPoint(
-          context,
-          projectCanonicalLandmark(center, coverRect),
-          LANDMARK_POINT_STYLES.iris,
-        );
-      }
+  if (variant === 'looktalk') {
+    drawEyeContours(
+      context,
+      landmarks,
+      coverRect,
+      visualMetrics.eyeContourStyle,
+    );
+
+    for (const irisGroup of LOOKTALK_IRIS_INDEX_GROUPS) {
+      drawIrisRing(
+        context,
+        landmarks,
+        irisGroup,
+        coverRect,
+        visualMetrics.irisRingStyle,
+      );
     }
   }
 
@@ -316,7 +467,18 @@ export function drawLandmarkFrame({
     drawPoint(
       context,
       projectCanonicalLandmark(point, coverRect),
-      LANDMARK_POINT_STYLES[group],
+      visualMetrics.pointStyles[group],
     );
   });
+
+  if (variant === 'looktalk') {
+    drawConnection(
+      context,
+      landmarks,
+      LOOKTALK_MOUTH_VERTICAL_CONNECTION.start,
+      LOOKTALK_MOUTH_VERTICAL_CONNECTION.end,
+      coverRect,
+      visualMetrics.mouthVerticalLineStyle,
+    );
+  }
 }

@@ -9,8 +9,10 @@ import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
 import { createCalibration } from '../api/calibrationApi';
 import { CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED } from '../constants';
 import { useCalibrationStore } from '../store/calibrationStore';
+import type { InputCalibrationResult } from '../inputCalibration';
 import type { GazeCalibrationResult } from '../types';
 import type { HomographyPointDiagnostic } from '../homography';
+import type { PatientInputTestResults } from '../PatientCalibrationFlow';
 import './MeasurementResultModal.css';
 
 type ModalState = 'SELECTING' | 'SAVING' | 'ERROR';
@@ -30,7 +32,11 @@ interface MeasurementResultModalProps {
   candidate: GazeCalibrationResult;
   pointDiagnostics: HomographyPointDiagnostic[] | null;
   subscribeCompletionGaze: SubscribeCalibrationCompletionGaze;
+  inputCalibration: InputCalibrationResult;
+  inputTestResults: PatientInputTestResults;
   onRetest: () => void;
+  onSaving: () => void;
+  onSaveFailed: () => void;
   onApplied: (method: InputMethod) => void;
 }
 
@@ -41,7 +47,11 @@ export default function MeasurementResultModal({
   candidate,
   pointDiagnostics,
   subscribeCompletionGaze,
+  inputCalibration,
+  inputTestResults,
   onRetest,
+  onSaving,
+  onSaveFailed,
   onApplied,
 }: MeasurementResultModalProps) {
   const [modalState, setModalState] = useState<ModalState>('SELECTING');
@@ -61,6 +71,7 @@ export default function MeasurementResultModal({
     }
 
     selectionInFlightRef.current = true;
+    onSaving();
     setPendingMethod(method);
     setModalState('SAVING');
 
@@ -82,12 +93,15 @@ export default function MeasurementResultModal({
       onApplied(method);
     } catch {
       selectionInFlightRef.current = false;
+      onSaveFailed();
       setModalState('ERROR');
     }
   }, [
     candidate,
     modalState,
     onApplied,
+    onSaveFailed,
+    onSaving,
     savedCalibrationId,
     setActiveCalibration,
     updateSettings,
@@ -136,7 +150,9 @@ export default function MeasurementResultModal({
   return (
     <div className="measurement-result-modal" role="dialog" aria-modal="true">
       <p className="measurement-result-modal__title">&lt;측정 결과&gt;</p>
-      <p>사용하고 싶은 입력 방식을 선택해주세요.</p>
+      <p className="measurement-result-modal__instruction">
+        사용하고 싶은 입력 방식을 선택해주세요.
+      </p>
 
       {/* Final C — Look-Talk 원본(calibration.py 643행)의 RMSE 하드 게이트에 대응하는
           비침습적 경고. Python처럼 말없이 이전 값으로 자동 대체하지 않고 사용자가 직접
@@ -147,6 +163,42 @@ export default function MeasurementResultModal({
           방식을 선택해 적용할 수 있습니다.
         </p>
       )}
+
+      <div className="measurement-result-modal__input-calibration">
+        <p>
+          눈 깜빡임 측정 완료
+          {inputCalibration.blink.fallback && <span>기본값 사용</span>}
+        </p>
+        <p>
+          입 움직임 측정 완료
+          {inputCalibration.mouth.fallback && <span>기본값 사용</span>}
+        </p>
+      </div>
+
+      <div className="measurement-result-modal__input-tests" aria-label="입력 테스트 결과">
+        {METHOD_OPTIONS.map((option) => {
+          const result =
+            option.method === 'EYE_TRACKING'
+              ? inputTestResults.gaze
+              : option.method === 'BLINK'
+                ? inputTestResults.blink
+                : inputTestResults.mouth;
+
+          return (
+            <section key={option.method}>
+              <strong>{option.label}</strong>
+              {result ? (
+                <p>
+                  목표 {result.targetWord} · {(result.durationMs / 1_000).toFixed(1)}초 · 오답{' '}
+                  {result.incorrectAttempts}회
+                </p>
+              ) : (
+                <p>결과 없음</p>
+              )}
+            </section>
+          );
+        })}
+      </div>
 
       <div className="measurement-result-modal__methods">
         {METHOD_OPTIONS.map((option) => (

@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { GazeFrame } from '../gazeRuntime/GazeRuntimeContext';
 import type { GazeSignal } from '../faceTracking/types';
 import { EAR_CLOSE_THRESHOLD, EAR_OPEN_THRESHOLD } from '../faceTracking/gaze/blinkGate';
-import { CLOSE_THRESHOLD as MOUTH_CLOSE_THRESHOLD, OPEN_THRESHOLD as MOUTH_OPEN_THRESHOLD } from '../multimodalInput/MouthController';
+import { MOUTH_CLOSE_THRESHOLD, MOUTH_OPEN_THRESHOLD } from '../multimodalInput/MouthController';
 import { buildCalibrationRealtimeMetricsPayload, buildRealtimeMetricsPayload } from './buildRealtimeMetricsPayload';
 
 // vitest 기본 환경(node)에는 window가 없다 — buildCalibrationRealtimeMetricsPayload가 쓰는
