@@ -50,15 +50,27 @@ describe('hitTestTargets', () => {
     expect(hit?.id).toBe('card');
   });
 
-  it('rect 경계선(포함) 위의 커서도 hit으로 처리한다', () => {
-    const hit = hitTestTargets({ x: 100, y: 100 }, [BIG_CARD]);
-    expect(hit?.id).toBe('card');
+  it('Python KeyRect처럼 left/top은 포함하고 right/bottom은 제외한다', () => {
+    expect(hitTestTargets({ x: 100, y: 100 }, [BIG_CARD])?.id).toBe('card');
+    expect(hitTestTargets({ x: 399.999, y: 399.999 }, [BIG_CARD])?.id).toBe('card');
+    expect(hitTestTargets({ x: 400, y: 200 }, [BIG_CARD])).toBeNull();
+    expect(hitTestTargets({ x: 200, y: 400 }, [BIG_CARD])).toBeNull();
   });
 
   it('여러 target 중 실제로 커서를 포함하는 것만 hit된다', () => {
     const other = fakeTarget('other', { left: 500, top: 500, right: 600, bottom: 600 });
     const hit = hitTestTargets({ x: 550, y: 550 }, [BIG_CARD, other]);
     expect(hit?.id).toBe('other');
+  });
+
+  it('매 호출마다 최신 DOM rect를 읽어 resize 이전 좌표를 캐시하지 않는다', () => {
+    const rect = { left: 0, top: 0, right: 100, bottom: 100 };
+    const target = fakeTarget('resized', rect);
+
+    expect(hitTestTargets({ x: 150, y: 50 }, [target])).toBeNull();
+
+    rect.right = 200;
+    expect(hitTestTargets({ x: 150, y: 50 }, [target])?.id).toBe('resized');
   });
 });
 
