@@ -59,6 +59,63 @@ interface MemoItem {
   updatedAt: string;
 }
 
+interface MemoListItemProps {
+  memo: MemoItem;
+  gazeEnabled: boolean;
+  onDelete: (memoId: number) => void;
+  onTts: (memoText: string) => void;
+}
+
+// 메모 개수는 동적으로 변하므로 부모의 .map() 안에서 useGazeTarget 훅을 직접 호출하지 않고,
+// 각 메모 행을 별도 컴포넌트로 분리해 삭제/TTS 버튼을 각각 시선 타깃으로 등록한다.
+function MemoListItem({
+  memo,
+  gazeEnabled,
+  onDelete,
+  onTts,
+}: MemoListItemProps) {
+  const deleteTargetRef = useGazeTarget({
+    id: `memo-delete-${memo.memoId}`,
+    scope: 'MAIN',
+    enabled: gazeEnabled,
+    onSelect: () => onDelete(memo.memoId),
+  });
+
+  const ttsTargetRef = useGazeTarget({
+    id: `memo-tts-${memo.memoId}`,
+    scope: 'MAIN',
+    enabled: gazeEnabled,
+    onSelect: () => onTts(memo.text),
+  });
+
+  return (
+    <div className="memo-item">
+      <button
+        ref={deleteTargetRef}
+        type="button"
+        className="delete-button"
+        onClick={() => onDelete(memo.memoId)}
+        aria-label="메모 삭제"
+      >
+        <img src={TrashIcon} alt="삭제" className="trash-icon" />
+      </button>
+
+      <div className="memo-text">{memo.text}</div>
+
+      <button
+        ref={ttsTargetRef}
+        type="button"
+        className="tts-button"
+        onClick={() => onTts(memo.text)}
+        aria-label="메모 음성으로 듣기"
+        title="음성으로 듣기"
+      >
+        <img src={TtsIcon} alt="" className="tts-icon" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 export default function MemoPage() {
   const navigate = useNavigate();
 
@@ -520,11 +577,9 @@ export default function MemoPage() {
   };
 
   // =========================
-  // Gaze targets(§28) — 실제 존재하는 핵심 navigation/action만.
-  // 메모 개별 삭제는 목록 길이가 가변적이라(hooks 규칙상 목록 길이만큼 useGazeTarget을
-  // .map() 안에서 호출할 수 없다, PatientChatView의 room slot과 동일한 제약) 이번
-  // 범위에서는 제외한다 — 삭제는 파괴적 action이라 확인 모달까지 거쳐야 하므로 우선순위도
-  // 낮다(§52).
+  // Gaze targets
+  // 고정 UI는 이 컴포넌트에서 등록하고, 동적 메모 행의 삭제/TTS 타깃은
+  // MemoListItem 컴포넌트 내부에서 각각 등록한다.
   // =========================
   const logoTargetRef = useGazeTarget({
     id: 'memo-logo',
@@ -557,6 +612,22 @@ export default function MemoPage() {
     id: 'memo-scroll-down',
     scope: 'MAIN',
     onSelect: handleScrollDown,
+  });
+
+  const deleteConfirmTargetRef = useGazeTarget({
+    id: 'memo-delete-confirm',
+    scope: 'MAIN',
+    enabled: showDeleteModal && !isDeleting,
+    onSelect: () => {
+      void handleConfirmDelete();
+    },
+  });
+
+  const deleteCancelTargetRef = useGazeTarget({
+    id: 'memo-delete-cancel',
+    scope: 'MAIN',
+    enabled: showDeleteModal && !isDeleting,
+    onSelect: handleCancelDelete,
   });
 
   return (
@@ -594,33 +665,13 @@ export default function MemoPage() {
 
           {!isLoading &&
             memos.map((memo) => (
-              <div className="memo-item" key={memo.memoId}>
-                <button
-                  type="button"
-                  className="delete-button"
-                  onClick={() => handleDeleteClick(memo.memoId)}
-                  aria-label="메모 삭제"
-                >
-                  <img src={TrashIcon} alt="삭제" className="trash-icon" />
-                </button>
-
-                <div className="memo-text">{memo.text}</div>
-
-                <button
-                  type="button"
-                  className="tts-button"
-                  onClick={() => handleTtsClick(memo.text)}
-                  aria-label="메모 음성으로 듣기"
-                  title="음성으로 듣기"
-                >
-                  <img
-                    src={TtsIcon}
-                    alt=""
-                    className="tts-icon"
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
+              <MemoListItem
+                key={memo.memoId}
+                memo={memo}
+                gazeEnabled={!showDeleteModal && !isKeyboardOpen}
+                onDelete={handleDeleteClick}
+                onTts={handleTtsClick}
+              />
             ))}
 
           {!isLoading && memos.length === 0 && !errorMessage && (
@@ -721,6 +772,7 @@ export default function MemoPage() {
 
             <div className="delete-modal-buttons">
               <button
+                ref={deleteConfirmTargetRef}
                 type="button"
                 className="delete-confirm-button"
                 onClick={() => void handleConfirmDelete()}
@@ -730,6 +782,7 @@ export default function MemoPage() {
               </button>
 
               <button
+                ref={deleteCancelTargetRef}
                 type="button"
                 className="delete-cancel-button"
                 onClick={handleCancelDelete}
