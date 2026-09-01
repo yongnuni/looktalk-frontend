@@ -12,7 +12,7 @@ import GazeCursorImage from '../../features/gazeInteraction/GazeCursorImage';
 import { useCalibrationRunner } from '../../features/calibration/hooks/useCalibrationRunner';
 import { viewportNormalizedToCssPx } from '../../features/calibration/viewportTargets';
 import { CalibrationRealtimeMetricsBridge } from '../../features/realtimeMetrics/CalibrationRealtimeMetricsBridge';
-import RealtimeMetricsLauncherButton from '../../features/realtimeMetrics/RealtimeMetricsLauncherButton';
+import { openRealtimeMetricsWindow } from '../../features/realtimeMetrics/openRealtimeMetricsWindow';
 import LandmarkPopupAutoOpen from '../../features/landmarkPopup/LandmarkPopupAutoOpen';
 import {
   LandmarkPopupProvider,
@@ -98,6 +98,9 @@ export default function CalibrationPage() {
   const handleStartCalibration = useCallback(() => {
     setLandmarkSessionId((current) => current + 1);
     landmarkPopupRef.current?.prepareWindow();
+    // user gesture(클릭) 콜스택 안에서 동기 호출 — startCalibration()의 카메라 권한
+    // 요청(비동기)보다 먼저 실행되어야 popup blocker를 피할 수 있다.
+    openRealtimeMetricsWindow();
     startCalibration();
   }, [startCalibration]);
 
@@ -116,6 +119,7 @@ export default function CalibrationPage() {
     setSettingApplied(false);
     setLandmarkSessionId((current) => current + 1);
     landmarkPopupRef.current?.prepareWindow();
+    openRealtimeMetricsWindow();
     restart();
   }, [restart]);
 
@@ -192,12 +196,19 @@ export default function CalibrationPage() {
       {/* FaceLandmarker 입력용 video. 화면에는 안 보이지만 재생 상태여야 detectForVideo가 동작한다. */}
       <video ref={videoRef} className="calibration-hidden-video" playsInline muted />
 
-      {/* Realtime Metrics Window(별도 브라우저 창) producer/launcher. 카메라/FaceLandmarker를
-          새로 열지 않고 위 useCalibrationRunner()가 이미 계산한 gazeSignal/cursorNormalized만
-          읽어 내보낸다. PatientGazeRuntimeLayout과 /calibration은 router상 서로 배타적인
-          route라 launcher가 동시에 두 곳에 존재하지 않는다. */}
-      <CalibrationRealtimeMetricsBridge signal={gazeSignal} cursorNormalized={cursorNormalized} />
-      <RealtimeMetricsLauncherButton />
+      {/* Realtime Metrics Window(별도 브라우저 창) producer. 카메라/FaceLandmarker를
+          새로 열지 않고 위 useCalibrationRunner()가 이미 계산한 값만 읽어 내보낸다.
+          flowStage/blinkProgress/mouthProgress를 함께 넘겨 팝업이 GAZE/BLINK/MOUTH 모드를
+          자동으로 전환하게 한다(§realtimeMetrics displayMode.ts). 창 자체는
+          handleStartCalibration/handleRetest의 openRealtimeMetricsWindow() 호출로 자동
+          준비되므로 여기서는 launcher 버튼을 렌더링하지 않는다. */}
+      <CalibrationRealtimeMetricsBridge
+        signal={gazeSignal}
+        cursorNormalized={cursorNormalized}
+        flowStage={flowStage}
+        blinkProgress={blinkProgress}
+        mouthProgress={mouthProgress}
+      />
 
       {showMeasurementOverlay &&
         createPortal(

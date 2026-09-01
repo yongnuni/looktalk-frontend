@@ -44,6 +44,9 @@ describe('buildRealtimeMetricsPayload', () => {
     expect(payload.interaction).toEqual({ hoveredTargetId: 'key-A', progress: 0.5, fixationCount: 3 });
     expect(payload.inputMethod).toBe('EYE_TRACKING');
     expect(payload.timestamp).toBe(BASE);
+    // gaze dot을 popup panel 크기에 맞게 scaling할 때 쓰는 원본 viewport 크기 —
+    // 팝업 자신의 크기가 아니라 이 payload를 만든 main window 자신의 값이다.
+    expect(payload.coordinateSpace).toEqual({ width: 1920, height: 1080 });
   });
 
   it('MouthController가 판정한 mouthOpen을 그대로 옮긴다(팝업에서 mar>=threshold를 다시 판정하지 않음)', () => {
@@ -112,6 +115,7 @@ describe('buildCalibrationRealtimeMetricsPayload', () => {
     // 그리는 자기 커서와 동일한 변환(viewportNormalizedToCssPx)을 그대로 재사용한 값이다.
     expect(payload.gaze.x).toBe(960);
     expect(payload.gaze.y).toBe(270);
+    expect(payload.coordinateSpace).toEqual({ width: 1920, height: 1080 });
   });
 
   it('signal이 없으면(얼굴 미검출) hasSignal=false이고 모든 신호값이 null이다', () => {
@@ -124,5 +128,98 @@ describe('buildCalibrationRealtimeMetricsPayload', () => {
     // threshold는 신호 유무와 무관하게 항상 채워진다.
     expect(payload.eye.closeThreshold).toBe(EAR_CLOSE_THRESHOLD);
     expect(payload.mouth.openThreshold).toBe(MOUTH_OPEN_THRESHOLD);
+  });
+
+  it('stage 인자를 생략하면 calibration 필드 자체를 만들지 않는다(기존 호출부 회귀 없음)', () => {
+    const payload = buildCalibrationRealtimeMetricsPayload(calibrationSignal(), null);
+
+    expect(payload.calibration).toBeUndefined();
+  });
+
+  it('flowStage=GAZE_RUNNING이면 calibration.mode=GAZE다(9pt는 항상 이 분기만 탄다)', () => {
+    const payload = buildCalibrationRealtimeMetricsPayload(calibrationSignal(), null, {
+      flowStage: 'GAZE_RUNNING',
+      blinkProgress: null,
+      mouthProgress: null,
+    });
+
+    expect(payload.calibration).toEqual({ mode: 'GAZE' });
+  });
+
+  it('flowStage=BLINK_RUNNING이면 calibration.mode=BLINK이고 blinkProgress 요약값을 담는다', () => {
+    const payload = buildCalibrationRealtimeMetricsPayload(calibrationSignal(), null, {
+      flowStage: 'BLINK_RUNNING',
+      blinkProgress: {
+        phase: 'blink',
+        completedTrials: 1,
+        totalTrials: 3,
+        trialNumber: 2,
+        attemptNumber: 1,
+        phaseProgress: 0.4,
+        instruction: '',
+        faceDetected: true,
+        currentEar: 0.2,
+        openSampleCount: 5,
+        failed: false,
+        done: false,
+        result: null,
+      },
+      mouthProgress: null,
+    });
+
+    expect(payload.calibration).toEqual({
+      mode: 'BLINK',
+      phaseProgress: 0.4,
+      trialNumber: 2,
+      totalTrials: 3,
+    });
+    // BLINK_RUNNING 중에도 raw EAR/threshold는 기존과 동일하게 signal에서 그대로 옮겨진다.
+    expect(payload.eye.ear).toBe(0.28);
+    expect(payload.eye.closeThreshold).toBe(EAR_CLOSE_THRESHOLD);
+  });
+
+  it('flowStage=MOUTH_RUNNING이면 calibration.mode=MOUTH이고 mouthProgress 요약값을 담는다', () => {
+    const payload = buildCalibrationRealtimeMetricsPayload(calibrationSignal(), null, {
+      flowStage: 'MOUTH_RUNNING',
+      blinkProgress: null,
+      mouthProgress: {
+        phase: 'active',
+        completedTrials: 0,
+        totalTrials: 3,
+        trialNumber: 1,
+        attemptNumber: 1,
+        phaseProgress: 0.75,
+        instruction: '',
+        faceDetected: true,
+        currentMar: 0.31,
+        activationThreshold: null,
+        failed: false,
+        done: false,
+        result: null,
+      },
+    });
+
+    expect(payload.calibration).toEqual({
+      mode: 'MOUTH',
+      phaseProgress: 0.75,
+      trialNumber: 1,
+      totalTrials: 3,
+    });
+    // MOUTH_RUNNING 중에도 raw MAR/threshold는 기존과 동일하게 signal에서 그대로 옮겨진다.
+    expect(payload.mouth.mar).toBe(0.31);
+    expect(payload.mouth.openThreshold).toBe(MOUTH_OPEN_THRESHOLD);
+    // Calibration에는 MouthController가 없으므로 mouthOpen은 여전히 새로 판정하지 않는다.
+    expect(payload.mouth.mouthOpen).toBeNull();
+  });
+
+  it('BLINK_RUNNING인데 blinkProgress가 아직 null이면(세션 막 시작) phaseProgress 등은 undefined로 안전하게 빠진다', () => {
+    const payload = buildCalibrationRealtimeMetricsPayload(calibrationSignal(), null, {
+      flowStage: 'BLINK_RUNNING',
+      blinkProgress: null,
+      mouthProgress: null,
+    });
+
+    expect(payload.calibration?.mode).toBe('BLINK');
+    expect(payload.calibration?.phaseProgress).toBeUndefined();
   });
 });

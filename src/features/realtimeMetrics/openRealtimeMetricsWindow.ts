@@ -9,12 +9,13 @@ export type OpenRealtimeMetricsWindowResult = 'opened' | 'focused' | 'blocked';
 
 /**
  * Realtime Metrics Window를 연다(사용자 gesture, 예: 버튼 클릭, 에서 호출해야 팝업 차단을
- * 피할 수 있다). 이미 열려 있으면 새 창을 만들지 않고 기존 창을 focus한다. 사용자가 창을
- * 닫은 뒤에는 참조가 stale(closed=true)해지므로 자동으로 새 창을 다시 연다.
+ * 피할 수 있다). 이미 열려 있으면 새 창을 만들지 않는다 — 화면 녹화 중 팝업을 최소화해
+ * 둔 경우가 있으므로, 기존 창을 focus()해서 앞으로 가져오거나 최소화를 풀지 않는다
+ * (LandmarkPopupProvider.prepareWindow()와 동일한 정책). 사용자가 창을 닫은 뒤에는
+ * 참조가 stale(closed=true)해지므로 자동으로 새 창을 다시 연다.
  */
 export function openRealtimeMetricsWindow(): OpenRealtimeMetricsWindowResult {
   if (metricsWindowRef && !metricsWindowRef.closed) {
-    metricsWindowRef.focus();
     return 'focused';
   }
 

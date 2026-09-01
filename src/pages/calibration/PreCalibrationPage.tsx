@@ -13,6 +13,8 @@ import {
   LandmarkPopupProvider,
   type LandmarkPopupProviderHandle,
 } from '../../features/landmarkPopup/LandmarkPopupProvider';
+import { CalibrationRealtimeMetricsBridge } from '../../features/realtimeMetrics/CalibrationRealtimeMetricsBridge';
+import { openRealtimeMetricsWindow } from '../../features/realtimeMetrics/openRealtimeMetricsWindow';
 
 import './CalibrationPage.css';
 
@@ -34,6 +36,10 @@ export default function PreCalibrationPage() {
     progress,
     result,
     cursorNormalized,
+    gazeSignal,
+    flowStage,
+    blinkProgress,
+    mouthProgress,
     subscribeCompletionGaze,
     subscribeTrackingFrame,
     restart,
@@ -65,6 +71,9 @@ export default function PreCalibrationPage() {
   const handleStartCalibration = useCallback(() => {
     setLandmarkSessionId((current) => current + 1);
     landmarkPopupRef.current?.prepareWindow();
+    // user gesture(클릭) 콜스택 안에서 동기 호출 — startCalibration()의 카메라 권한
+    // 요청(비동기)보다 먼저 실행되어야 popup blocker를 피할 수 있다.
+    openRealtimeMetricsWindow();
     startCalibration();
   }, [startCalibration]);
 
@@ -80,6 +89,7 @@ export default function PreCalibrationPage() {
     completionActionStartedRef.current = true;
     setLandmarkSessionId((current) => current + 1);
     landmarkPopupRef.current?.prepareWindow();
+    openRealtimeMetricsWindow();
     restart();
   }, [restart]);
 
@@ -219,6 +229,20 @@ export default function PreCalibrationPage() {
         className="calibration-hidden-video"
         playsInline
         muted
+      />
+
+      {/* Realtime Metrics Window(별도 브라우저 창) producer. 카메라/FaceLandmarker를
+          새로 열지 않고 위 useCalibrationRunner({mode:'pre'})가 이미 계산한 값만 읽어
+          내보낸다. 9pt는 flowStage가 항상 GAZE_RUNNING이라 팝업은 자연히 GAZE 모드로만
+          표시된다(§realtimeMetrics displayMode.ts). 창 자체는 handleStartCalibration/
+          handleRetest의 openRealtimeMetricsWindow() 호출로 자동 준비되므로 여기서는
+          launcher 버튼을 렌더링하지 않는다. */}
+      <CalibrationRealtimeMetricsBridge
+        signal={gazeSignal}
+        cursorNormalized={cursorNormalized}
+        flowStage={flowStage}
+        blinkProgress={blinkProgress}
+        mouthProgress={mouthProgress}
       />
 
       {/* =====================================================

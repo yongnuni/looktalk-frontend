@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { resolveRealtimeMetricsDisplayMode } from '../../features/realtimeMetrics/displayMode';
 import { resolveGazeCoordinateDisplay } from '../../features/realtimeMetrics/gazeCoordinateDisplay';
-import type { GazeCoordinateDisplay } from '../../features/realtimeMetrics/gazeCoordinateDisplay';
 import { useRealtimeMetricsChannel } from '../../features/realtimeMetrics/useRealtimeMetricsChannel';
 import type { RealtimeMetricsDisplayMode } from '../../features/realtimeMetrics/types';
+import RealtimeGazePosition from './RealtimeGazePosition';
+import { formatGazeAxis, formatRatio } from './realtimeMetricsFormat';
 import './RealtimeMetricsWindowPage.css';
 
 /**
@@ -12,20 +13,6 @@ import './RealtimeMetricsWindowPage.css';
  * createFaceLandmarker()/useFaceTracking()을 호출하지 않는다 — 오직 메인 창의
  * RealtimeMetricsBridge가 BroadcastChannel로 흘려주는 값만 표시한다.
  */
-
-function formatPx(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return '—';
-  }
-  return `${Math.round(value)} px`;
-}
-
-function formatRatio(value: number | null | undefined, digits: number): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return '—';
-  }
-  return value.toFixed(digits);
-}
 
 function formatEyeState(eyeClosed: boolean | null | undefined): string {
   if (eyeClosed === null || eyeClosed === undefined) return '—';
@@ -37,11 +24,18 @@ function formatMouthState(mouthOpen: boolean | null | undefined): string {
   return mouthOpen ? 'OPEN' : 'CLOSED';
 }
 
-/** kind별로 단위를 절대 섞지 않는다 — PX는 항상 "N px", NORMALIZED는 항상 소수점 3자리뿐. */
-function formatGazeAxis(display: GazeCoordinateDisplay, axis: 'x' | 'y'): string {
-  if (display.kind === 'PX') return formatPx(display[axis]);
-  if (display.kind === 'NORMALIZED') return formatRatio(display[axis], 3);
-  return '—';
+function formatCalibrationProgress(phaseProgress: number | null | undefined): string {
+  if (phaseProgress === null || phaseProgress === undefined || !Number.isFinite(phaseProgress)) {
+    return '—';
+  }
+  return `${Math.round(phaseProgress * 100)}%`;
+}
+
+function formatTrial(trialNumber: number | undefined, totalTrials: number | undefined): string | null {
+  if (trialNumber === undefined || totalTrials === undefined) {
+    return null;
+  }
+  return `${trialNumber} / ${totalTrials}`;
 }
 
 const MODE_TITLE: Record<RealtimeMetricsDisplayMode, string> = {
@@ -56,8 +50,15 @@ const NORMALIZED_GAZE_TITLE = '실시간 홍채 좌표';
 
 export default function RealtimeMetricsWindowPage() {
   const { payload, connected } = useRealtimeMetricsChannel();
-  const mode = resolveRealtimeMetricsDisplayMode(payload?.inputMethod);
+  const mode = resolveRealtimeMetricsDisplayMode({
+    inputMethod: payload?.inputMethod,
+    calibrationMode: payload?.calibration?.mode,
+  });
   const coordinateDisplay = resolveGazeCoordinateDisplay(payload);
+  const calibrationTrial = formatTrial(
+    payload?.calibration?.trialNumber,
+    payload?.calibration?.totalTrials,
+  );
   const isNormalizedFallback = mode === 'GAZE' && coordinateDisplay.kind === 'NORMALIZED';
 
   const statusLabel = useMemo(() => {
@@ -76,6 +77,8 @@ export default function RealtimeMetricsWindowPage() {
       </header>
 
       <section className="realtime-metrics-window__body">
+        <RealtimeGazePosition payload={payload} connected={connected} />
+
         {mode === 'GAZE' && (
           <dl className="realtime-metrics-window__rows">
             <div>
@@ -107,6 +110,18 @@ export default function RealtimeMetricsWindowPage() {
               <dt>상태</dt>
               <dd>{formatEyeState(payload?.eye.eyeClosed)}</dd>
             </div>
+            {payload?.calibration?.mode === 'BLINK' && (
+              <div>
+                <dt>진행률</dt>
+                <dd>{formatCalibrationProgress(payload.calibration.phaseProgress)}</dd>
+              </div>
+            )}
+            {payload?.calibration?.mode === 'BLINK' && calibrationTrial && (
+              <div>
+                <dt>Trial</dt>
+                <dd>{calibrationTrial}</dd>
+              </div>
+            )}
           </dl>
         )}
 
@@ -128,6 +143,18 @@ export default function RealtimeMetricsWindowPage() {
               <dt>상태</dt>
               <dd>{formatMouthState(payload?.mouth.mouthOpen)}</dd>
             </div>
+            {payload?.calibration?.mode === 'MOUTH' && (
+              <div>
+                <dt>진행률</dt>
+                <dd>{formatCalibrationProgress(payload.calibration.phaseProgress)}</dd>
+              </div>
+            )}
+            {payload?.calibration?.mode === 'MOUTH' && calibrationTrial && (
+              <div>
+                <dt>Trial</dt>
+                <dd>{calibrationTrial}</dd>
+              </div>
+            )}
           </dl>
         )}
 

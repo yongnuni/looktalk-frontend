@@ -21,6 +21,10 @@ export const REALTIME_METRICS_READY_MESSAGE = 'LOOKTALK_METRICS_READY';
 
 export type RealtimeMetricsDisplayMode = 'GAZE' | 'BLINK' | 'MOUTH';
 
+/** Calibration(9pt/16pt) producer가 명시적으로 알려주는 현재 flowStage 모드.
+ * Patient runtime payload에는 없다(displayMode.ts가 없으면 기존 inputMethod로 판정). */
+export type RealtimeMetricsCalibrationMode = RealtimeMetricsDisplayMode;
+
 export interface RealtimeMetricsPayload {
   /** frame.hasSignal 그대로 — false면 얼굴 미검출/활성 calibration 없음. */
   hasSignal: boolean;
@@ -62,8 +66,32 @@ export interface RealtimeMetricsPayload {
   };
 
   /** resolveGazeInputMode() 결과(DWELL/MOUTH)가 아니라 실제 backend currentInputMethod.
-   * BLINK가 DWELL로 fallback되는 것과 무관하게 팝업 표시 모드는 이 값을 기준으로 판단한다. */
+   * BLINK가 DWELL로 fallback되는 것과 무관하게 팝업 표시 모드는 이 값을 기준으로 판단한다.
+   * Calibration producer는 항상 null로 보낸다(아래 calibration 필드가 대신 모드를 정한다). */
   inputMethod: InputMethod | null;
+
+  /** Calibration(9pt/16pt) producer에서만 채워진다 — 현재 flowStage가 GAZE_RUNNING/
+   * BLINK_RUNNING/MOUTH_RUNNING 중 무엇인지 명시적으로 알려준다. Patient runtime payload는
+   * 이 필드를 아예 만들지 않는다(undefined) — displayMode.ts가 이 필드를 최우선으로 쓰고,
+   * 없으면 기존 inputMethod 기반 판정으로 fallback한다(§Patient runtime 회귀 방지).
+   * BLINK/MOUTH 단계의 진행률은 전체 calibration state를 그대로 싣지 않고, 팝업이 실제
+   * 표시하는 최소 값(phaseProgress/trialNumber/totalTrials)만 요약해서 담는다. */
+  calibration?: {
+    mode: RealtimeMetricsCalibrationMode;
+    phaseProgress?: number;
+    trialNumber?: number;
+    totalTrials?: number;
+  };
+
+  /** gaze.x/y(PX)를 계산할 때 기준이 된 원본 viewport 크기(window.innerWidth/innerHeight,
+   * Patient/Calibration 둘 다 이 payload를 만드는 main window 자신의 값 — 팝업 자신의
+   * width/height가 아니다). 팝업이 gaze dot을 시각화 영역 크기에 맞게 다시 scaling할 때만
+   * 쓰고, 그 외의 좌표 표시(라벨)는 gaze.x/y 원본 값을 그대로 쓴다(§mapGazeToPanel.ts).
+   * irisX/irisY(NORMALIZED, 이미 0..1)에는 필요 없다. */
+  coordinateSpace?: {
+    width: number;
+    height: number;
+  };
 
   timestamp: number;
 }
