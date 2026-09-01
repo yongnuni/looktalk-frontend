@@ -168,6 +168,10 @@ export interface UseCalibrationRunnerResult {
     y: number;
   } | null;
 
+  /** 가장 최근 GazeSignal(50ms throttle, UI state 갱신 시점과 동일) — CalibrationRealtimeMetricsBridge가
+   * EAR/MAR/eyeClosed를 그대로 표시하기 위해 재사용한다(새 tracking 없음). */
+  gazeSignal: GazeSignal | null;
+
   /** 완료 화면의 명시적 버튼 target이 React render throttle 없이 같은 좌표를 구독한다. */
   subscribeCompletionGaze: SubscribeCalibrationCompletionGaze;
 
@@ -277,6 +281,7 @@ export function useCalibrationRunner(
     y: number;
   } | null>(null);
 
+  const [gazeSignal, setGazeSignal] = useState<GazeSignal | null>(null);
   const [flowStage, setFlowStage] = useState<PatientCalibrationStage>('GAZE_RUNNING');
   const [blinkProgress, setBlinkProgress] = useState<BlinkCalibrationSnapshot | null>(null);
   const [mouthProgress, setMouthProgress] = useState<MouthCalibrationSnapshot | null>(null);
@@ -559,6 +564,7 @@ export function useCalibrationRunner(
         setProgress(snapshot);
 
         setCursorNormalized(nextCursor);
+        setGazeSignal(signal);
 
         if (nextBlinkProgress) {
           setBlinkProgress(nextBlinkProgress);
@@ -710,6 +716,7 @@ export function useCalibrationRunner(
     setPointDiagnostics(null);
 
     setCursorNormalized(null);
+    setGazeSignal(null);
 
     syncPatientFlowState();
 
@@ -768,6 +775,7 @@ export function useCalibrationRunner(
     pointDiagnostics,
 
     cursorNormalized,
+    gazeSignal,
 
     subscribeCompletionGaze,
 

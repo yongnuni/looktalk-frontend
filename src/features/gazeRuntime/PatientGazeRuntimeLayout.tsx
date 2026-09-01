@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import GazeCursorOverlay from '../gazeInteraction/GazeCursorOverlay';
 import { GazeInteractionProvider } from '../gazeInteraction/GazeInteractionProvider';
 import { LandmarkPopupProvider } from '../landmarkPopup/LandmarkPopupProvider';
+import { RealtimeMetricsBridge } from '../realtimeMetrics/RealtimeMetricsBridge';
 import { GazeRuntimeProvider } from './GazeRuntimeProvider';
 import { useGazeRuntime } from './GazeRuntimeContext';
 
@@ -15,6 +16,7 @@ function PatientGazeRuntimeContent() {
     >
       <GazeInteractionProvider>
         <GazeCursorOverlay />
+        <RealtimeMetricsBridge />
         <Outlet />
       </GazeInteractionProvider>
     </LandmarkPopupProvider>
@@ -33,6 +35,19 @@ function PatientGazeRuntimeContent() {
  *
  * GazeCursorOverlay는 여기서 한 번만 렌더링한다 — 페이지마다 자기 cursor를 만들지 않는다
  * (§5, §8).
+ *
+ * RealtimeMetricsBridge — Realtime Metrics Window(별도 브라우저 창) 기능의 producer.
+ * GazeInteractionProvider의 자식으로 한 번만 마운트해 hoveredTargetId/progress/mouthOpen을
+ * 그대로 재사용한다(새 계산 없음). UI를 렌더링하지 않으므로(return null) 페이지별 화면
+ * 구성에는 영향을 주지 않는다. 창 자체는 calibration 시작 gesture에서
+ * openRealtimeMetricsWindow()로 자동 준비되므로, 여기서는 launcher 버튼을 렌더링하지
+ * 않는다(§realtimeMetrics openRealtimeMetricsWindow.ts).
+ *
+ * LandmarkPopupProvider — 같은 창 안에서 뜨는 PiP(picture-in-picture) 랜드마크 카메라
+ * 오버레이(createPortal, document.body). GazeRuntimeProvider의 카메라/tracking을
+ * subscribeTrackingFrame()으로 그대로 구독할 뿐 별도 창이나 새 카메라를 열지 않는다 —
+ * Realtime Metrics Window(별도 브라우저 창, 숫자 HUD)와는 목적이 다른 별개 기능이라
+ * 함께 유지한다.
  */
 export default function PatientGazeRuntimeLayout() {
   return (

@@ -19,6 +19,8 @@ export interface GazeInteractionContextValue {
   activeScope: InteractionScope;
   setActiveScope: (scope: InteractionScope) => void;
   inputMode: GazeInputMode;
+  /** MOUTH 모드일 때만 MouthController.isOpen 판정 결과, 그 외엔 null(§realtimeMetrics 소비용). */
+  mouthOpen: boolean | null;
 }
 
 export const GazeInteractionContext = createContext<GazeInteractionContextValue | null>(null);

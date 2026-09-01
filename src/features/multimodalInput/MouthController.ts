@@ -17,6 +17,8 @@ import { DwellController } from './DwellController';
  * 이 기존 기본값을 그대로 유지한다. hold/cooldown/target lock 시간 분류는 바꾸지 않는다.
  */
 
+// export: RealtimeMetricsBridge(실시간 분석값 팝업)가 이 값을 그대로 재사용해 threshold를
+// 중복 하드코딩하지 않는다(features/realtimeMetrics/buildRealtimeMetricsPayload.ts).
 export const MOUTH_OPEN_THRESHOLD = 0.3;
 export const MOUTH_CLOSE_THRESHOLD = 0.23;
 const HOLD_TIME_SEC = 0.3;

@@ -33,6 +33,7 @@ import PatientRouteGuard from '../features/auth/PatientRouteGuard';
 
 import FaceTrackingDebugPage from '../pages/dev/FaceTrackingDebugPage';
 import GazeDwellDebugPage from '../pages/dev/GazeDwellDebugPage';
+import RealtimeMetricsWindowPage from '../pages/dev/RealtimeMetricsWindowPage';
 
 import StaffDashboardPage from '../pages/staff/StaffDashboardPage';
 import StaffMyPage from '../pages/staff/StaffMyPage';
@@ -41,6 +42,7 @@ import StaffPatientListPage from '../pages/staff/StaffPatientListPage';
 import StaffEmergencyLogPage from '../pages/staff/StaffEmergencyLogPage';
 
 import { ROUTES } from '../shared/constants/routes';
+import { REALTIME_METRICS_ROUTE_PATH } from '../features/realtimeMetrics/types';
 
 export const router = createBrowserRouter([
   // =========================================================
@@ -256,6 +258,16 @@ export const router = createBrowserRouter([
   {
     path: '/dev/gaze-dwell',
     element: <GazeDwellDebugPage />,
+  },
+
+  // ---------- Realtime Metrics Window ----------
+  // window.open()으로 열리는 별도 브라우저 창 전용 route(features/realtimeMetrics/
+  // openRealtimeMetricsWindow.ts). PATIENT 인증/Calibration Gate 밖에 있다 — 이 route는
+  // 카메라/FaceLandmarker를 직접 열지 않고 메인 창이 BroadcastChannel로 보내주는 값만
+  // 표시하므로 인증이 필요 없다(표시할 데이터 자체가 메인 창 없이는 존재하지 않는다).
+  {
+    path: REALTIME_METRICS_ROUTE_PATH,
+    element: <RealtimeMetricsWindowPage />,
   },
 
   // =========================================================
