@@ -1,15 +1,16 @@
 .fv-keyboard-recommend-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(6px, 1.2vw, 20px);
-  width: min(100%, 1500px);
+  gap: var(--keyboard-key-gap-x, clamp(4px, 0.6vw, 20px));
+  width: min(100%, var(--keyboard-layout-width, 92vw), var(--keyboard-layout-max-width, 1500px));
   margin-inline: auto;
 }
 
 .fv-keyboard-recommend-button {
   position: relative;
   min-width: 0;
-  min-height: clamp(64px, 8vw, 104px);
+  min-height: var(--keyboard-row-height, clamp(60px, 11dvh, 130px));
+  height: var(--keyboard-row-height, clamp(60px, 11dvh, 130px));
   display: flex;
   align-items: center;
   justify-content: center;

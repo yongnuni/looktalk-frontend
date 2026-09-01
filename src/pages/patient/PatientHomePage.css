@@ -6,11 +6,14 @@
 .card.wide.patient-home-card {
   --patient-section-gap: clamp(6px, 1dvh, 10px);
   --patient-draft-height: clamp(58px, min(8dvh, 7.5vw), 76px);
-  --patient-recommend-height: clamp(54px, min(7.5dvh, 7vw), 68px);
   --patient-key-height: clamp(54px, min(8dvh, 6.5vw), 76px);
-  --patient-function-key-height: clamp(52px, min(7.5dvh, 6.5vw), 72px);
   --patient-enlarged-key-height: clamp(58px, min(8.5dvh, 7vw), 80px);
-  --patient-enlarged-function-key-height: clamp(56px, min(8dvh, 7vw), 76px);
+  --keyboard-layout-width: 92%;
+  --keyboard-layout-max-width: 100%;
+  --keyboard-key-gap-x: clamp(4px, 0.6vw, 12px);
+  --keyboard-row-height: var(--patient-key-height);
+  --keyboard-row-gap: clamp(4px, 0.75dvh, 8px);
+  --keyboard-section-gap: var(--patient-section-gap);
   width: min(1100px, calc(100vw - 48px));
   max-width: none;
   padding: clamp(10px, 1.5dvh, 20px) clamp(20px, 2.5vw, 32px);
@@ -108,29 +111,30 @@
 }
 
 .patient-home-keyboard .fv-keyboard-recommend-button {
-  min-height: var(--patient-recommend-height);
-  height: var(--patient-recommend-height);
+  min-height: var(--keyboard-row-height);
+  height: var(--keyboard-row-height);
   padding-block: clamp(6px, 0.9dvh, 10px);
 }
 
 .patient-home-keyboard .virtual-keyboard {
-  gap: clamp(4px, 0.75dvh, 8px);
+  gap: var(--keyboard-row-gap);
 }
 
 .patient-home-keyboard .virtual-keyboard .keyboard-key {
-  height: var(--patient-key-height);
+  height: 100%;
 }
 
 .patient-home-keyboard .virtual-keyboard .keyboard-row--function .keyboard-key {
-  height: var(--patient-function-key-height);
+  height: 100%;
 }
 
-.patient-home-keyboard .virtual-keyboard--enlarged .keyboard-key {
-  height: var(--patient-enlarged-key-height);
+.patient-home-keyboard .virtual-keyboard--enlarged {
+  --keyboard-row-height: var(--patient-enlarged-key-height);
 }
 
+.patient-home-keyboard .virtual-keyboard--enlarged .keyboard-key,
 .patient-home-keyboard .virtual-keyboard--enlarged .keyboard-row--function .keyboard-key {
-  height: var(--patient-enlarged-function-key-height);
+  height: 100%;
 }
 
 .patient-home-hidden-video {

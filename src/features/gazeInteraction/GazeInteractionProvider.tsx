@@ -22,6 +22,7 @@ import {
   type MouthControllerThresholds,
 } from '../multimodalInput/MouthController';
 import { useUserSettings } from '../userSetting/hooks/useUserSettings';
+import { KeyboardFixationLayer } from './fixation/KeyboardFixationLayer';
 import { GazeInteractionContext, type GazeInteractionContextValue } from './GazeInteractionContext';
 import { buildSelectionTargets } from './scopeSelectionTargets';
 import { filterEligibleTargets } from './targetHitTest';
@@ -64,6 +65,9 @@ export function GazeInteractionFrameProvider({
   const dwellControllerRef = useRef(new DwellController());
   const blinkControllerRef = useRef(new BlinkController(blinkThresholds));
   const mouthControllerRef = useRef(new MouthController(mouthThresholds));
+  // 고정 감지형 히트박스 확장(Look-Talk src/tracking/fixation.py). registry/controller와
+  // 마찬가지로 provider가 인스턴스 하나만 소유한다.
+  const fixationLayerRef = useRef(new KeyboardFixationLayer());
   const inputModeRef = useRef(inputMode);
   const activeScopeRef = useRef<InteractionScope>(initialScope);
   const lastHoveredElementRef = useRef<HTMLElement | null>(null);
@@ -77,6 +81,7 @@ export function GazeInteractionFrameProvider({
   useEffect(() => {
     inputModeRef.current = inputMode;
     dwellControllerRef.current.reset();
+    fixationLayerRef.current.reset();
     blinkControllerRef.current = new BlinkController(blinkThresholds);
     mouthControllerRef.current = new MouthController(mouthThresholds);
   }, [blinkThresholds, inputMode, mouthThresholds]);
@@ -114,11 +119,31 @@ export function GazeInteractionFrameProvider({
   }, []);
 
   useEffect(() => {
+    // eslint의 ref-in-cleanup 경고를 피하려고 effect 안에서 한 번만 읽는다 —
+    // 이 ref는 DOM node가 아니라 provider가 소유한 단일 인스턴스라 바뀌지 않는다.
+    const fixationLayer = fixationLayerRef.current;
+
     const handleFrame = (frame: GazeFrame) => {
-      const eligibleTargets = filterEligibleTargets(registryRef.current.values(), activeScopeRef.current);
+      const scope = activeScopeRef.current;
+      const eligibleTargets = filterEligibleTargets(registryRef.current.values(), scope);
+
+      // 고정 판정은 dwell 상태·cooldown과 무관한 독립 레이어라 selection보다 먼저
+      // 매 프레임 갱신한다(Look-Talk dwell.py가 cooldown early-return 앞에서
+      // fixation_hitbox.update()를 호출하는 것과 같은 위치).
+      fixationLayer.update(
+        scope,
+        eligibleTargets,
+        frame.hasSignal ? frame.cursorCssPx : null,
+        frame.now,
+      );
 
       const selectionTargets = frame.hasSignal
-        ? buildSelectionTargets(activeScopeRef.current, eligibleTargets, frame.cursorCssPx)
+        ? buildSelectionTargets(
+            scope,
+            eligibleTargets,
+            frame.cursorCssPx,
+            fixationLayer.resolveHit,
+          )
         : [];
 
       const selection = processGazeFrameForSelection(
@@ -147,7 +172,13 @@ export function GazeInteractionFrameProvider({
       }
     };
 
-    return subscribeFrame(handleFrame);
+    const unsubscribe = subscribeFrame(handleFrame);
+
+    return () => {
+      unsubscribe();
+      // 구독이 끊기면 확대된 키캡의 inline transform이 그대로 남지 않게 되돌린다.
+      fixationLayer.reset();
+    };
   }, [subscribeFrame, applyHoverVisual]);
 
   const value = useMemo<GazeInteractionContextValue>(

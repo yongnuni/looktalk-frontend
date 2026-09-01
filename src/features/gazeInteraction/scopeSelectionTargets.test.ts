@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DwellController } from '../multimodalInput/DwellController';
 import { buildSelectionTargets } from './scopeSelectionTargets';
 import type { GazeTargetEntry } from './types';
 
@@ -42,23 +43,67 @@ describe('buildSelectionTargets', () => {
     expect(result).toEqual([{ id: 'chat-room-1', centerX: 50, centerY: 50 }]);
   });
 
-  it('KEYBOARD — hit-test로 후보를 좁히지 않고 모든 target의 rect 중심을 그대로 반환한다(nearest-key 판정은 DwellController가 한다)', () => {
+  it('KEYBOARD — 일반키 중앙과 가장자리 내부를 커서 위치 synthetic target으로 반환한다', () => {
     const keyA = fakeTarget('keyboard:a', { left: 0, top: 0, right: 40, bottom: 40 });
-    const keyB = fakeTarget('keyboard:b', { left: 50, top: 0, right: 90, bottom: 40 });
 
-    // 커서가 두 키 사이 어디에도 정확히 포함되지 않아도(45,20) 둘 다 후보로 나와야 한다.
-    const result = buildSelectionTargets('KEYBOARD', [keyA, keyB], { x: 45, y: 20 });
-
-    expect(result).toEqual([
+    expect(buildSelectionTargets('KEYBOARD', [keyA], { x: 20, y: 20 })).toEqual([
       { id: 'keyboard:a', centerX: 20, centerY: 20 },
-      { id: 'keyboard:b', centerX: 70, centerY: 20 },
+    ]);
+    expect(buildSelectionTargets('KEYBOARD', [keyA], { x: 39.999, y: 39.999 })).toEqual([
+      { id: 'keyboard:a', centerX: 39.999, centerY: 39.999 },
     ]);
   });
 
-  it('KEYBOARD — cursor가 null이어도(추적 실패) rect 중심 목록 자체는 그대로 반환한다(무효화는 processGazeFrameForSelection이 hasSignal로 처리)', () => {
+  it.each([
+    ['Space', 'keyboard: ', { left: 100, top: 100, right: 600, bottom: 200 }, { x: 599.999, y: 199.999 }],
+    ['확인', 'keyboard:확인', { left: 620, top: 100, right: 800, bottom: 200 }, { x: 799.999, y: 199.999 }],
+    ['NLP 추천', 'keyboard:suggestion_1', { left: 0, top: 0, right: 500, bottom: 90 }, { x: 499.999, y: 89.999 }],
+  ])('KEYBOARD — 큰 %s rect의 가장자리 내부도 선택 가능하다', (_label, id, rect, cursor) => {
+    const target = fakeTarget(id, rect);
+    expect(buildSelectionTargets('KEYBOARD', [target], cursor)).toEqual([
+      { id, centerX: cursor.x, centerY: cursor.y },
+    ]);
+  });
+
+  it('KEYBOARD — 키 사이와 행 사이 gap에서는 어떤 target도 반환하지 않는다', () => {
+    const left = fakeTarget('keyboard:a', { left: 0, top: 0, right: 40, bottom: 40 });
+    const right = fakeTarget('keyboard:b', { left: 50, top: 0, right: 90, bottom: 40 });
+    const below = fakeTarget('keyboard:c', { left: 0, top: 50, right: 40, bottom: 90 });
+
+    expect(buildSelectionTargets('KEYBOARD', [left, right, below], { x: 45, y: 20 })).toEqual([]);
+    expect(buildSelectionTargets('KEYBOARD', [left, right, below], { x: 20, y: 45 })).toEqual([]);
+  });
+
+  it('KEYBOARD — right/bottom 경계는 제외한다', () => {
+    const key = fakeTarget('keyboard:a', { left: 0, top: 0, right: 40, bottom: 40 });
+
+    expect(buildSelectionTargets('KEYBOARD', [key], { x: 40, y: 20 })).toEqual([]);
+    expect(buildSelectionTargets('KEYBOARD', [key], { x: 20, y: 40 })).toEqual([]);
+  });
+
+  it('KEYBOARD — resize 후 최신 DOM rect로 다시 hit-test한다', () => {
+    const rect = { left: 0, top: 0, right: 40, bottom: 40 };
+    const key = fakeTarget('keyboard:a', rect);
+
+    expect(buildSelectionTargets('KEYBOARD', [key], { x: 70, y: 20 })).toEqual([]);
+    rect.right = 80;
+    expect(buildSelectionTargets('KEYBOARD', [key], { x: 70, y: 20 })).toEqual([
+      { id: 'keyboard:a', centerX: 70, centerY: 20 },
+    ]);
+  });
+
+  it('KEYBOARD — rectangular hit 뒤 synthetic target은 center-distance 판정에서 탈락하지 않는다', () => {
+    const cursor = { x: 599.999, y: 199.999 };
+    const space = fakeTarget('keyboard: ', { left: 100, top: 100, right: 600, bottom: 200 });
+    const targets = buildSelectionTargets('KEYBOARD', [space], cursor);
+    const selection = new DwellController().update(cursor.x, cursor.y, targets, 1_000);
+
+    expect(selection.hoveredKeyId).toBe('keyboard: ');
+  });
+
+  it('KEYBOARD — cursor가 null이면 후보가 없다', () => {
     const keyA = fakeTarget('keyboard:a', { left: 0, top: 0, right: 40, bottom: 40 });
-    const result = buildSelectionTargets('KEYBOARD', [keyA], null);
-    expect(result).toEqual([{ id: 'keyboard:a', centerX: 20, centerY: 20 }]);
+    expect(buildSelectionTargets('KEYBOARD', [keyA], null)).toEqual([]);
   });
 
   it('빈 eligibleTargets면 어떤 scope든 빈 배열', () => {

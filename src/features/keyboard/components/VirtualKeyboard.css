@@ -4,24 +4,25 @@
    - 키보드 구성은 화면 크기와 관계없이 동일하게 유지한다.
    - 10키 행은 항상 10열
    - 9키 행은 항상 9열
-   - 기능행은 항상 1.1 / 1.1 / 4.5 / 1.4 비율
-   - 가로뿐 아니라 세로도 사용 가능한 영역을 채운다.
-   - 화면 크기가 변경되면 키 크기 / 간격 / 폰트만 반응형으로 변경된다.
+   - 기능행은 문자행의 83%, 일반 기능키 : Space = 1 : 3.2308
+   - Python QWERTY의 상대 폭/높이/gap을 responsive CSS 변수로 유지한다.
+   - 실제 DOM button rect가 visual 영역과 hitbox의 공통 source of truth다.
 ========================================================= */
 
 .virtual-keyboard {
-  width: 100%;
-  height: 100%;
+  width: min(100%, var(--keyboard-layout-width, 92vw), var(--keyboard-layout-max-width, 1500px));
+  height: auto;
 
   min-width: 0;
   min-height: 0;
+  margin-inline: auto;
 
   display: flex;
   flex-direction: column;
 
   justify-content: stretch;
 
-  gap: clamp(6px, 1.2vh, 16px);
+  gap: var(--keyboard-row-gap, clamp(3px, 1.5dvh, 20px));
 }
 
 /* =========================================================
@@ -34,6 +35,7 @@
   min-width: 0;
   min-height: 0;
   margin-inline: auto;
+  height: var(--keyboard-row-height, clamp(60px, 11dvh, 130px));
 }
 
 /* =========================================================
@@ -46,12 +48,11 @@
 
   grid-template-columns: repeat(10, minmax(0, 1fr));
 
-  /* 세로 공간을 각 행이 나누어 가짐 */
-  flex: 1 1 0;
+  flex: 0 0 var(--keyboard-row-height, clamp(60px, 11dvh, 130px));
 
-  width: min(100%, 92vw, 1500px);
+  width: 100%;
 
-  gap: clamp(6px, 0.7vw, 12px);
+  gap: var(--keyboard-key-gap-x, clamp(4px, 0.6vw, 20px));
 }
 
 /* =========================================================
@@ -64,12 +65,11 @@
 
   grid-template-columns: repeat(9, minmax(0, 1fr));
 
-  /* 10키 행과 동일한 세로 비율 */
-  flex: 1 1 0;
+  flex: 0 0 var(--keyboard-row-height, clamp(60px, 11dvh, 130px));
 
-  width: min(90%, 82vw, 1340px);
+  width: 90%;
 
-  gap: clamp(6px, 0.7vw, 12px);
+  gap: var(--keyboard-key-gap-x, clamp(4px, 0.6vw, 20px));
 }
 
 /* =========================================================
@@ -97,16 +97,16 @@
   display: grid;
 
   grid-template-columns:
-    1.1fr
-    1.1fr
-    4.5fr
-    1.4fr;
+    1fr
+    1fr
+    3.2308fr
+    1fr;
 
-  flex: 1 1 0;
+  flex: 0 0 var(--keyboard-row-height, clamp(60px, 11dvh, 130px));
 
-  width: min(100%, 92vw, 1500px);
+  width: 83%;
 
-  gap: clamp(6px, 1vw, 18px);
+  gap: var(--keyboard-key-gap-x, clamp(4px, 0.6vw, 20px));
 }
 
 .keyboard-row--function .keyboard-key {
@@ -122,12 +122,10 @@
 /* =========================================================
    Enlarged Mode
 
-   전체 Grid 구조는 변경하지 않고
-   글자 크기만 확대
+   전체 Grid 구조는 유지하고 글자 크기만 확대
 ========================================================= */
 
 .virtual-keyboard--enlarged .keyboard-key {
-  height: clamp(96px, 11vh, 112px);
   font-size: clamp(30px, 2.5vw, 48px);
 }
 
@@ -136,205 +134,11 @@
 }
 
 /* =========================================================
-   1600px 이하
-========================================================= */
-
-@media (max-width: 1600px) {
-  .virtual-keyboard {
-    gap: clamp(6px, 1vh, 12px);
-  }
-
-  .keyboard-row--10 {
-    width: min(100%, 90vw, 1500px);
-  }
-
-  .keyboard-row--9 {
-    width: min(90%, 81vw, 1340px);
-  }
-
-  .keyboard-row--function {
-    width: min(100%, 90vw, 1500px);
-  }
-}
-
-/* =========================================================
-   1400px 이하
-========================================================= */
-
-@media (max-width: 1400px) {
-  .virtual-keyboard {
-    gap: clamp(6px, 0.9vh, 10px);
-  }
-
-  .keyboard-row--10,
-  .keyboard-row--9 {
-    gap: 9px;
-  }
-
-  .keyboard-row--function {
-    gap: 12px;
-  }
-
-  .keyboard-row--10 {
-    width: min(100%, 90vw, 1500px);
-  }
-
-  .keyboard-row--9 {
-    width: min(90%, 81vw, 1340px);
-  }
-
-  .keyboard-row--function {
-    width: min(100%, 90vw, 1500px);
-  }
-}
-
-/* =========================================================
-   1200px 이하
-========================================================= */
-
-@media (max-width: 1200px) {
-  .virtual-keyboard {
-    gap: clamp(5px, 0.8vh, 9px);
-  }
-
-  .keyboard-row--10,
-  .keyboard-row--9 {
-    gap: 8px;
-  }
-
-  .keyboard-row--function {
-    gap: 10px;
-  }
-
-  .keyboard-row--10 {
-    width: min(100%, 90vw, 1500px);
-  }
-
-  .keyboard-row--9 {
-    width: min(90%, 81vw, 1340px);
-  }
-
-  .keyboard-row--function {
-    width: min(100%, 90vw, 1500px);
-  }
-}
-
-/* =========================================================
-   1024px 이하
-========================================================= */
-
-@media (max-width: 1024px) {
-  .virtual-keyboard {
-    gap: clamp(4px, 0.7vh, 7px);
-  }
-
-  .keyboard-row--10,
-  .keyboard-row--9 {
-    gap: 6px;
-  }
-
-  .keyboard-row--function {
-    gap: 8px;
-  }
-
-  .keyboard-row--10 {
-    width: min(100%, 92vw, 1500px);
-  }
-
-  .keyboard-row--9 {
-    width: min(90%, 82vw, 1340px);
-  }
-
-  .keyboard-row--function {
-    width: min(100%, 92vw, 1500px);
-  }
-}
-
-/* =========================================================
-   높이가 작은 화면
-
-   세로 공간이 부족하더라도
-   행 구성은 변경하지 않는다.
-========================================================= */
-
-@media (max-height: 700px) {
-  .virtual-keyboard {
-    gap: 5px;
-  }
-
-  .keyboard-row--10,
-  .keyboard-row--9 {
-    gap: 6px;
-  }
-
-  .keyboard-row--function {
-    gap: 8px;
-  }
-}
-
-/* =========================================================
-   높이가 큰 화면
-
-   큰 모니터에서도 남는 세로 공간을
-   각 키가 자동으로 채운다.
-========================================================= */
-
-@media (min-height: 1000px) {
-  .virtual-keyboard {
-    gap: clamp(10px, 1.2vh, 18px);
-  }
-}
-
-/* =========================================================
    Ultra Wide
 ========================================================= */
 
 @media (min-width: 2200px) {
   .virtual-keyboard {
-    gap: clamp(10px, 1.2vh, 18px);
+    --keyboard-layout-max-width: 1800px;
   }
-
-  .keyboard-row--10 {
-    width: min(100%, 92vw, 1800px);
-  }
-
-  .keyboard-row--9 {
-    width: min(90%, 82vw, 1610px);
-  }
-
-  .keyboard-row--function {
-    width: min(100%, 92vw, 1800px);
-  }
-
-  .keyboard-row--10,
-  .keyboard-row--9 {
-    gap: 14px;
-  }
-
-  .keyboard-row--function {
-    gap: 20px;
-  }
-}
-
-/* The embedded /patient keyboard uses explicit responsive height variables.
-   Let those real key heights determine the row sizes instead of distributing
-   the card's auto height as full-viewport flex rows. */
-.patient-home-keyboard .virtual-keyboard {
-  height: auto;
-  justify-content: flex-start;
-}
-
-.patient-home-keyboard .keyboard-row--10,
-.patient-home-keyboard .keyboard-row--9,
-.patient-home-keyboard .keyboard-row--function {
-  flex: 0 0 auto;
-}
-
-.patient-home-keyboard .keyboard-row--10,
-.patient-home-keyboard .keyboard-row--9 {
-  gap: clamp(4px, 0.7vw, 12px);
-}
-
-.patient-home-keyboard .keyboard-row--function {
-  gap: clamp(6px, 1.2vw, 20px);
 }
