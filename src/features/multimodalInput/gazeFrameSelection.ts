@@ -39,9 +39,17 @@ export function processGazeFrameForSelection(
   if (inputMode === 'BLINK') {
     const signal = frame.signal;
 
-    // 눈을 감아 cursor가 사라진 프레임은 blink 상태 머신에 필요하다. 그 외 원인으로
-    // 좌표가 무효이거나 얼굴 신호가 없으면 현재 gesture를 폐기한다.
-    if (!signal || (frame.cursorCssPx === null && !signal.eyeClosed)) {
+    // 얼굴 신호가 없을 때만 gesture를 폐기한다.
+    //
+    // 좌표가 무효라는 이유로 폐기하면 안 된다. 눈꺼풀이 내려오는 구간에서는 EAR이 아직
+    // close threshold 위라 eyeClosed가 false인데도 iris confidence가 이미 0이라
+    // cursorCssPx가 null이다 — 이 프레임에서 reset하면 잠금과 armed 상태가 통째로 날아가
+    // **모든** 깜빡임이 무효가 된다(눈을 뜰 때도 같은 구간을 반대로 지나간다).
+    //
+    // BlinkController는 좌표가 무효인 프레임을 스스로 감당한다: hover가 null이면 잠금
+    // 후보만 무효화하고 이미 성립한 잠금은 유지하며, 상태 전이는 좌표가 아니라 signal.ear로
+    // 판정한다. 잠근 키가 사라진 경우는 아래 target 유효성 검증이 따로 막는다.
+    if (!signal) {
       dwellController.reset();
       blinkController.reset();
       mouthController.reset();

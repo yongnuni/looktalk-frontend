@@ -197,7 +197,53 @@ describe('processGazeFrameForSelection (Front Step 11 keyboard-selection adapter
     expect(nextFrame.selectedKeyId).toBeNull();
   });
 
-  it('BLINK 모드에서 얼굴·시선·target 중 하나가 무효면 진행 중 gesture를 선택으로 확정하지 않는다', () => {
+  it('눈꺼풀 전이 구간(감김 판정 전 좌표만 무효인 프레임)이 진행 중 blink를 폐기하지 않는다', () => {
+    // 실제 카메라 프레임 순서를 그대로 재현한다. EAR이 open(0.22)과 close(0.18) 사이에
+    // 있는 동안에는 eyeClosed가 아직 false지만 iris confidence가 0이라 cursorCssPx는
+    // null이다 — 이 구간에서 gesture를 폐기하면 모든 깜빡임이 무효가 된다.
+    const dwell = new DwellController();
+    const blink = new BlinkController();
+    const mouth = new MouthController();
+
+    const run = (f: GazeFrame) =>
+      processGazeFrameForSelection(f, TARGETS, 'BLINK', dwell, blink, mouth);
+
+    const open = (now: number) =>
+      frame({
+        now,
+        signal: { irisX: 0.5, irisY: 0.5, ear: 0.3, mar: 0.1, irisConfidence: 0.9, eyeClosed: false, timestamp: now },
+      });
+    // 눈꺼풀이 내려오는/올라가는 중 — 아직 eyeClosed는 아니지만 좌표는 이미 무효.
+    const transition = (now: number) =>
+      frame({
+        now,
+        cursorCssPx: null,
+        signal: { irisX: 0.5, irisY: 0.5, ear: 0.2, mar: 0.1, irisConfidence: 0, eyeClosed: false, timestamp: now },
+      });
+    const closed = (now: number) =>
+      frame({
+        now,
+        cursorCssPx: null,
+        signal: { irisX: 0.5, irisY: 0.5, ear: 0.1, mar: 0.1, irisConfidence: 0, eyeClosed: true, timestamp: now },
+      });
+
+    // 0.25초 응시로 잠근다.
+    run(open(BASE));
+    run(open(BASE + 250));
+
+    // 눈을 감는다 — 전이 프레임을 지나 완전히 감김.
+    run(transition(BASE + 270));
+    run(closed(BASE + 290));
+    run(closed(BASE + 500));
+
+    // 눈을 뜬다 — 다시 전이 구간을 거쳐 완전히 열림.
+    run(transition(BASE + 610));
+    const selected = run(open(BASE + 630));
+
+    expect(selected.selectedKeyId).toBe('A');
+  });
+
+  it('BLINK 모드에서 얼굴 신호가 끊기거나 잠근 target이 사라지면 진행 중 gesture를 확정하지 않는다', () => {
     const runInvalidCase = (invalidFrame: GazeFrame, targets = TARGETS) => {
       const dwell = new DwellController();
       const blink = new BlinkController();
@@ -227,6 +273,8 @@ describe('processGazeFrameForSelection (Front Step 11 keyboard-selection adapter
       runInvalidCase(frame({ now: BASE + 570, hasSignal: false, signal: null, cursorCssPx: null }))
         .selectedKeyId,
     ).toBeNull();
+    // 좌표만 무효한 프레임(저신뢰도/눈꺼풀 전이)은 폐기 사유가 아니다 — 잠근 키를 그대로
+    // 확정한다. 눈을 뜬 직후 좌표는 원래 신뢰할 수 없기 때문이다.
     expect(
       runInvalidCase(
         frame({
@@ -235,7 +283,7 @@ describe('processGazeFrameForSelection (Front Step 11 keyboard-selection adapter
           signal: { irisX: 0.5, irisY: 0.5, ear: 0.3, mar: 0.1, irisConfidence: 0.1, eyeClosed: false, timestamp: BASE + 570 },
         }),
       ).selectedKeyId,
-    ).toBeNull();
+    ).toBe('A');
     // 잠근 키가 사라진 경우 — MOUTH와 같은 target 유효성 검증이 선택을 막는다.
     expect(runInvalidCase(frame({ now: BASE + 570 }), []).selectedKeyId).toBeNull();
   });
