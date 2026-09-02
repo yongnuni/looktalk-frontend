@@ -252,6 +252,11 @@ export function useCalibrationRunner(
   const blinkSessionRef = useRef(new BlinkCalibrationSession());
   const mouthSessionRef = useRef(new MouthCalibrationSession());
   const inputGazeFilterRef = useRef(new GazeFilter());
+  // 눈 감김/저신뢰도로 좌표가 끊긴 프레임에서 커서를 유지하기 위한 마지막 유효 위치
+  // (GazeRuntimeProvider.lastValidCursorRef와 같은 역할, 정규화 좌표).
+  const lastValidCursorNormalizedRef = useRef<{ x: number; y: number } | null>(
+    null,
+  );
   const gazeResultRef = useRef<GazeCalibrationResult | null>(null);
 
   const resultBuiltRef = useRef(false);
@@ -535,7 +540,23 @@ export function useCalibrationRunner(
       // Cursor
       // ========================================================
 
-      let nextCursor: {
+      // 선택 판정에 쓰는 것과 **같은** 필터 출력으로 커서를 그린다.
+      //
+      // 예전에는 signal.irisX/irisY를 homography로 곧바로 투영한 원시 좌표를 그렸다.
+      // 그 경로에는 eye-closed 게이트도, confidence 게이트도, dead zone/max_step 클램프도,
+      // 마지막 유효 좌표 유지도 없어서 눈을 감는 순간 눈꺼풀에 덮인 홍채가 그대로 반영돼
+      // 커서가 아래로 쭉 내려갔다. 화면의 커서와 실제 판정 좌표가 서로 다른 값이었던 탓에
+      // 사용자는 잠금이 걸렸는지조차 확인할 수 없었다.
+      const inputFrame = buildGazeFrame(
+        gazeResultRef.current,
+        inputGazeFilterRef.current,
+        signal,
+        now,
+      );
+
+      // 원시 투영은 completion 모달의 gaze 버튼 판정용으로만 남긴다(뷰포트 밖 시선을
+      // 가장자리로 당기는 clamp 동작에 의존한다).
+      let rawCursor: {
         x: number;
         y: number;
       } | null = null;
@@ -547,12 +568,30 @@ export function useCalibrationRunner(
           signal.irisY,
         );
 
-        nextCursor = {
+        rawCursor = {
           x: Math.min(Math.max(projected.x, 0), 1),
 
           y: Math.min(Math.max(projected.y, 0), 1),
         };
       }
+
+      // GazeRuntimeProvider와 같은 규칙: 무효 프레임(눈 감김/저신뢰도)에서는 커서를
+      // 마지막 유효 위치에 유지한다.
+      if (inputFrame.cursorCssPx) {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        if (viewportWidth > 0 && viewportHeight > 0) {
+          lastValidCursorNormalizedRef.current = {
+            x: inputFrame.cursorCssPx.x / viewportWidth,
+            y: inputFrame.cursorCssPx.y / viewportHeight,
+          };
+        }
+      }
+
+      const nextCursor = inputFrame.hasSignal
+        ? lastValidCursorNormalizedRef.current
+        : null;
 
       // ========================================================
       // UI State
@@ -575,15 +614,9 @@ export function useCalibrationRunner(
         }
       }
 
-      const cursorCssPx = nextCursor
-        ? viewportNormalizedToCssPx(nextCursor)
+      const cursorCssPx = rawCursor
+        ? viewportNormalizedToCssPx(rawCursor)
         : null;
-      const inputFrame = buildGazeFrame(
-        gazeResultRef.current,
-        inputGazeFilterRef.current,
-        signal,
-        now,
-      );
       const completionFrame = {
         now,
         hasSignal: signal !== null && cursorCssPx !== null,
@@ -710,6 +743,7 @@ export function useCalibrationRunner(
     resultBuiltRef.current = false;
     gazeResultRef.current = null;
     inputGazeFilterRef.current.reset();
+    lastValidCursorNormalizedRef.current = null;
 
     setResult(null);
 

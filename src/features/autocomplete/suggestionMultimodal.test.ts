@@ -18,10 +18,12 @@ describe('추천 후보의 기존 dwell/blink/mouth 선택 파이프라인 재�
 
   it('blink는 잠근 suggestion_1을 눈을 뜰 때 한 번 선택한다', () => {
     const controller = new BlinkController();
+    // mouth와 같은 0.25초 응시로 먼저 잠근 뒤에야 깜빡임 제스처가 시작된다.
     controller.update(100, 100, TARGETS, 0.3, BASE);
-    controller.update(-1, -1, TARGETS, 0.1, BASE + 10);
-    controller.update(-1, -1, TARGETS, 0.1, BASE + 310);
-    expect(controller.update(100, 100, TARGETS, 0.3, BASE + 320).selectedKeyId).toBe(TARGET.id);
+    controller.update(100, 100, TARGETS, 0.3, BASE + 250);
+    controller.update(-1, -1, TARGETS, 0.1, BASE + 260);
+    controller.update(-1, -1, TARGETS, 0.1, BASE + 500);
+    expect(controller.update(100, 100, TARGETS, 0.3, BASE + 570).selectedKeyId).toBe(TARGET.id);
   });
 
   it('mouth는 기존 gaze-lock과 hold 임계값으로 suggestion_1을 선택한다', () => {

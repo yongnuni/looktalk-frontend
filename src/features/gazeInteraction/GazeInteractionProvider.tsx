@@ -127,15 +127,30 @@ export function GazeInteractionFrameProvider({
       const scope = activeScopeRef.current;
       const eligibleTargets = filterEligibleTargets(registryRef.current.values(), scope);
 
+      // BLINK에서 눈이 완전히 열려 있지 않은 프레임은 좌표가 무효라 갱신하면 앵커가
+      // 풀린다 — 사용자가 "선택됨"으로 인지하는 확대가 깜빡이는 순간 사라졌다가 눈을 뜬 뒤
+      // 최소 지속 시간만큼 지나야 돌아온다. update() 호출 자체를 건너뛰면 앵커·측정 rect·
+      // inline transform이 그대로 얼어붙어 확대와 확장 히트박스가 깜빡임 동안 유지된다.
+      //
+      // eyeClosed만으로는 부족하다. 눈꺼풀이 내려오는 구간은 EAR이 아직 close threshold
+      // 위라 eyeClosed가 false인데도 confidence가 0이라 cursorCssPx가 이미 null이다 —
+      // 그 프레임에서 갱신하면 깜빡임 시작마다 확대가 한 번 튄다.
+      const blinkHold =
+        inputModeRef.current === 'BLINK' &&
+        frame.signal !== null &&
+        (frame.signal.eyeClosed || frame.cursorCssPx === null);
+
       // 고정 판정은 dwell 상태·cooldown과 무관한 독립 레이어라 selection보다 먼저
       // 매 프레임 갱신한다(Look-Talk dwell.py가 cooldown early-return 앞에서
       // fixation_hitbox.update()를 호출하는 것과 같은 위치).
-      fixationLayer.update(
-        scope,
-        eligibleTargets,
-        frame.hasSignal ? frame.cursorCssPx : null,
-        frame.now,
-      );
+      if (!blinkHold) {
+        fixationLayer.update(
+          scope,
+          eligibleTargets,
+          frame.hasSignal ? frame.cursorCssPx : null,
+          frame.now,
+        );
+      }
 
       const selectionTargets = frame.hasSignal
         ? buildSelectionTargets(
