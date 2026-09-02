@@ -1,5 +1,7 @@
 import type { InputSessionLogDto } from '../../../shared/types/backend';
+
 import { mapInputSessionLogToAnalysisItem } from '../utils/analysisMappers';
+
 import type { AnalysisItem, InputMethodId } from '../types/analysis';
 
 interface AnalysisMockSeed {
@@ -20,13 +22,16 @@ const analysisMockSeeds: AnalysisMockSeed[] = [
       calibration_id: null,
       input_method: 'BLINK',
       keyboard_layout: 'QWERTY',
-      typo_rate: 25,
-      input_speed: 62,
-      recognition_accuracy: 55,
-      input_stability: 43,
+
+      typo_rate: 9,
+      input_speed: 82,
+      recognition_accuracy: 89,
+      input_stability: 86,
+
       session_at: null,
     },
   },
+
   {
     inputMethodId: 'mouth',
     inputMethod: '입 뻥긋 키보드',
@@ -37,13 +42,16 @@ const analysisMockSeeds: AnalysisMockSeed[] = [
       calibration_id: null,
       input_method: 'MOUTH',
       keyboard_layout: 'QWERTY',
-      typo_rate: 18,
-      input_speed: 71,
-      recognition_accuracy: 68,
-      input_stability: 64,
+
+      typo_rate: 6,
+      input_speed: 88,
+      recognition_accuracy: 93,
+      input_stability: 91,
+
       session_at: null,
     },
   },
+
   {
     inputMethodId: 'gaze',
     inputMethod: '시선 키보드',
@@ -54,10 +62,12 @@ const analysisMockSeeds: AnalysisMockSeed[] = [
       calibration_id: null,
       input_method: 'GAZE',
       keyboard_layout: 'QWERTY',
-      typo_rate: 32,
-      input_speed: 49,
-      recognition_accuracy: 59,
-      input_stability: 38,
+
+      typo_rate: 4,
+      input_speed: 92,
+      recognition_accuracy: 96,
+      input_stability: 94,
+
       session_at: null,
     },
   },
