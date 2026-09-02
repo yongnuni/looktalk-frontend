@@ -203,12 +203,15 @@ describe('processGazeFrameForSelection (Front Step 11 keyboard-selection adapter
       const blink = new BlinkController();
       const mouth = new MouthController();
 
+      // 0.25초 응시로 잠금을 성립시켜 둔다 — 그래야 아래 무효 케이스가 "잠긴 gesture를
+      // 확정하지 않는다"를 실제로 검증한다.
       processGazeFrameForSelection(frame({ now: BASE }), TARGETS, 'BLINK', dwell, blink, mouth);
+      processGazeFrameForSelection(frame({ now: BASE + 250 }), TARGETS, 'BLINK', dwell, blink, mouth);
       processGazeFrameForSelection(
         frame({
-          now: BASE + 10,
+          now: BASE + 260,
           cursorCssPx: null,
-          signal: { irisX: 0.5, irisY: 0.5, ear: 0.1, mar: 0.1, irisConfidence: 0.9, eyeClosed: true, timestamp: BASE + 10 },
+          signal: { irisX: 0.5, irisY: 0.5, ear: 0.1, mar: 0.1, irisConfidence: 0.9, eyeClosed: true, timestamp: BASE + 260 },
         }),
         [],
         'BLINK',
@@ -221,19 +224,20 @@ describe('processGazeFrameForSelection (Front Step 11 keyboard-selection adapter
     };
 
     expect(
-      runInvalidCase(frame({ now: BASE + 310, hasSignal: false, signal: null, cursorCssPx: null }))
+      runInvalidCase(frame({ now: BASE + 570, hasSignal: false, signal: null, cursorCssPx: null }))
         .selectedKeyId,
     ).toBeNull();
     expect(
       runInvalidCase(
         frame({
-          now: BASE + 310,
+          now: BASE + 570,
           cursorCssPx: null,
-          signal: { irisX: 0.5, irisY: 0.5, ear: 0.3, mar: 0.1, irisConfidence: 0.1, eyeClosed: false, timestamp: BASE + 310 },
+          signal: { irisX: 0.5, irisY: 0.5, ear: 0.3, mar: 0.1, irisConfidence: 0.1, eyeClosed: false, timestamp: BASE + 570 },
         }),
       ).selectedKeyId,
     ).toBeNull();
-    expect(runInvalidCase(frame({ now: BASE + 310 }), []).selectedKeyId).toBeNull();
+    // 잠근 키가 사라진 경우 — MOUTH와 같은 target 유효성 검증이 선택을 막는다.
+    expect(runInvalidCase(frame({ now: BASE + 570 }), []).selectedKeyId).toBeNull();
   });
 
   it('MOUTH 모드에서는 dwell 시간과 진행 UI가 선택을 만들지 않고 무효 시선/target도 선택하지 않는다', () => {

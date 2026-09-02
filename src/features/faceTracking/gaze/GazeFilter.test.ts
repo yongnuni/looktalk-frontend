@@ -70,7 +70,7 @@ describe('GazeFilter (Look-Talk GazePipeline 포팅)', () => {
     expect(result.fixationCount).toBeGreaterThanOrEqual(6);
   });
 
-  it('blink 이후 재추적 시 fixation/이전 출력 상태가 리셋된다', () => {
+  it('blink 이후 재추적 시 fixation은 리셋된다', () => {
     const filter = new GazeFilter();
     for (let i = 0; i < 8; i += 1) {
       filter.update(500, 500, 0.9, false);
@@ -79,7 +79,51 @@ describe('GazeFilter (Look-Talk GazePipeline 포팅)', () => {
     filter.update(500, 500, 0.9, true); // blink
 
     const afterBlink = filter.update(500, 500, 0.9, false);
-    // 리셋 직후 첫 유효 프레임이므로 fixationCount가 다시 1부터 시작해야 한다.
+    // 깜빡임 뒤의 고정은 새로 판정하므로 fixationCount가 다시 1부터 시작해야 한다.
     expect(afterBlink.fixationCount).toBe(1);
+  });
+
+  it('blink로 끊긴 구간은 이전 출력을 유지해 재개 첫 프레임도 max_step_px로 클램프된다', () => {
+    const filter = new GazeFilter();
+    let stable = filter.update(400, 400, 0.9, false);
+    for (let i = 0; i < 5; i += 1) {
+      stable = filter.update(400, 400, 0.9, false);
+    }
+
+    for (let i = 0; i < 5; i += 1) {
+      expect(filter.update(400, 400, 0.9, true).x).toBe(-1);
+    }
+
+    // 눈을 뜬 첫 프레임의 홍채가 아래로 크게 치우쳐 들어와도 한 프레임 이동은 50px 이내다.
+    const resumed = filter.update(400, 900, 0.9, false);
+    const movement = Math.hypot(resumed.x - stable.x, resumed.y - stable.y);
+    expect(movement).toBeLessThanOrEqual(50 + 1);
+  });
+
+  it('저신뢰도(눈꺼풀 전이 구간)로 끊긴 구간도 이전 출력을 유지한다', () => {
+    const filter = new GazeFilter();
+    let stable = filter.update(400, 400, 0.9, false);
+    for (let i = 0; i < 5; i += 1) {
+      stable = filter.update(400, 400, 0.9, false);
+    }
+
+    expect(filter.update(400, 700, 0.2, false).x).toBe(-1);
+
+    const resumed = filter.update(400, 900, 0.9, false);
+    const movement = Math.hypot(resumed.x - stable.x, resumed.y - stable.y);
+    expect(movement).toBeLessThanOrEqual(50 + 1);
+  });
+
+  it('얼굴 미검출(sx=null)은 이전 출력까지 버려 다음 유효 프레임이 원시 좌표로 시작한다', () => {
+    const filter = new GazeFilter();
+    for (let i = 0; i < 6; i += 1) {
+      filter.update(400, 400, 0.9, false);
+    }
+
+    expect(filter.update(null, null, 0.9, false).x).toBe(-1);
+
+    // 이어 붙일 기준점이 없으므로 클램프 없이 새 좌표에서 다시 시작한다.
+    const resumed = filter.update(400, 900, 0.9, false);
+    expect(resumed.y).toBeCloseTo(900, 0);
   });
 });

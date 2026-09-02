@@ -173,25 +173,27 @@ describe('GazeInteractionProvider 프레임 처리 (registry + hit-test + Step 1
       return processGazeFrameForSelection(gazeFrame, synthetic, 'BLINK', dwell, blink, mouth);
     };
 
+    // mouth와 같은 0.25초 응시로 target을 먼저 잠근다.
     runBlink(frame({ now: BASE }));
+    runBlink(frame({ now: BASE + 250 }));
     runBlink(
       frame({
-        now: BASE + 10,
+        now: BASE + 260,
         cursorCssPx: null,
-        signal: { irisX: 0.5, irisY: 0.5, ear: 0.1, mar: 0.1, irisConfidence: 0.9, eyeClosed: true, timestamp: BASE + 10 },
+        signal: { irisX: 0.5, irisY: 0.5, ear: 0.1, mar: 0.1, irisConfidence: 0.9, eyeClosed: true, timestamp: BASE + 260 },
       }),
     );
     expect(
       runBlink(
         frame({
-          now: BASE + 310,
+          now: BASE + 500,
           cursorCssPx: null,
-          signal: { irisX: 0.5, irisY: 0.5, ear: 0.1, mar: 0.1, irisConfidence: 0.9, eyeClosed: true, timestamp: BASE + 310 },
+          signal: { irisX: 0.5, irisY: 0.5, ear: 0.1, mar: 0.1, irisConfidence: 0.9, eyeClosed: true, timestamp: BASE + 500 },
         }),
       ).selectedKeyId,
     ).toBeNull();
 
-    const result = runBlink(frame({ now: BASE + 310 }));
+    const result = runBlink(frame({ now: BASE + 570 }));
     expect(result.selectedKeyId).toBe('main-memo');
     expect(result.progress).toBe(0);
   });

@@ -9,6 +9,7 @@ import { computeAverageEar } from '../gaze/ear';
 import { computeMouthAspectRatio } from '../gaze/mar';
 import { computeIrisConfidence } from '../gaze/irisConfidence';
 import {
+  EAR_OPEN_THRESHOLD,
   nextEyeClosedState,
   type EyeClosureThresholds,
 } from '../gaze/blinkGate';
@@ -226,7 +227,15 @@ export function useFaceTracking({
           const iris = computeAvgIris(canonical);
           const ear = computeAverageEar(canonical);
           const mar = computeMouthAspectRatio(canonical);
-          const irisConfidence = computeIrisConfidence(canonical);
+          // confidence 컷오프를 close가 아니라 **open** threshold로 잡는다. close(0.18)로
+          // 두면 눈꺼풀이 내려오는 전이 구간(EAR open→close)이 아직 "유효 프레임"이라
+          // 아래로 내려간 홍채 좌표가 필터와 마지막 유효 커서를 오염시킨다. 눈을 뜰 때도
+          // 같은 구간을 반대로 지나가므로 재개 첫 좌표가 아래로 튄다. open threshold로
+          // 올리면 눈이 완전히 열린 프레임에서만 좌표가 유효해져 양쪽이 함께 차단된다.
+          const irisConfidence = computeIrisConfidence(
+            canonical,
+            blinkThresholdsRef.current?.openThreshold ?? EAR_OPEN_THRESHOLD,
+          );
 
           eyeClosedRef.current = nextEyeClosedState(
             ear,

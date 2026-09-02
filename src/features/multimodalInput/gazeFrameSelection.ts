@@ -52,10 +52,18 @@ export function processGazeFrameForSelection(
     dwellController.reset();
     mouthController.reset();
 
+    // MOUTH와 같은 이유로 선택 대상을 다시 확인한다 — 잠금이 눈을 감는 시점에 확정되므로
+    // 그 사이 키가 언마운트되면 존재하지 않는 target이 선택될 수 있다.
+    const blinkSelectedKeyId = blinkState.selectedKeyId;
+    const blinkTargetIsAvailable =
+      blinkSelectedKeyId !== null &&
+      (availableTargetIds?.has(blinkSelectedKeyId) ??
+        targets.some((target) => target.id === blinkSelectedKeyId));
+
     return {
       hoveredKeyId: blinkState.lockedKeyId ?? blinkState.hoveredKeyId,
       progress: 0,
-      selectedKeyId: blinkState.selectedKeyId,
+      selectedKeyId: blinkTargetIsAvailable ? blinkSelectedKeyId : null,
     };
   }
 

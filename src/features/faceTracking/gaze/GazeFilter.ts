@@ -44,9 +44,23 @@ export class GazeFilter {
 
   /** 무효 입력 시 내부 상태만 리셋(Python _reset_tracking_state()) — errorCov(P)는 유지. */
   private resetTrackingState(): void {
+    this.holdTrackingState();
+    this.lastOutput = null;
+  }
+
+  /**
+   * 눈 감김/저신뢰도로 좌표가 잠시 끊긴 구간용 — `lastOutput`만 남기고 나머지를 비운다.
+   *
+   * `lastOutput`까지 지우면 눈을 다시 뜬 첫 유효 프레임이 아래 `lastOutput === null` 분기를
+   * 타서 dead zone·EMA·MAX_STEP_PX 클램프를 하나도 받지 못한 원시 좌표로 나간다. 눈꺼풀이
+   * 아직 홍채를 덮고 있는 프레임이 그대로 반영되면 커서가 아래로 튀고, blink 선택 판정도
+   * 그 좌표에 휘둘린다. 감기 직전 좌표를 남겨 두면 재개 이동이 MAX_STEP_PX로 클램프된다.
+   *
+   * fixation은 함께 비운다 — 깜빡임 뒤의 고정은 새로 판정하는 것이 맞다.
+   */
+  private holdTrackingState(): void {
     this.fixationCenter = null;
     this.fixationCount = 0;
-    this.lastOutput = null;
     this.buffer = [];
     this.initialized = false;
   }
@@ -60,8 +74,15 @@ export class GazeFilter {
    * @param blink 현재 프레임이 눈 감음 상태인지(Eye-Closed Gate 출력)
    */
   update(sx: number | null, sy: number | null, conf: number, blink: boolean): GazeFilterResult {
-    if (sx === null || sy === null || blink || conf <= MIN_CONFIDENCE) {
+    if (sx === null || sy === null) {
+      // 추적 자체가 끊긴 경우(얼굴 미검출 등) — 이어 붙일 기준점이 없으므로 전부 버린다.
       this.resetTrackingState();
+      return { x: -1, y: -1, fixationCount: 0 };
+    }
+
+    if (blink || conf <= MIN_CONFIDENCE) {
+      // 얼굴은 계속 보이는데 눈만 감긴/전이 구간 — 감기 직전 좌표를 유지해 재개 시 튐을 막는다.
+      this.holdTrackingState();
       return { x: -1, y: -1, fixationCount: 0 };
     }
 
