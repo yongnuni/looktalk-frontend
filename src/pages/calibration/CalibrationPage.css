@@ -93,15 +93,15 @@
 .calibration-target {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
+  width: 120px;
+  height: 120px;
 }
 
 .calibration-target-ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 3px solid #60a5fa;
+  border: 7.5px solid #60a5fa;
   transform: scale(calc(0.35 + var(--calibration-progress, 0) * 0.65));
   transition: transform 60ms linear;
 }
@@ -114,8 +114,8 @@
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 10px;
-  height: 10px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   background: #ffffff;
 }

@@ -231,7 +231,7 @@ export default function CalibrationPage() {
               <div className="calibration-overlay-status" aria-live="polite">
                 <p>
                   {progress.pointIndex + 1} / {progress.totalPoints}번째 지점 —{' '}
-                  {progress.pointStatus === 'stabilizing' ? '안정화 중' : '측정 중'} (
+                  {progress.pointStatus === 'stabilizing' ? '학습 중' : '측정 중'} (
                   {formatPercent(progress.pointElapsedRatio)})
                 </p>
                 {progress.warning && <p className="calibration-warning">{progress.warning}</p>}

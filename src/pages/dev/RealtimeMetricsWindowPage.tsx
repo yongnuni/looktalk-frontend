@@ -4,7 +4,7 @@ import { resolveGazeCoordinateDisplay } from '../../features/realtimeMetrics/gaz
 import { useRealtimeMetricsChannel } from '../../features/realtimeMetrics/useRealtimeMetricsChannel';
 import type { RealtimeMetricsDisplayMode } from '../../features/realtimeMetrics/types';
 import RealtimeGazePosition from './RealtimeGazePosition';
-import { formatGazeAxis, formatRatio } from './realtimeMetricsFormat';
+import { formatGazeCoordinatePair, formatRatio } from './realtimeMetricsFormat';
 import './RealtimeMetricsWindowPage.css';
 
 /**
@@ -16,12 +16,12 @@ import './RealtimeMetricsWindowPage.css';
 
 function formatEyeState(eyeClosed: boolean | null | undefined): string {
   if (eyeClosed === null || eyeClosed === undefined) return '—';
-  return eyeClosed ? 'CLOSED' : 'OPEN';
+  return eyeClosed ? '눈 감음' : '눈 뜸';
 }
 
 function formatMouthState(mouthOpen: boolean | null | undefined): string {
   if (mouthOpen === null || mouthOpen === undefined) return '—';
-  return mouthOpen ? 'OPEN' : 'CLOSED';
+  return mouthOpen ? '입벌림' : '입닫음';
 }
 
 function formatCalibrationProgress(phaseProgress: number | null | undefined): string {
@@ -55,6 +55,7 @@ export default function RealtimeMetricsWindowPage() {
     calibrationMode: payload?.calibration?.mode,
   });
   const coordinateDisplay = resolveGazeCoordinateDisplay(payload);
+  const coordinatePair = formatGazeCoordinatePair(coordinateDisplay);
   const calibrationTrial = formatTrial(
     payload?.calibration?.trialNumber,
     payload?.calibration?.totalTrials,
@@ -81,13 +82,9 @@ export default function RealtimeMetricsWindowPage() {
 
         {mode === 'GAZE' && (
           <dl className="realtime-metrics-window__rows">
-            <div>
-              <dt>X</dt>
-              <dd>{formatGazeAxis(coordinateDisplay, 'x')}</dd>
-            </div>
-            <div>
-              <dt>Y</dt>
-              <dd>{formatGazeAxis(coordinateDisplay, 'y')}</dd>
+            <div className="realtime-metrics-window__coordinate-row">
+              <dt>위치좌표 x,y</dt>
+              <dd>{coordinatePair ? `(${coordinatePair})` : '—'}</dd>
             </div>
           </dl>
         )}
@@ -95,15 +92,15 @@ export default function RealtimeMetricsWindowPage() {
         {mode === 'BLINK' && (
           <dl className="realtime-metrics-window__rows">
             <div>
-              <dt>EAR</dt>
+              <dt>깜빡임 시간</dt>
               <dd>{formatRatio(payload?.eye.ear, 3)}</dd>
             </div>
             <div>
-              <dt>CLOSE 기준</dt>
+              <dt>눈 감음 기준</dt>
               <dd>{formatRatio(payload?.eye.closeThreshold, 3)}</dd>
             </div>
             <div>
-              <dt>OPEN 기준</dt>
+              <dt>눈 뜸 기준</dt>
               <dd>{formatRatio(payload?.eye.openThreshold, 3)}</dd>
             </div>
             <div>
@@ -128,15 +125,15 @@ export default function RealtimeMetricsWindowPage() {
         {mode === 'MOUTH' && (
           <dl className="realtime-metrics-window__rows">
             <div>
-              <dt>MAR</dt>
+              <dt>입벌림 시간</dt>
               <dd>{formatRatio(payload?.mouth.mar, 3)}</dd>
             </div>
             <div>
-              <dt>OPEN 기준</dt>
+              <dt>입벌림 기준</dt>
               <dd>{formatRatio(payload?.mouth.openThreshold, 3)}</dd>
             </div>
             <div>
-              <dt>CLOSE 기준</dt>
+              <dt>입닫음 기준</dt>
               <dd>{formatRatio(payload?.mouth.closeThreshold, 3)}</dd>
             </div>
             <div>

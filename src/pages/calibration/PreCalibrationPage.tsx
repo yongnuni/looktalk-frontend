@@ -281,7 +281,7 @@ export default function PreCalibrationPage() {
                 <p>
                   {progress.pointIndex + 1} / {progress.totalPoints}번째 지점 —{' '}
                   {progress.pointStatus === 'stabilizing'
-                    ? '안정화 중'
+                    ? '학습 중'
                     : '측정 중'}{' '}
                   ({formatPercent(progress.pointElapsedRatio)})
                 </p>

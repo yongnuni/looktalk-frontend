@@ -49,6 +49,17 @@
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
 }
 
+.realtime-metrics-window__rows > .realtime-metrics-window__coordinate-row {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.realtime-metrics-window__coordinate-row dd {
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+}
+
 .realtime-metrics-window__rows dt {
   font-size: 12px;
   color: #8ea0c2;
