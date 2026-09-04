@@ -21,7 +21,7 @@ function formatEyeState(eyeClosed: boolean | null | undefined): string {
 
 function formatMouthState(mouthOpen: boolean | null | undefined): string {
   if (mouthOpen === null || mouthOpen === undefined) return '—';
-  return mouthOpen ? '입벌림' : '입닫음';
+  return mouthOpen ? '입열음' : '입닫음';
 }
 
 function formatCalibrationProgress(phaseProgress: number | null | undefined): string {
@@ -92,6 +92,10 @@ export default function RealtimeMetricsWindowPage() {
         {mode === 'BLINK' && (
           <dl className="realtime-metrics-window__rows">
             <div>
+              <dt>위치좌표 x,y</dt>
+              <dd>{coordinatePair ? `(${coordinatePair})` : '—'}</dd>
+            </div>
+            <div>
               <dt>깜빡임 시간</dt>
               <dd>{formatRatio(payload?.eye.ear, 3)}</dd>
             </div>
@@ -125,11 +129,15 @@ export default function RealtimeMetricsWindowPage() {
         {mode === 'MOUTH' && (
           <dl className="realtime-metrics-window__rows">
             <div>
-              <dt>입벌림 시간</dt>
+              <dt>위치좌표 x,y</dt>
+              <dd>{coordinatePair ? `(${coordinatePair})` : '—'}</dd>
+            </div>
+            <div>
+              <dt>입열음 시간</dt>
               <dd>{formatRatio(payload?.mouth.mar, 3)}</dd>
             </div>
             <div>
-              <dt>입벌림 기준</dt>
+              <dt>입열음 기준</dt>
               <dd>{formatRatio(payload?.mouth.openThreshold, 3)}</dd>
             </div>
             <div>
