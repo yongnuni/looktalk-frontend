@@ -163,22 +163,6 @@ export default function RealtimeMetricsWindowPage() {
           </dl>
         )}
 
-        {mode === 'GAZE' && payload?.interaction?.hoveredTargetId && (
-          <dl className="realtime-metrics-window__rows realtime-metrics-window__rows--sub">
-            <div>
-              <dt>응시 대상</dt>
-              <dd>{payload.interaction.hoveredTargetId}</dd>
-            </div>
-            <div>
-              <dt>선택 진행도</dt>
-              <dd>{formatRatio((payload.interaction.progress ?? 0) * 100, 0)}%</dd>
-            </div>
-            <div>
-              <dt>고정 감지</dt>
-              <dd>{payload.interaction.fixationCount}</dd>
-            </div>
-          </dl>
-        )}
       </section>
 
       <footer className="realtime-metrics-window__footer">
