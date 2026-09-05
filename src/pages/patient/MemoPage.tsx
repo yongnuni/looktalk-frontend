@@ -37,6 +37,8 @@ import {
 } from '../../shared/utils/e2ee';
 
 const API_BASE_URL = 'http://localhost:8080';
+// TTS 구현은 재사용할 수 있도록 유지하되, 영상 촬영 UI에서는 버튼만 렌더링하지 않는다.
+const SHOW_MEMO_TTS_BUTTON = false;
 
 interface ApiResponse<T> {
   success: boolean;
@@ -102,16 +104,18 @@ function MemoListItem({
 
       <div className="memo-text">{memo.text}</div>
 
-      <button
-        ref={ttsTargetRef}
-        type="button"
-        className="tts-button"
-        onClick={() => onTts(memo.text)}
-        aria-label="메모 음성으로 듣기"
-        title="음성으로 듣기"
-      >
-        <img src={TtsIcon} alt="" className="tts-icon" aria-hidden="true" />
-      </button>
+      {SHOW_MEMO_TTS_BUTTON && (
+        <button
+          ref={ttsTargetRef}
+          type="button"
+          className="tts-button"
+          onClick={() => onTts(memo.text)}
+          aria-label="메모 음성으로 듣기"
+          title="음성으로 듣기"
+        >
+          <img src={TtsIcon} alt="" className="tts-icon" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }
@@ -642,7 +646,7 @@ export default function MemoPage() {
             <img src={Logo} alt="Look Talk" className="memo-logo" />
           </Link>
 
-          <h1 className="memo-title">개인 메모장</h1>
+          <h1 className="memo-title">개인 일기장</h1>
         </div>
 
         {/* 마이페이지와 동일한 비상호출 */}

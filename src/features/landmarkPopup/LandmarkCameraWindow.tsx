@@ -9,7 +9,6 @@ import {
 
 interface LandmarkCameraWindowProps {
   variant: LandmarkPopupVariant;
-  onClose: () => void;
   videoRef: RefObject<HTMLVideoElement | null>;
   subscribeTrackingFrame: (listener: TrackingFrameListener) => () => void;
 }
@@ -21,7 +20,6 @@ const TITLES: Record<LandmarkPopupVariant, string> = {
 
 export default function LandmarkCameraWindow({
   variant,
-  onClose,
   videoRef,
   subscribeTrackingFrame,
 }: LandmarkCameraWindowProps) {
@@ -128,18 +126,6 @@ export default function LandmarkCameraWindow({
 
   return (
     <section className="landmark-camera-window" aria-label={TITLES[variant]}>
-      <header className="landmark-camera-window__header">
-        <h1>{TITLES[variant]}</h1>
-        <button
-          type="button"
-          className="landmark-camera-window__close"
-          onClick={onClose}
-          aria-label="랜드마크 카메라 창 닫기"
-        >
-          ×
-        </button>
-      </header>
-
       <div ref={stageRef} className="landmark-camera-window__stage">
         <div ref={viewportRef} className="landmark-camera-window__viewport">
           <canvas ref={canvasRef} className="landmark-camera-window__canvas" aria-hidden="true" />

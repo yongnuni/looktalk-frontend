@@ -98,7 +98,7 @@ export default function PatientHomePage() {
           </div>
 
           <nav className="nav-links">
-            <Link to="/memo">개인 메모장</Link>
+            <Link to="/memo">개인 일기장</Link>
             <Link to="/chat/hospital">병원 채팅</Link>
             <Link to="/chat/friend">친구 채팅</Link>
             <Link to="/analysis">분석</Link>

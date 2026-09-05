@@ -22,7 +22,8 @@ body,
 
   background: #ffffff;
 
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   padding: clamp(20px, 2vw, 40px);
 }
@@ -30,31 +31,31 @@ body,
 /* ---------- 로고 ---------- */
 
 .main-logo {
-  margin-bottom: clamp(70px, 6vw, 120px);
+  margin-bottom: clamp(52px, 5vw, 88px);
 }
 
 .main-logo-image {
-  width: clamp(300px, 20vw, 420px);
+  width: clamp(300px, 19vw, 390px);
 
   height: auto;
 
   display: block;
 
-  margin-bottom: clamp(-30px, -3vw, -50px);
 }
 
 /* ---------- 메뉴 ---------- */
 
 .main-menu {
-  width: min(1900px, 96vw);
+  width: min(1200px, 94vw);
 
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 320px));
   justify-content: center;
   align-items: flex-start;
 
-  gap: clamp(90px, 7vw, 150px);
+  gap: clamp(36px, 4vw, 72px);
 
-  transform: translateY(clamp(-40px, -3vw, -70px));
+  transform: translateY(clamp(-24px, -2vw, -40px));
 }
 
 /* ---------- 카드 ---------- */
@@ -63,6 +64,7 @@ body,
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-width: 0;
 }
 
 /* ---------- 버튼 ---------- */
@@ -70,8 +72,8 @@ body,
 .main-button {
   position: relative;
 
-  width: clamp(210px, 15vw, 260px);
-  height: clamp(180px, 13vw, 230px);
+  width: 100%;
+  height: clamp(230px, 17vw, 285px);
 
   display: flex;
   justify-content: center;
@@ -90,7 +92,7 @@ body,
   color: #222;
   text-decoration: none;
 
-  font-size: clamp(24px, 1.5vw, 28px);
+  font-size: clamp(28px, 1.8vw, 34px);
   font-weight: 600;
 
   transition:
@@ -150,22 +152,16 @@ body,
   text-align: center;
 
   line-height: 1.6;
+  word-break: keep-all;
 
-  font-size: clamp(16px, 1vw, 18px);
+  font-size: clamp(16px, 1.05vw, 19px);
 }
 
 /* ---------- 1600px ---------- */
 
 @media (max-width: 1600px) {
   .main-menu {
-    gap: 50px;
-  }
-
-  .main-button {
-    width: 210px;
-    height: 190px;
-
-    font-size: 24px;
+    gap: clamp(32px, 3.5vw, 56px);
   }
 }
 
@@ -173,22 +169,22 @@ body,
 
 @media (max-width: 1400px) {
   .main-logo {
-    margin-bottom: 90px;
+    margin-bottom: 64px;
   }
 
   .main-menu {
-    gap: 42px;
+    grid-template-columns: repeat(3, minmax(220px, 290px));
+    gap: 36px;
   }
 
   .main-button {
-    width: 195px;
-    height: 180px;
+    height: 235px;
 
-    font-size: 22px;
+    font-size: 28px;
   }
 
   .main-description {
-    font-size: 15px;
+    font-size: 16px;
   }
 }
 
@@ -196,23 +192,54 @@ body,
 
 @media (max-width: 1200px) {
   .main-logo {
-    margin-bottom: 75px;
+    margin-bottom: 56px;
   }
 
   .main-menu {
-    gap: 30px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
   }
 
   .main-button {
-    width: 175px;
-    height: 165px;
+    height: clamp(185px, 22vw, 225px);
 
-    font-size: 20px;
+    font-size: clamp(23px, 2.6vw, 27px);
   }
 
   .main-description {
     margin-top: 20px;
 
-    font-size: 14px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 760px) {
+  .main-page {
+    justify-content: flex-start;
+    padding-block: 32px;
+  }
+
+  .main-logo {
+    margin-bottom: 44px;
+  }
+
+  .main-logo-image {
+    width: min(300px, 74vw);
+  }
+
+  .main-menu {
+    width: min(340px, 88vw);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    transform: none;
+  }
+
+  .main-button {
+    height: 210px;
+    font-size: 27px;
+  }
+
+  .main-description {
+    font-size: 16px;
   }
 }

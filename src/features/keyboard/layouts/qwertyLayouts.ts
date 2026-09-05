@@ -9,28 +9,28 @@ export const KEYS_KOR_NORMAL: readonly string[][] = [
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
   ['ㅂ', 'ㅈ', 'ㄷ', 'ㄱ', 'ㅅ', 'ㅛ', 'ㅕ', 'ㅑ', 'ㅐ', 'ㅔ'],
   ['ㅁ', 'ㄴ', 'ㅇ', 'ㄹ', 'ㅎ', 'ㅗ', 'ㅓ', 'ㅏ', 'ㅣ'],
-  ['ㅋ', 'ㅌ', 'ㅊ', 'ㅍ', 'ㅠ', 'ㅜ', 'ㅡ', ',', '.'],
+  ['ㅋ', 'ㅌ', 'ㅊ', 'ㅍ', 'ㅠ', 'ㅜ', 'ㅡ', ',', '.', '?'],
 ];
 
 export const KEYS_KOR_SHIFT: readonly string[][] = [
   ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
   ['ㅃ', 'ㅉ', 'ㄸ', 'ㄲ', 'ㅆ', 'ㅛ', 'ㅕ', 'ㅑ', 'ㅒ', 'ㅖ'],
   ['ㅁ', 'ㄴ', 'ㅇ', 'ㄹ', 'ㅎ', 'ㅗ', 'ㅓ', 'ㅏ', 'ㅣ'],
-  ['ㅋ', 'ㅌ', 'ㅊ', 'ㅍ', 'ㅠ', 'ㅜ', 'ㅡ', '<', '>'],
+  ['ㅋ', 'ㅌ', 'ㅊ', 'ㅍ', 'ㅠ', 'ㅜ', 'ㅡ', '<', '>', '?'],
 ];
 
 export const KEYS_ENG_NORMAL: readonly string[][] = [
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
   ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
-  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'],
-  ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.'],
+  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+  ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?'],
 ];
 
 export const KEYS_ENG_SHIFT: readonly string[][] = [
   ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'],
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':'],
-  ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>'],
+  ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?'],
 ];
 
 // Look-Talk keyboard.py FUNCTION_ROW_LEFT/CENTER/RIGHT(66-68행) — Enter는 없다.
@@ -45,7 +45,7 @@ export const DISPLAY_LABELS: Record<string, string> = {
   [FUNCTION_KEY_SHIFT]: 'shift',
   [FUNCTION_KEY_DEL]: '되돌리기',
   [FUNCTION_KEY_SPACE]: '스페이스',
-  [FUNCTION_KEY_CONFIRM]: '확인',
+  [FUNCTION_KEY_CONFIRM]: '보내기',
 };
 
 export function getKeyLabel(value: string): string {

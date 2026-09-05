@@ -415,7 +415,6 @@ export const LandmarkPopupProvider = forwardRef<
         createPortal(
           <LandmarkCameraWindow
             variant={variant}
-            onClose={close}
             videoRef={videoRef}
             subscribeTrackingFrame={subscribeTrackingFrame}
           />,
