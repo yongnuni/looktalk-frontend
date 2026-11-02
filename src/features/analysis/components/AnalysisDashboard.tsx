@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-import Keyboard from '../../../assets/keyboard.png';
-import LeftArrow from '../../../assets/left_arrow.png';
 import Logo from '../../../assets/Logo.png';
-import RightArrow from '../../../assets/right_arrow.png';
-import Robot from '../../../assets/robot.png';
 import Setting from '../../../assets/setting.png';
 
 import BaseModal from '../../../shared/components/modal/BaseModal';
@@ -16,10 +12,10 @@ import { usePageScope } from '../../gazeInteraction/usePageScope';
 import { useGazeTarget } from '../../gazeInteraction/useGazeTarget';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
 import { mapInputMethodIdToBackend } from '../inputMethodMapping';
-import { analysisItems, initialAnalysis } from '../mock/analysisMock';
-import type { AnalysisItem, InputMethodId } from '../types/analysis';
+import { recommendationDemo } from '../mock/recommendationDemo';
+import type { InputMethodId } from '../types/analysis';
 
-import MetricDonut from './MetricDonut';
+import RecommendationResults from './RecommendationResults';
 import InputMethodSelectionModal from './InputMethodSelectionModal';
 
 import './AnalysisDashboard.css';
@@ -35,22 +31,6 @@ export default function AnalysisDashboard() {
   const navigate = useNavigate();
   usePageScope('MAIN');
   const { setActiveScope } = useGazeInteraction();
-  const [searchParams] = useSearchParams();
-
-  const requestedInputId = searchParams.get('input') as InputMethodId | null;
-
-  const requestedAnalysisIndex = analysisItems.findIndex(
-    (item) => item.id === requestedInputId,
-  );
-
-  const initialIndex = requestedAnalysisIndex >= 0 ? requestedAnalysisIndex : 0;
-
-  const [analysisIndex, setAnalysisIndex] = useState(initialIndex);
-
-  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisItem>(
-    analysisItems[initialIndex] ?? initialAnalysis,
-  );
-
   const [modalKind, setModalKind] = useState<ModalKind>(null);
 
   /* =========================================================
@@ -65,22 +45,7 @@ export default function AnalysisDashboard() {
   const [isSavingInputMethod, setIsSavingInputMethod] = useState(false);
   const [inputMethodError, setInputMethodError] = useState<string | null>(null);
 
-  const moveAnalysis = (direction: -1 | 1) => {
-    const nextIndex =
-      (analysisIndex + direction + analysisItems.length) % analysisItems.length;
-
-    setAnalysisIndex(nextIndex);
-
-    setActiveAnalysis(analysisItems[nextIndex]);
-  };
-
-  // Front Step 17 §14/§17/§25 — 실제 저장 지점. MeasurementResultModal과 동일하게
-  // useUserSettings().updateSettings(...)만 사용한다(§18, 두 곳이 같은 저장 계약을
-  // 공유). BLINK도 disabled 처리하지 않고 그대로 저장한다 — "아직 런타임 구현이 없으니
-  // 선택 자체를 막는다"는 잘못된 접근이라는 §25 지침을 그대로 따른다. 저장 성공 후에만
-  // (그리고 그때만) 아래 목업 분석 패널(analysisItems)도 함께 바꾼다 — 이 부분은 여전히
-  // InputSession/Recommendation이 Backend에 없어 목업이며(§49 KNOWN_LIMITATION), 이번
-  // 수정 범위는 "선택이 실제로 저장되는가"이지 분석 지표 자체의 실제화가 아니다.
+  // Preserve the existing settings API; demo recommendations never change user settings.
   const handleSelectInputMethod = async (inputMethodId: InputMethodId) => {
     if (isSavingInputMethod) return;
 
@@ -89,12 +54,6 @@ export default function AnalysisDashboard() {
 
     try {
       await updateSettings({ currentInputMethod: mapInputMethodIdToBackend(inputMethodId) });
-
-      const nextIndex = analysisItems.findIndex((item) => item.id === inputMethodId);
-      if (nextIndex >= 0) {
-        setAnalysisIndex(nextIndex);
-        setActiveAnalysis(analysisItems[nextIndex]);
-      }
 
       setModalKind('change-success');
     } catch (error) {
@@ -118,10 +77,10 @@ export default function AnalysisDashboard() {
   const settingsTargetRef = useGazeTarget({ id: 'analysis-settings', scope: 'MAIN', onSelect: () => navigate('/mypage') });
   const hospitalChatTargetRef = useGazeTarget({ id: 'analysis-chat-hospital', scope: 'MAIN', onSelect: () => navigate('/chat/hospital') });
   const friendChatTargetRef = useGazeTarget({ id: 'analysis-chat-friend', scope: 'MAIN', onSelect: () => navigate('/chat/friend') });
-  const prevAnalysisTargetRef = useGazeTarget({ id: 'analysis-prev', scope: 'MAIN', onSelect: () => moveAnalysis(-1) });
-  const nextAnalysisTargetRef = useGazeTarget({ id: 'analysis-next', scope: 'MAIN', onSelect: () => moveAnalysis(1) });
-  // §30 — Calibration 재측정 entry point. 기존 action(input-choice 모달 오픈)을 그대로 쓴다.
-  const retestEntryTargetRef = useGazeTarget({ id: 'analysis-retest-entry', scope: 'MAIN', onSelect: () => setModalKind('input-choice') });
+  const openRetest = () => setModalKind('retest-intro');
+  const openInputChoice = () => setModalKind('input-choice');
+  const retestCardTargetRef = useGazeTarget({ id: 'analysis-retest-card', scope: 'MAIN', onSelect: openRetest });
+  const changeInputTargetRef = useGazeTarget({ id: 'analysis-change-input', scope: 'MAIN', onSelect: openInputChoice });
 
   const inputChoiceChangeTargetRef = useGazeTarget({
     id: 'analysis-modal-input-choice-change',
@@ -202,76 +161,13 @@ export default function AnalysisDashboard() {
           <EmergencyButton />
         </header>
 
-        {/* ===================================================
-            분석 안내
-        =================================================== */}
-
-        <section className="analysis-intro" aria-labelledby="analysis-title">
-          <h1 id="analysis-title" className="analysis-intro__recommendation">
-            <img className="analysis-intro__robot" src={Robot} alt="" />
-
-            <span>추천 입력 방식: “{activeAnalysis.recommendedMethod}”</span>
-          </h1>
-
-          <p className="analysis-intro__current">
-            &lt;{activeAnalysis.inputMethod}&gt;
-          </p>
-        </section>
-
-        {/* ===================================================
-            분석 지표
-        =================================================== */}
-
-        <section
-          className="analysis-metrics"
-          aria-label={`${activeAnalysis.inputMethod} 분석 지표`}
-        >
-          {activeAnalysis.metrics.map((metric) => (
-            <MetricDonut key={metric.id} metric={metric} />
-          ))}
-        </section>
-
-        {/* ===================================================
-            분석 페이지 이동 / 입력 방식 변경
-        =================================================== */}
-
-        <nav className="analysis-controls" aria-label="분석 항목 이동">
-          {/* 이전 */}
-
-          <button
-            ref={prevAnalysisTargetRef}
-            aria-label="이전 입력 방식 분석 보기"
-            className="analysis-control-button analysis-control-button--arrow"
-            onClick={() => moveAnalysis(-1)}
-            type="button"
-          >
-            <img src={LeftArrow} alt="" />
-          </button>
-
-          {/* 입력 방식 */}
-
-          <button
-            ref={retestEntryTargetRef}
-            aria-label="입력 방식 변경 또는 재검사"
-            className="analysis-control-button analysis-control-button--keyboard"
-            onClick={() => setModalKind('input-choice')}
-            type="button"
-          >
-            <img src={Keyboard} alt="" />
-          </button>
-
-          {/* 다음 */}
-
-          <button
-            ref={nextAnalysisTargetRef}
-            aria-label="다음 입력 방식 분석 보기"
-            className="analysis-control-button analysis-control-button--arrow"
-            onClick={() => moveAnalysis(1)}
-            type="button"
-          >
-            <img src={RightArrow} alt="" />
-          </button>
-        </nav>
+        <RecommendationResults
+          data={recommendationDemo}
+          onRetest={openRetest}
+          retestRef={retestCardTargetRef}
+          onChangeInput={openInputChoice}
+          changeInputRef={changeInputTargetRef}
+        />
       </div>
 
       {/* =====================================================
@@ -289,7 +185,7 @@ export default function AnalysisDashboard() {
         <p>
           입력 방식을 변경하시겠습니까?
           <br />
-          현재 추천 입력 방식은 “{activeAnalysis.recommendedMethod}”입니다.
+          사용하고 싶은 입력 방식을 선택해 적용할 수 있습니다.
         </p>
       </BaseModal>
 

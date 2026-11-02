@@ -7,7 +7,6 @@ import InputCalibrationPanel from '../../features/calibration/components/InputCa
 import InputMethodTestInteractionProvider from '../../features/calibration/components/InputMethodTestInteractionProvider';
 import InputMethodTestPanel from '../../features/calibration/components/InputMethodTestPanel';
 import MeasurementResultModal from '../../features/calibration/components/MeasurementResultModal';
-import SettingCompleteModal from '../../features/calibration/components/SettingCompleteModal';
 import GazeCursorImage from '../../features/gazeInteraction/GazeCursorImage';
 import { useCalibrationRunner } from '../../features/calibration/hooks/useCalibrationRunner';
 import { viewportNormalizedToCssPx } from '../../features/calibration/viewportTargets';
@@ -30,7 +29,6 @@ export default function CalibrationPage() {
   const isRetestFlow =
     searchParams.get('mode') === 'retest' && searchParams.get('source') === 'analysis';
 
-  const [settingApplied, setSettingApplied] = useState(false);
   const [landmarkSessionId, setLandmarkSessionId] = useState(0);
 
   const {
@@ -116,27 +114,18 @@ export default function CalibrationPage() {
     }
 
     retestActionStartedRef.current = true;
-    setSettingApplied(false);
     setLandmarkSessionId((current) => current + 1);
     landmarkPopupRef.current?.prepareWindow();
     openRealtimeMetricsWindow();
     restart();
   }, [restart]);
 
-  // §10.3 완료 — 두 요청(Calibration POST, UserSetting PATCH) 모두 성공한 뒤에만 호출된다
-  // (MeasurementResultModal 내부에서 보장). 측정 결과 모달을 닫고 설정 완료 모달을 띄운다.
+  // Both the calibration POST and the selected input method PATCH have succeeded.
+  // Reuse the former confirmation destination without an intermediate success screen.
   const handleApplied = useCallback(() => {
     markComplete();
-    setSettingApplied(true);
-  }, [markComplete]);
-
-  // §10/§11 — 최초 Bootstrap Calibration은 실제 PATIENT Main인 ROUTES.MAIN(/main)으로,
-  // Analysis 재측정은 기존 계약대로 /analysis로 돌아간다(/patient는 VirtualKeyboard가
-  // 연결된 개발용/고아 route일 뿐 실제 서비스 Main이 아니다). isRetestFlow는 기존
-  // ?mode=retest&source=analysis 계약을 그대로 재사용한다(새 query parameter 추가 안 함).
-  const handleSuccessConfirm = useCallback(() => {
     navigate(resolveCalibrationCompletionPath(isRetestFlow));
-  }, [isRetestFlow, navigate]);
+  }, [isRetestFlow, markComplete, navigate]);
 
   useEffect(() => {
     if (!showReviewStage) {
@@ -272,10 +261,8 @@ export default function CalibrationPage() {
               </InputMethodTestInteractionProvider>
             )}
 
-            {/* §10.1 — X/닫기, background click, ESC로 닫히지 않는다. 사용자는 입력 방식
-                선택 또는 재측정 중 하나를 반드시 수행해야 하므로, 이 모달을 우회하는
-                버튼(예: "분석 페이지로 돌아가기")은 두지 않는다. */}
-            {showReviewStage && result && inputCalibration && !settingApplied && (
+            {/* 상세 분석은 결과 컴포넌트 내부에서 표시하며 입력 방식 설정은 변경하지 않는다. */}
+            {showReviewStage && result && inputCalibration && (
               <MeasurementResultModal
                 candidate={result}
                 pointDiagnostics={pointDiagnostics}
@@ -286,14 +273,6 @@ export default function CalibrationPage() {
                 onSaving={markSaving}
                 onSaveFailed={markSaveFailed}
                 onApplied={handleApplied}
-              />
-            )}
-
-            {/* §11 — 설정 저장이 실제로 성공한 뒤에만 표시. 확인 클릭 시 /analysis로 이동. */}
-            {showCompleteStage && settingApplied && (
-              <SettingCompleteModal
-                subscribeCompletionGaze={subscribeCompletionGaze}
-                onConfirm={handleSuccessConfirm}
               />
             )}
 

@@ -13,6 +13,8 @@ import type { InputCalibrationResult } from '../inputCalibration';
 import type { GazeCalibrationResult } from '../types';
 import type { HomographyPointDiagnostic } from '../homography';
 import type { PatientInputTestResults } from '../PatientCalibrationFlow';
+import { completeMeasurementResultAction, type MeasurementResultAction } from '../measurementResultAction';
+import CalibrationRecommendationResults from './CalibrationRecommendationResults';
 import './MeasurementResultModal.css';
 
 type ModalState = 'SELECTING' | 'SAVING' | 'ERROR';
@@ -54,46 +56,49 @@ export default function MeasurementResultModal({
   onSaveFailed,
   onApplied,
 }: MeasurementResultModalProps) {
+  const [showDashboard, setShowDashboard] = useState(false);
   const [modalState, setModalState] = useState<ModalState>('SELECTING');
-  const [pendingMethod, setPendingMethod] = useState<InputMethod | null>(null);
+  const [pendingAction, setPendingAction] = useState<MeasurementResultAction | null>(null);
   const [savedCalibrationId, setSavedCalibrationId] = useState<string | null>(null);
   const methodButtonRefs = useRef(new Map<InputMethod, HTMLButtonElement>());
   const retryButtonRef = useRef<HTMLButtonElement | null>(null);
   const retestButtonRef = useRef<HTMLButtonElement | null>(null);
+  const analysisButtonRef = useRef<HTMLButtonElement | null>(null);
   const selectionInFlightRef = useRef(false);
 
   const setActiveCalibration = useCalibrationStore((state) => state.setActive);
   const { updateSettings } = useUserSettings();
 
-  const handleSelect = useCallback(async (method: InputMethod) => {
+  const handleAction = useCallback(async (action: MeasurementResultAction) => {
     if (modalState === 'SAVING' || selectionInFlightRef.current) {
       return;
     }
 
     selectionInFlightRef.current = true;
-    onSaving();
-    setPendingMethod(method);
+    if (action.type === 'apply-method') onSaving();
+    setPendingAction(action);
     setModalState('SAVING');
 
     try {
-      // §10.3 권장 순서: Calibration POST 성공 후에만 UserSetting PATCH. 이미 성공한
-      // POST는 재시도 시 다시 보내지 않는다(savedCalibrationId가 있으면 건너뜀) — 부분
-      // 실패(POST 성공 + PATCH 실패) 복구 시 calibration을 중복 저장하지 않기 위함이다.
-      let calibrationId = savedCalibrationId;
-
-      if (!calibrationId) {
-        const persisted = await createCalibration(candidate);
-        calibrationId = persisted.calibrationId;
-        setSavedCalibrationId(calibrationId);
-        setActiveCalibration(persisted.calibrationId, persisted.result);
-      }
-
-      await updateSettings({ currentInputMethod: method });
-
-      onApplied(method);
+      await completeMeasurementResultAction(action, {
+        saveCalibration: async () => {
+          // Share the successful POST across actions and retries after a failed settings PATCH.
+          if (savedCalibrationId) return;
+          const persisted = await createCalibration(candidate);
+          setSavedCalibrationId(persisted.calibrationId);
+          setActiveCalibration(persisted.calibrationId, persisted.result);
+        },
+        applyInputMethod: (method) => updateSettings({ currentInputMethod: method }),
+        onApplied,
+        onViewAnalysis: () => {
+          selectionInFlightRef.current = false;
+          setModalState('SELECTING');
+          setShowDashboard(true);
+        },
+      });
     } catch {
       selectionInFlightRef.current = false;
-      onSaveFailed();
+      if (action.type === 'apply-method') onSaveFailed();
       setModalState('ERROR');
     }
   }, [
@@ -116,20 +121,27 @@ export default function MeasurementResultModal({
       element: methodButtonRefs.current.get(option.method) ?? null,
       enabled: !isSaving,
       onSelect: () => {
-        void handleSelect(option.method);
+        void handleAction({ type: 'apply-method', method: option.method });
       },
     }));
 
-    if (modalState === 'ERROR' && pendingMethod) {
+    if (modalState === 'ERROR' && pendingAction) {
       targets.push({
         id: 'calibration-method-retry',
         element: retryButtonRef.current,
         enabled: !isSaving,
         onSelect: () => {
-          void handleSelect(pendingMethod);
+          void handleAction(pendingAction);
         },
       });
     }
+
+    targets.push({
+      id: 'calibration-analysis',
+      element: analysisButtonRef.current,
+      enabled: !isSaving,
+      onSelect: () => { void handleAction({ type: 'view-analysis' }); },
+    });
 
     targets.push({
       id: 'calibration-retest',
@@ -139,13 +151,23 @@ export default function MeasurementResultModal({
     });
 
     return targets;
-  }, [handleSelect, isSaving, modalState, onRetest, pendingMethod]);
+  }, [handleAction, isSaving, modalState, onRetest, pendingAction]);
 
   useCalibrationCompletionGaze({
-    active: true,
+    active: !showDashboard,
     subscribe: subscribeCompletionGaze,
     getTargets: getCompletionTargets,
   });
+
+  if (showDashboard) {
+    return (
+      <CalibrationRecommendationResults
+        subscribeCompletionGaze={subscribeCompletionGaze}
+        onRetest={onRetest}
+        onChangeInput={() => setShowDashboard(false)}
+      />
+    );
+  }
 
   return (
     <div className="measurement-result-modal" role="dialog" aria-modal="true">
@@ -214,7 +236,7 @@ export default function MeasurementResultModal({
             type="button"
             className="measurement-result-modal__method-button"
             disabled={isSaving}
-            onClick={() => void handleSelect(option.method)}
+            onClick={() => void handleAction({ type: 'apply-method', method: option.method })}
           >
             {option.label}
           </button>
@@ -224,11 +246,11 @@ export default function MeasurementResultModal({
       {modalState === 'ERROR' && (
         <div className="measurement-result-modal__error" aria-live="assertive">
           <p>저장에 실패했습니다. 다시 시도해주세요.</p>
-          {pendingMethod && (
+          {pendingAction && (
             <button
               ref={retryButtonRef}
               type="button"
-              onClick={() => void handleSelect(pendingMethod)}
+              onClick={() => void handleAction(pendingAction)}
             >
               다시 시도
             </button>
@@ -245,6 +267,19 @@ export default function MeasurementResultModal({
       >
         재측정
       </button>
+
+      <button
+        ref={analysisButtonRef}
+        type="button"
+        className="measurement-result-modal__retest-button"
+        disabled={isSaving}
+        onClick={() => void handleAction({ type: 'view-analysis' })}
+      >
+        상세 분석 결과 보기
+      </button>
+
+
+      {isSaving && <p role="status">측정 결과를 저장하고 있습니다…</p>}
 
       <p className="calibration-rmse">재투영 오차(RMSE, normalized): {candidate.reprojectionRmseNormalized.toFixed(4)}</p>
       <p className="calibration-rmse">

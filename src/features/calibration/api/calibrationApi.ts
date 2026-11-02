@@ -43,7 +43,7 @@ function fromResponse(response: CalibrationResponseDto): PersistedCalibration {
   };
 }
 
-// CAL-001 — 사용자가 측정 결과 모달에서 입력 방식을 선택해 candidate를 적용할 때만 호출한다.
+// CAL-001 — 결과 화면에서 입력 방식 적용 또는 상세 분석 보기를 요청할 때 candidate를 저장한다.
 export async function createCalibration(candidate: GazeCalibrationResult): Promise<PersistedCalibration> {
   const payload: CalibrationCreateRequestDto = {
     algorithmVersion: ALGORITHM_VERSION,
