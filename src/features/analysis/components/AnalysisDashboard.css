@@ -198,7 +198,7 @@
   outline-offset: 4px;
 }
 
-.recommendation-results { width: calc(100% - 64px); max-width: 1740px; margin: 26px auto; border: 6px solid #438ce3; border-radius: 28px; background: #fafafa; overflow: hidden; box-shadow: 0 0 0 2px #dfebfa; }
+.recommendation-results { width: calc(100% - 2 * clamp(20px, 2vw, 40px)); max-width: 1600px; margin: clamp(16px, 2vh, 28px) auto; border: 6px solid #438ce3; border-radius: 28px; background: #fafafa; overflow: hidden; box-shadow: 0 0 0 2px #dfebfa; }
 .recommendation-results__header { display: flex; align-items: center; gap: 18px; min-height: 96px; padding: 14px 28px; border-bottom: 1px solid #e5e7eb; background: #fff; }
 .recommendation-results__header img { width: 78px; height: 62px; object-fit: contain; }
 .recommendation-results__header h1 { margin: 0; font-size: 24px; font-weight: 700; }
@@ -237,22 +237,25 @@
 .analysis-page button:focus-visible, .recommendation-table-scroll:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 .recommendation-card__actions button:hover { background: #edf4ff; border-color: #537fe8; }
 .analysis-modal-supporting-text { margin-top: 20px; color: #667085; font-size: .78em; }
-@media (max-width: 1200px) {
-  .recommendation-results { width: calc(100% - 32px); border-width: 4px; border-radius: 20px; }
-  .recommendation-results__header { min-height: 76px; padding: 12px 20px; }
+@media (max-width: 1400px) {
+  .recommendation-results { border-width: 4px; border-radius: 20px; }
+  .recommendation-results__header { min-height: 72px; padding: 12px 20px; }
   .recommendation-results__header h1 { font-size: 20px; }
   .recommendation-results__body { padding: 20px; }
-  .recommendation-card { min-height: 130px; padding: 20px; gap: 20px; }
+  .recommendation-card { min-height: 114px; padding: 20px; gap: 20px; }
   .recommendation-card__icon { width: 72px; height: 72px; font-size: 32px; }
   .recommendation-card strong { font-size: 52px; }
-  .recommendation-table thead th { height: 90px; font-size: 23px; }
+  .recommendation-table thead th { height: 84px; font-size: 23px; }
   .recommendation-table tbody th { font-size: 22px; }
-  .recommendation-table__scores td { height: 110px; }
+  .recommendation-table__scores td { height: 96px; }
   .recommendation-table__scores strong { font-size: 60px; }
-  .recommendation-table__details td { padding: 24px 12px; }
+  .recommendation-table__details td { height: 168px; padding: 20px 12px; }
+  .recommendation-metrics { gap: 12px; }
+  .recommendation-table-scroll { margin-top: 18px; }
   .recommendation-metric { grid-template-columns: 70px minmax(0, 1fr) 36px; gap: 5px; font-size: 12px; }
 }
 @media (max-width: 768px) {
+  .recommendation-results { width: calc(100% - 32px); }
   .analysis-page .analysis-header { height: auto; min-height: 80px; padding: 12px; flex-wrap: wrap; }
   .analysis-page .analysis-header__navigation { order: 3; flex-basis: 100%; flex-wrap: wrap; gap: 8px; }
   .analysis-page .analysis-icon-button--settings { width: 52px; height: 52px; transform: none; }
