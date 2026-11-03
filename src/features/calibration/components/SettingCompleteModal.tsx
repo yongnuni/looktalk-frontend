@@ -6,6 +6,7 @@ import './SettingCompleteModal.css';
 interface SettingCompleteModalProps {
   subscribeCompletionGaze: SubscribeCalibrationCompletionGaze;
   onConfirm: () => void;
+  onViewAnalysis: () => void;
 }
 
 // Integration Plan §11 — 설정 저장이 실제로 성공한 뒤에만 표시된다(호출부 책임).
@@ -13,8 +14,10 @@ interface SettingCompleteModalProps {
 export default function SettingCompleteModal({
   subscribeCompletionGaze,
   onConfirm,
+  onViewAnalysis,
 }: SettingCompleteModalProps) {
   const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
+  const analysisButtonRef = useRef<HTMLButtonElement | null>(null);
   const confirmationStartedRef = useRef(false);
 
   const handleConfirm = useCallback(() => {
@@ -29,13 +32,19 @@ export default function SettingCompleteModal({
   const getCompletionTargets = useCallback(
     () => [
       {
+        id: 'calibration-setting-analysis',
+        element: analysisButtonRef.current,
+        enabled: true,
+        onSelect: onViewAnalysis,
+      },
+      {
         id: 'calibration-setting-confirm',
         element: confirmButtonRef.current,
         enabled: true,
         onSelect: handleConfirm,
       },
     ],
-    [handleConfirm],
+    [handleConfirm, onViewAnalysis],
   );
 
   useCalibrationCompletionGaze({
@@ -48,6 +57,14 @@ export default function SettingCompleteModal({
     <div className="setting-complete-modal" role="dialog" aria-modal="true">
       <p>입력 방식이 설정되었습니다.</p>
       <p>자세한 분석 결과는 분석페이지를 참고하세요!</p>
+      <button
+        ref={analysisButtonRef}
+        type="button"
+        className="setting-complete-modal__confirm-button"
+        onClick={onViewAnalysis}
+      >
+        상세 분석 결과 보기
+      </button>
       <button
         ref={confirmButtonRef}
         type="button"

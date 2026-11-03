@@ -57,10 +57,10 @@ export default function MainPage() {
 
         <div className="main-card">
           <Link to="/memo" className="main-button" ref={memoTargetRef}>
-            개인 일기장
+            개인 메모장
           </Link>
 
-          <p className="main-description">나만의 일기장에서 하루를 기록해보세요!</p>
+          <p className="main-description">글로 의사를 전달하거나 메모를 작성할 수 있어요!</p>
         </div>
       </div>
     </div>

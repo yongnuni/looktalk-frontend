@@ -45,7 +45,7 @@ export default function InputMethodSelectionModal({
         <div className="analysis-selection-modal__body">
           <p className="analysis-selection-modal__eyebrow">&lt;측정 결과&gt;</p>
           <p id="analysis-selection-description" className="analysis-selection-modal__description">
-            AI가 추천한 입력 방식은 “{recommendedLabel}”입니다!
+            시연용 임시 추천 입력 방식은 “{recommendedLabel}”입니다. 실제 추천 결과가 아닙니다.
             <br />
             사용하고 싶은 입력 방식을 선택해주세요.
           </p>
