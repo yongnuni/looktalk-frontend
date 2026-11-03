@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// module-level metricsWindowRef를 테스트 간 격리하기 위해 매 테스트마다 모듈을 다시
-// import한다(vi.resetModules() + dynamic import) — 파일 스코프 싱글턴이라는 실제 구현을
-// 그대로 유지한 채로 테스트하기 위한 이 파일만의 관례.
+// module-level metricsWindowRef를 테스트 간 격리하기 위해 매 테스트마다 모듈을 다시 import한다.
 function stubWindowWithOpen(openImpl: () => Window | null) {
   vi.stubGlobal('window', {
     open: vi.fn(openImpl),
@@ -10,8 +8,14 @@ function stubWindowWithOpen(openImpl: () => Window | null) {
   });
 }
 
-function fakeWindow(overrides: Partial<{ closed: boolean; focus: () => void }> = {}) {
-  return { closed: false, focus: vi.fn(), ...overrides } as unknown as Window & { focus: ReturnType<typeof vi.fn> };
+function fakeWindow(
+  overrides: Partial<{ closed: boolean; focus: () => void }> = {},
+) {
+  return {
+    closed: false,
+    focus: vi.fn(),
+    ...overrides,
+  } as unknown as Window & { focus: ReturnType<typeof vi.fn> };
 }
 
 describe('openRealtimeMetricsWindow', () => {
@@ -20,75 +24,83 @@ describe('openRealtimeMetricsWindow', () => {
     vi.unstubAllGlobals();
   });
 
-  it('처음 호출 시 window.open으로 새 창을 연다', async () => {
+  it('팝업이 비활성화된 상태에서는 disabled를 반환한다', async () => {
     const win = fakeWindow();
     stubWindowWithOpen(() => win);
 
-    const { openRealtimeMetricsWindow } = await import('./openRealtimeMetricsWindow');
+    const { openRealtimeMetricsWindow } =
+      await import('./openRealtimeMetricsWindow');
     const result = openRealtimeMetricsWindow();
 
-    expect(result).toBe('opened');
-    expect((window.open as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+    expect(result).toBe('disabled');
   });
 
-  it('이미 열려 있고 닫히지 않았다면 새 window.open을 호출하지 않는다(중복 생성 방지)', async () => {
+  it('팝업이 비활성화된 상태에서는 window.open을 호출하지 않는다', async () => {
     const win = fakeWindow();
     stubWindowWithOpen(() => win);
 
-    const { openRealtimeMetricsWindow } = await import('./openRealtimeMetricsWindow');
-    openRealtimeMetricsWindow();
-    const result = openRealtimeMetricsWindow();
+    const { openRealtimeMetricsWindow } =
+      await import('./openRealtimeMetricsWindow');
 
-    expect(result).toBe('focused');
-    expect((window.open as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+    openRealtimeMetricsWindow();
+
+    expect(window.open).not.toHaveBeenCalled();
   });
 
-  it('이미 열려 있으면 focus()를 호출하지 않는다(최소화 상태를 강제로 풀지 않기 위함)', async () => {
+  it('반복 호출해도 팝업을 생성하지 않는다', async () => {
     const win = fakeWindow();
     stubWindowWithOpen(() => win);
 
-    const { openRealtimeMetricsWindow } = await import('./openRealtimeMetricsWindow');
-    openRealtimeMetricsWindow();
-    openRealtimeMetricsWindow();
+    const { openRealtimeMetricsWindow } =
+      await import('./openRealtimeMetricsWindow');
 
-    expect((win as unknown as { focus: ReturnType<typeof vi.fn> }).focus).not.toHaveBeenCalled();
+    const firstResult = openRealtimeMetricsWindow();
+    const secondResult = openRealtimeMetricsWindow();
+
+    expect(firstResult).toBe('disabled');
+    expect(secondResult).toBe('disabled');
+    expect(window.open).not.toHaveBeenCalled();
   });
 
-  it('사용자가 창을 닫으면(closed=true) 다음 호출에서 새 창을 생성한다', async () => {
-    const firstWindow = fakeWindow();
-    const secondWindow = fakeWindow();
-    const openImpl = vi.fn().mockReturnValueOnce(firstWindow).mockReturnValueOnce(secondWindow);
-    vi.stubGlobal('window', { open: openImpl, location: { origin: 'http://localhost' } });
+  it('기존 창이 존재하더라도 새로운 팝업을 생성하지 않는다', async () => {
+    const win = fakeWindow();
+    stubWindowWithOpen(() => win);
 
-    const { openRealtimeMetricsWindow } = await import('./openRealtimeMetricsWindow');
-    openRealtimeMetricsWindow();
-    (firstWindow as unknown as { closed: boolean }).closed = true;
+    const { openRealtimeMetricsWindow } =
+      await import('./openRealtimeMetricsWindow');
+
     const result = openRealtimeMetricsWindow();
 
-    expect(result).toBe('opened');
-    expect(openImpl).toHaveBeenCalledTimes(2);
+    expect(result).toBe('disabled');
+    expect(win.focus).not.toHaveBeenCalled();
+    expect(window.open).not.toHaveBeenCalled();
   });
 
-  it('window.open이 null을 반환하면(팝업 차단) blocked를 반환하고, calibration 자체는 이 값으로 실패시키지 않는다', async () => {
+  it('팝업 비활성화 상태에서는 window.open이 null을 반환하는 상황도 발생하지 않는다', async () => {
     stubWindowWithOpen(() => null);
 
-    const { openRealtimeMetricsWindow } = await import('./openRealtimeMetricsWindow');
+    const { openRealtimeMetricsWindow } =
+      await import('./openRealtimeMetricsWindow');
+
     const result = openRealtimeMetricsWindow();
 
-    expect(result).toBe('blocked');
+    expect(result).toBe('disabled');
+    expect(window.open).not.toHaveBeenCalled();
   });
 
-  it('isRealtimeMetricsWindowOpen()은 현재 창 상태를 그대로 반영한다', async () => {
+  it('isRealtimeMetricsWindowOpen()은 팝업 비활성화 상태에서 항상 false를 반환한다', async () => {
     const win = fakeWindow();
     stubWindowWithOpen(() => win);
 
-    const { openRealtimeMetricsWindow, isRealtimeMetricsWindowOpen } = await import('./openRealtimeMetricsWindow');
+    const { openRealtimeMetricsWindow, isRealtimeMetricsWindowOpen } =
+      await import('./openRealtimeMetricsWindow');
 
     expect(isRealtimeMetricsWindowOpen()).toBe(false);
+
     openRealtimeMetricsWindow();
-    expect(isRealtimeMetricsWindowOpen()).toBe(true);
 
-    (win as unknown as { closed: boolean }).closed = true;
     expect(isRealtimeMetricsWindowOpen()).toBe(false);
+
+    expect(window.open).not.toHaveBeenCalled();
   });
 });

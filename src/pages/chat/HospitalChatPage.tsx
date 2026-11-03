@@ -6,7 +6,6 @@ import {
   getHospitalChatRooms,
 } from '../../features/chat/api/chatRooms';
 import PatientChatView from '../../features/chat/components/PatientChatView';
-import { hospitalChatRooms } from '../../features/chat/mock/hospitalChatMock';
 import type { ChatRoom } from '../../features/chat/types/chat';
 import { mapHospitalChatRoomDtoToChatRoom } from '../../features/chat/utils/chatMappers';
 import type {
@@ -14,20 +13,8 @@ import type {
   HospitalChatRoomDto,
 } from '../../shared/types/backend';
 
-// "요청" 카드 1개 + 실제 채팅 대상 3개 = 한 페이지 4칸
-const HOSPITAL_CONTACTS_PER_PAGE = 3;
-
-// origin/develop 제품 요구사항 — "요청" 카드가 4칸 grid의 1번 슬롯을 고정 차지하고,
-// 나머지 3칸을 실제 chat-contacts가 채운다(그래서 HOSPITAL_CONTACTS_PER_PAGE=3).
-// Backend에는 REQUEST room_type이 없어 이 카드는 실제 채팅방이 될 수 없으므로,
-// selectedRoom/message-target 후보에서는 명시적으로 제외한다(PatientChatView.tsx의
-// selectedRoom 계산·handleRoomSelect 참고) — "가짜 room이라 UI 자체를 지운다"가 아니라
-// "UI는 유지하되 채팅 대상 후보에서만 제외"가 올바른 수정이다(origin/develop도 "실제
-// 1:1 메시지 전송 대상과는 연결하지 않는다"는 동일한 결론에 도달했다).
-const requestChatRoom =
-  hospitalChatRooms.find(
-    (room) => room.id === 'request' && room.icon === 'request',
-  ) ?? hospitalChatRooms[0];
+// 요청 목업 카드를 제거했으므로 한 페이지에 실제 채팅 대상 4명 표시
+const HOSPITAL_CONTACTS_PER_PAGE = 4;
 
 function mergeHospitalContactsWithRooms(
   contacts: ChatContactDto[],
@@ -86,11 +73,6 @@ function mergeHospitalContactsWithRooms(
   });
 }
 
-// Front Step 17 §0/§4 BUG A/B root cause — '요청' 목업 room이 rooms 배열의 다른 원소와
-// 동일하게 selectedRoom/message-target 후보로 취급되던 것이 문제였지, 카드 자체가 UI
-// 요구사항이라는 사실은 아니었다. PatientChatView.tsx가 request 아이콘 room을
-// selectedRoom fallback/handleRoomSelect 대상에서 제외하므로, 여기서는 origin/develop과
-// 동일하게 요청 카드를 항상 1번 슬롯에 포함한다.
 export default function HospitalChatPage() {
   const [searchParams] = useSearchParams();
 
@@ -105,18 +87,21 @@ export default function HospitalChatPage() {
   const [contactPage, setContactPage] = useState(0);
   const [hasNextContactPage, setHasNextContactPage] = useState(false);
   const [isContactPageLoading, setIsContactPageLoading] = useState(false);
-  // §30 — room/contact 목록 조회 실패를 조용히 빈 배열로만 치환하지 않고 화면에 알린다.
+
+  // 채팅 목록 조회 실패를 화면에 알린다.
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // 같은 상대방을 빠르게 여러 번 선택했을 때
   // 채팅방 생성 요청이 중복 호출되는 것을 방지한다.
   const roomCreationRequestsRef = useRef(new Map<string, Promise<number>>());
 
-  const initialRoomId = searchParams.get('roomId') ?? 'request';
+  // URL에 roomId가 있으면 해당 채팅방으로 진입하고,
+  // 없으면 PatientChatView의 기본 선택 로직을 사용한다.
+  const initialRoomId = searchParams.get('roomId') ?? '';
 
   const rooms = useMemo(() => {
     if (!hasLoadedHospitalRooms) {
-      return [requestChatRoom];
+      return [];
     }
 
     // 서버에서 받아온 실제 채팅 대상들을 1:1 채팅 카드로 변환한다.
@@ -126,10 +111,13 @@ export default function HospitalChatPage() {
       createdRoomIds,
     );
 
-    // URL로 특정 roomId에 직접 들어온 경우 현재 페이지 목록에 없어도 보여준다.
-    const requestedHospitalRoom = hospitalRooms.find(
-      (hospitalRoom) => String(hospitalRoom.roomId) === initialRoomId,
-    );
+    // URL로 특정 roomId에 직접 들어온 경우
+    // 현재 페이지 목록에 없어도 해당 채팅방을 보여준다.
+    const requestedHospitalRoom = initialRoomId
+      ? hospitalRooms.find(
+          (hospitalRoom) => String(hospitalRoom.roomId) === initialRoomId,
+        )
+      : undefined;
 
     const requestedRoomIsVisible = requestedHospitalRoom?.target.userId
       ? contactRooms.some(
@@ -140,13 +128,10 @@ export default function HospitalChatPage() {
         );
 
     return [
-      // 요청 카드는 그대로 둔다.
-      requestChatRoom,
-
-      // 회원가입한 다른 계정이 getChatContacts에 내려오면
-      // 이곳에 별도 카드로 추가된다.
+      // 실제 채팅 가능한 상대 목록
       ...contactRooms,
 
+      // URL로 직접 접근한 채팅방이 현재 목록에 없는 경우 추가
       ...(requestedHospitalRoom && !requestedRoomIsVisible
         ? [mapHospitalChatRoomDtoToChatRoom(requestedHospitalRoom)]
         : []),
@@ -174,7 +159,9 @@ export default function HospitalChatPage() {
       } catch {
         if (isMounted) {
           setHospitalRooms([]);
-          setLoadError('채팅 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+          setLoadError(
+            '채팅 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          );
         }
       } finally {
         if (isMounted) {
@@ -212,7 +199,9 @@ export default function HospitalChatPage() {
         if (isMounted) {
           setContacts([]);
           setHasNextContactPage(false);
-          setLoadError('채팅 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+          setLoadError(
+            '채팅 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          );
         }
       } finally {
         if (isMounted) {
@@ -235,7 +224,7 @@ export default function HospitalChatPage() {
       return room;
     }
 
-    // 요청 카드는 targetUserId가 없으므로 현재는 그대로 둔다.
+    // 실제 채팅 대상이 아닌 경우 채팅방을 생성하지 않는다.
     if (!room.targetUserId) {
       return;
     }

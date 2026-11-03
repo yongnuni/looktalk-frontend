@@ -85,16 +85,16 @@ export interface MessageDto {
 
 // input_session_log
 export interface InputSessionLogDto {
-  log_id: string;
-  user_id: string | null;
-  calibration_id: string | null;
-  input_method: string;
-  keyboard_layout: string;
-  typo_rate: number | null;
-  input_speed: number | null;
-  recognition_accuracy: number | null;
-  input_stability: number | null;
-  session_at: string | null;
+  logId: string;
+  calibrationId: string | null;
+  inputMethod: string;
+  sessionType: 'CALIBRATION_TEST' | 'NORMAL_USE';
+  keyboardLayout: string;
+  typoRate: number | null;
+  inputSpeed: number | null;
+  recognitionAccuracy: number | null;
+  inputStability: number | null;
+  sessionAt: string | null;
 }
 
 // hospital

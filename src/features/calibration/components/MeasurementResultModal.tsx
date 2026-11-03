@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { InputMethod } from '../../../shared/types/backend';
 import type {
   CalibrationCompletionGazeTarget,
@@ -7,13 +7,23 @@ import type {
 import { useCalibrationCompletionGaze } from '../completionGaze/useCalibrationCompletionGaze';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
 import { createCalibration } from '../api/calibrationApi';
+import { createInputSession } from '../api/inputSessionApi';
 import { CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED } from '../constants';
 import { useCalibrationStore } from '../store/calibrationStore';
+import { useUserSettingStore } from '../../userSetting/store/userSettingStore';
 import type { InputCalibrationResult } from '../inputCalibration';
 import type { GazeCalibrationResult } from '../types';
 import type { HomographyPointDiagnostic } from '../homography';
 import type { PatientInputTestResults } from '../PatientCalibrationFlow';
-import { completeMeasurementResultAction, type MeasurementResultAction } from '../measurementResultAction';
+import {
+  completeMeasurementResultAction,
+  type MeasurementResultAction,
+} from '../measurementResultAction';
+
+import { recommend, type MeasurementRow } from '../../analysis/utils/recommend';
+
+import type { RecommendationDashboardData } from '../../analysis/types/recommendation';
+
 import CalibrationRecommendationResults from './CalibrationRecommendationResults';
 import './MeasurementResultModal.css';
 
@@ -42,9 +52,6 @@ interface MeasurementResultModalProps {
   onApplied: (method: InputMethod) => void;
 }
 
-// Integration Plan §10 측정 결과 모달. X/닫기 버튼 없음, background click으로 닫히지 않음,
-// ESC로 닫히지 않음 — 이 컴포넌트에는 애초에 그런 닫기 트리거 자체가 없다(§10.1).
-// 실제 Recommendation API가 없으므로(§10.2) recommendedInputMethod 관련 문구는 렌더링하지 않는다.
 export default function MeasurementResultModal({
   candidate,
   pointDiagnostics,
@@ -58,8 +65,16 @@ export default function MeasurementResultModal({
 }: MeasurementResultModalProps) {
   const [showDashboard, setShowDashboard] = useState(false);
   const [modalState, setModalState] = useState<ModalState>('SELECTING');
-  const [pendingAction, setPendingAction] = useState<MeasurementResultAction | null>(null);
-  const [savedCalibrationId, setSavedCalibrationId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] =
+    useState<MeasurementResultAction | null>(null);
+
+  const [savedCalibrationId, setSavedCalibrationId] = useState<string | null>(
+    null,
+  );
+
+  // 이번 측정의 기준 시각
+  const [measuredAt] = useState(() => new Date().toISOString());
+
   const methodButtonRefs = useRef(new Map<InputMethod, HTMLButtonElement>());
   const retryButtonRef = useRef<HTMLButtonElement | null>(null);
   const retestButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -69,61 +84,197 @@ export default function MeasurementResultModal({
   const setActiveCalibration = useCalibrationStore((state) => state.setActive);
   const { updateSettings } = useUserSettings();
 
-  const handleAction = useCallback(async (action: MeasurementResultAction) => {
-    if (modalState === 'SAVING' || selectionInFlightRef.current) {
-      return;
-    }
+  /**
+   * 실제 입력 테스트 결과를 추천 분석용 데이터로 변환한다.
+   *
+   * inputSpeed: 분당 입력 속도
+   * typoRate: 오타율 (0~1 비율)
+   */
+  const recommendationData: RecommendationDashboardData = useMemo(() => {
+    const calibrationId = savedCalibrationId ?? 'current-calibration';
 
-    selectionInFlightRef.current = true;
-    if (action.type === 'apply-method') onSaving();
-    setPendingAction(action);
-    setModalState('SAVING');
+    const results = [
+      {
+        result: inputTestResults.gaze,
+        inputMethod: 'EYE_TRACKING' as const,
+      },
+      {
+        result: inputTestResults.blink,
+        inputMethod: 'BLINK' as const,
+      },
+      {
+        result: inputTestResults.mouth,
+        inputMethod: 'MOUTH' as const,
+      },
+    ];
 
-    try {
-      await completeMeasurementResultAction(action, {
-        saveCalibration: async () => {
-          // Share the successful POST across actions and retries after a failed settings PATCH.
-          if (savedCalibrationId) return;
-          const persisted = await createCalibration(candidate);
-          setSavedCalibrationId(persisted.calibrationId);
-          setActiveCalibration(persisted.calibrationId, persisted.result);
-        },
-        applyInputMethod: (method) => updateSettings({ currentInputMethod: method }),
-        onApplied,
-        onViewAnalysis: () => {
-          selectionInFlightRef.current = false;
-          setModalState('SELECTING');
-          setShowDashboard(true);
-        },
-      });
-    } catch {
-      selectionInFlightRef.current = false;
-      if (action.type === 'apply-method') onSaveFailed();
-      setModalState('ERROR');
-    }
-  }, [
-    candidate,
-    modalState,
-    onApplied,
-    onSaveFailed,
-    onSaving,
-    savedCalibrationId,
-    setActiveCalibration,
-    updateSettings,
-  ]);
+    const measurementRows: MeasurementRow[] = results.flatMap(
+      ({ result, inputMethod }) => {
+        if (
+          !result ||
+          result.durationMs <= 0 ||
+          result.confirmationAttempts <= 0
+        ) {
+          return [];
+        }
+
+        const inputSpeed = 60000 / result.durationMs;
+        const typoRate = result.incorrectAttempts / result.confirmationAttempts;
+
+        if (
+          !Number.isFinite(inputSpeed) ||
+          !Number.isFinite(typoRate) ||
+          inputSpeed <= 0 ||
+          typoRate < 0
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            calibrationId,
+            inputMethod,
+            inputSpeed,
+            typoRate,
+            sessionAt: measuredAt,
+          },
+        ];
+      },
+    );
+
+    // 현재 측정 결과만으로 규칙 기반 추천을 생성한다.
+    // 실제 모델 결과가 없으므로 추천 확률은 생성하지 않는다.
+    return recommend([], measurementRows);
+  }, [inputTestResults, measuredAt, savedCalibrationId]);
+
+  const handleAction = useCallback(
+    async (action: MeasurementResultAction) => {
+      if (modalState === 'SAVING' || selectionInFlightRef.current) {
+        return;
+      }
+
+      selectionInFlightRef.current = true;
+
+      if (action.type === 'apply-method') {
+        onSaving();
+      }
+
+      setPendingAction(action);
+      setModalState('SAVING');
+
+      try {
+        await completeMeasurementResultAction(action, {
+          saveCalibration: async () => {
+            // 이미 성공적으로 저장했다면 중복 저장하지 않는다.
+            if (savedCalibrationId) return;
+
+            const persisted = await createCalibration(candidate);
+
+            setSavedCalibrationId(persisted.calibrationId);
+            setActiveCalibration(persisted.calibrationId, persisted.result);
+
+            // 현재 사용자 설정에서 키보드 레이아웃을 가져온다.
+            const keyboardLayout =
+              useUserSettingStore.getState().settings?.keyboardLayout;
+
+            // 실제 측정 결과가 존재하는 입력 방식만 저장한다.
+            const results = [
+              {
+                result: inputTestResults.gaze,
+                inputMethod: 'EYE_TRACKING' as const,
+              },
+              {
+                result: inputTestResults.blink,
+                inputMethod: 'BLINK' as const,
+              },
+              {
+                result: inputTestResults.mouth,
+                inputMethod: 'MOUTH' as const,
+              },
+            ];
+
+            // 한 방식의 저장 실패가 다른 방식의 저장을 막지 않는다.
+            await Promise.allSettled(
+              results.map(async ({ result, inputMethod }) => {
+                if (
+                  !result ||
+                  result.durationMs <= 0 ||
+                  result.confirmationAttempts <= 0
+                ) {
+                  return;
+                }
+
+                const typoRate =
+                  result.incorrectAttempts / result.confirmationAttempts;
+
+                await createInputSession({
+                  sessionType: 'CALIBRATION_TEST',
+                  inputMethod,
+                  calibrationId: persisted.calibrationId,
+                  ...(keyboardLayout ? { keyboardLayout } : {}),
+                  typoRate,
+                  inputSpeed: 60000 / result.durationMs,
+                  recognitionAccuracy: null,
+                  inputStability: null,
+                });
+              }),
+            );
+          },
+
+          applyInputMethod: (method) =>
+            updateSettings({ currentInputMethod: method }),
+
+          onApplied,
+
+          onViewAnalysis: () => {
+            selectionInFlightRef.current = false;
+            setModalState('SELECTING');
+            setShowDashboard(true);
+          },
+        });
+      } catch {
+        selectionInFlightRef.current = false;
+
+        if (action.type === 'apply-method') {
+          onSaveFailed();
+        }
+
+        setModalState('ERROR');
+      }
+    },
+    [
+      candidate,
+      modalState,
+      onApplied,
+      onSaveFailed,
+      onSaving,
+      savedCalibrationId,
+      setActiveCalibration,
+      updateSettings,
+      inputTestResults,
+    ],
+  );
 
   const isSaving = modalState === 'SAVING';
-  const rmseTooHigh = candidate.reprojectionRmseNormalized > CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED;
+
+  const rmseTooHigh =
+    candidate.reprojectionRmseNormalized >
+    CALIBRATION_RMSE_WARNING_THRESHOLD_NORMALIZED;
 
   const getCompletionTargets = useCallback(() => {
-    const targets: CalibrationCompletionGazeTarget[] = METHOD_OPTIONS.map((option) => ({
-      id: `calibration-method-${option.method}`,
-      element: methodButtonRefs.current.get(option.method) ?? null,
-      enabled: !isSaving,
-      onSelect: () => {
-        void handleAction({ type: 'apply-method', method: option.method });
-      },
-    }));
+    const targets: CalibrationCompletionGazeTarget[] = METHOD_OPTIONS.map(
+      (option) => ({
+        id: `calibration-method-${option.method}`,
+        element: methodButtonRefs.current.get(option.method) ?? null,
+        enabled: !isSaving,
+        onSelect: () => {
+          void handleAction({
+            type: 'apply-method',
+            method: option.method,
+          });
+        },
+      }),
+    );
 
     if (modalState === 'ERROR' && pendingAction) {
       targets.push({
@@ -140,7 +291,9 @@ export default function MeasurementResultModal({
       id: 'calibration-analysis',
       element: analysisButtonRef.current,
       enabled: !isSaving,
-      onSelect: () => { void handleAction({ type: 'view-analysis' }); },
+      onSelect: () => {
+        void handleAction({ type: 'view-analysis' });
+      },
     });
 
     targets.push({
@@ -159,9 +312,11 @@ export default function MeasurementResultModal({
     getTargets: getCompletionTargets,
   });
 
+  // 실제 측정값으로 생성한 추천 데이터를 전달한다.
   if (showDashboard) {
     return (
       <CalibrationRecommendationResults
+        data={recommendationData}
         subscribeCompletionGaze={subscribeCompletionGaze}
         onRetest={onRetest}
         onChangeInput={() => setShowDashboard(false)}
@@ -172,17 +327,15 @@ export default function MeasurementResultModal({
   return (
     <div className="measurement-result-modal" role="dialog" aria-modal="true">
       <p className="measurement-result-modal__title">&lt;측정 결과&gt;</p>
+
       <p className="measurement-result-modal__instruction">
         사용하고 싶은 입력 방식을 선택해주세요.
       </p>
 
-      {/* Final C — Look-Talk 원본(calibration.py 643행)의 RMSE 하드 게이트에 대응하는
-          비침습적 경고. Python처럼 말없이 이전 값으로 자동 대체하지 않고 사용자가 직접
-          재측정할지 그대로 적용할지 선택하게 한다(§8.5와 동일한 원칙). */}
       {rmseTooHigh && (
         <p className="measurement-result-modal__rmse-warning">
-          이번 측정의 오차가 평소보다 큽니다. 재측정을 권장하지만, 그래도 아래에서 입력
-          방식을 선택해 적용할 수 있습니다.
+          이번 측정의 오차가 평소보다 큽니다. 재측정을 권장하지만, 그래도
+          아래에서 입력 방식을 선택해 적용할 수 있습니다.
         </p>
       )}
 
@@ -191,13 +344,17 @@ export default function MeasurementResultModal({
           눈 깜빡임 측정 완료
           {inputCalibration.blink.fallback && <span>기본값 사용</span>}
         </p>
+
         <p>
           입 움직임 측정 완료
           {inputCalibration.mouth.fallback && <span>기본값 사용</span>}
         </p>
       </div>
 
-      <div className="measurement-result-modal__input-tests" aria-label="입력 테스트 결과">
+      <div
+        className="measurement-result-modal__input-tests"
+        aria-label="입력 테스트 결과"
+      >
         {METHOD_OPTIONS.map((option) => {
           const result =
             option.method === 'EYE_TRACKING'
@@ -209,9 +366,11 @@ export default function MeasurementResultModal({
           return (
             <section key={option.method}>
               <strong>{option.label}</strong>
+
               {result ? (
                 <p>
-                  목표 {result.targetWord} · {(result.durationMs / 1_000).toFixed(1)}초 · 오답{' '}
+                  목표 {result.targetWord} ·{' '}
+                  {(result.durationMs / 1_000).toFixed(1)}초 · 오답{' '}
                   {result.incorrectAttempts}회
                 </p>
               ) : (
@@ -236,7 +395,12 @@ export default function MeasurementResultModal({
             type="button"
             className="measurement-result-modal__method-button"
             disabled={isSaving}
-            onClick={() => void handleAction({ type: 'apply-method', method: option.method })}
+            onClick={() =>
+              void handleAction({
+                type: 'apply-method',
+                method: option.method,
+              })
+            }
           >
             {option.label}
           </button>
@@ -246,6 +410,7 @@ export default function MeasurementResultModal({
       {modalState === 'ERROR' && (
         <div className="measurement-result-modal__error" aria-live="assertive">
           <p>저장에 실패했습니다. 다시 시도해주세요.</p>
+
           {pendingAction && (
             <button
               ref={retryButtonRef}
@@ -278,18 +443,23 @@ export default function MeasurementResultModal({
         상세 분석 결과 보기
       </button>
 
-
       {isSaving && <p role="status">측정 결과를 저장하고 있습니다…</p>}
 
-      <p className="calibration-rmse">재투영 오차(RMSE, normalized): {candidate.reprojectionRmseNormalized.toFixed(4)}</p>
       <p className="calibration-rmse">
-        viewport: {candidate.calibratedViewport.widthPx}×{candidate.calibratedViewport.heightPx}px / mirror:{' '}
+        재투영 오차(RMSE, normalized):{' '}
+        {candidate.reprojectionRmseNormalized.toFixed(4)}
+      </p>
+
+      <p className="calibration-rmse">
+        viewport: {candidate.calibratedViewport.widthPx}×
+        {candidate.calibratedViewport.heightPx}px / mirror:{' '}
         {candidate.mirrorStrategy}
       </p>
 
       {pointDiagnostics && (
         <details className="calibration-diagnostics">
           <summary>점별 오차 보기 ({pointDiagnostics.length}점)</summary>
+
           <table className="calibration-diagnostics-table">
             <thead>
               <tr>
@@ -300,6 +470,7 @@ export default function MeasurementResultModal({
                 <th>error</th>
               </tr>
             </thead>
+
             <tbody>
               {pointDiagnostics.map((d) => (
                 <tr key={d.index}>

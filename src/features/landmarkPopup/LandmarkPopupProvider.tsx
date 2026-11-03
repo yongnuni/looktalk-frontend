@@ -26,6 +26,11 @@ import {
   openLandmarkWindow,
 } from './landmarkWindow';
 
+// 랜드마크 카메라 별도 팝업 사용 여부
+// false: 팝업 실행 안 함
+// true: 팝업 실행
+const ENABLE_LANDMARK_POPUP = false;
+
 interface LandmarkPopupProviderProps {
   children: ReactNode;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -61,12 +66,7 @@ export const LandmarkPopupProvider = forwardRef<
   /*
    * 외부 랜드마크 창을 실제로 제거하는 함수.
    *
-   * 중요:
-   * 이 함수는 이제 일반적인 stage 전환이나
-   * 키보드 표시/숨김에서는 호출하지 않는다.
-   *
-   * 사용자가 명시적으로 닫거나
-   * Provider 자체가 unmount될 때만 사용한다.
+   * 기존 기능 유지를 위해 그대로 보존한다.
    */
   const detachExternalWindow = useCallback((closeWindow: boolean) => {
     const externalWindow = externalWindowRef.current;
@@ -74,7 +74,6 @@ export const LandmarkPopupProvider = forwardRef<
 
     if (externalWindow && pageHideListener) {
       externalWindow.removeEventListener('pagehide', pageHideListener);
-
       externalWindow.removeEventListener('beforeunload', pageHideListener);
     }
 
@@ -97,19 +96,23 @@ export const LandmarkPopupProvider = forwardRef<
   /*
    * 랜드마크 창 준비
    *
-   * 이미 창이 존재하면:
-   * - 절대 새로 생성하지 않음
-   * - focus 하지 않음
-   * - 최소화 상태라면 그대로 유지
+   * ENABLE_LANDMARK_POPUP이 false이면
+   * 새 브라우저 창을 생성하지 않는다.
+   *
+   * true로 변경하면 기존 팝업 기능이 다시 활성화된다.
    */
   const prepareWindow = useCallback((): boolean => {
+    if (!ENABLE_LANDMARK_POPUP) {
+      setNeedsUserOpen(false);
+      return false;
+    }
+
     const existingWindow = externalWindowRef.current;
 
     if (existingWindow && !existingWindow.closed) {
       setNeedsUserOpen(false);
 
-      // 중요:
-      // 기존 창에 focus() 절대 호출하지 않음
+      // 기존 창에 focus() 호출하지 않음
       return true;
     }
 
@@ -143,9 +146,7 @@ export const LandmarkPopupProvider = forwardRef<
           return;
         }
 
-        /*
-         * 사용자가 X 버튼으로 직접 닫은 경우
-         */
+        // 사용자가 X 버튼으로 직접 닫은 경우
         externalWindowRef.current = null;
         externalPageHideListenerRef.current = null;
 
@@ -161,7 +162,6 @@ export const LandmarkPopupProvider = forwardRef<
       externalPageHideListenerRef.current = handlePageHide;
 
       externalWindow.addEventListener('pagehide', handlePageHide);
-
       externalWindow.addEventListener('beforeunload', handlePageHide);
 
       setPortalHost(nextPortalHost);
@@ -169,10 +169,6 @@ export const LandmarkPopupProvider = forwardRef<
 
       /*
        * 팝업 생성 후 메인 Look Talk 창을 다시 앞으로.
-       *
-       * 실제 Windows 최소화는 브라우저 API에서
-       * 강제로 할 수 없지만 새 팝업이 계속 앞으로
-       * 튀어나오는 현상을 줄인다.
        */
       try {
         externalWindow.blur();
@@ -211,12 +207,6 @@ export const LandmarkPopupProvider = forwardRef<
         variant: nextVariant,
       });
 
-      /*
-       * 기존 창이 있으면 그대로 사용.
-       *
-       * 최소화되어 있다면 절대 다시 앞으로
-       * 가져오지 않는다.
-       */
       prepareWindow();
     },
     [prepareWindow],
@@ -224,8 +214,6 @@ export const LandmarkPopupProvider = forwardRef<
 
   /*
    * 사용자가 명시적으로 랜드마크 창을 닫는 경우.
-   *
-   * 이 경우에만 실제 팝업을 닫는다.
    */
   const close = useCallback(() => {
     autoOpenControllerRef.current.dismissActive();
@@ -242,8 +230,7 @@ export const LandmarkPopupProvider = forwardRef<
   }, [detachExternalWindow]);
 
   /*
-   * 현재는 Launcher 버튼을 제거했기 때문에
-   * 일반적으로 사용되지 않지만 Context 호환성을 위해 유지.
+   * Context 호환성을 위해 유지.
    */
   const reopen = useCallback(() => {
     prepareWindow();
@@ -276,15 +263,6 @@ export const LandmarkPopupProvider = forwardRef<
         variant: transition.variant,
       });
 
-      /*
-       * ★ 핵심
-       *
-       * 팝업이 이미 있다면 절대로 새로 만들지 않는다.
-       *
-       * 따라서 사용자가 랜드마크 창을 최소화해놨다면
-       * 키보드가 열리거나 화면 상태가 바뀌어도
-       * 최소화 상태 그대로 유지된다.
-       */
       prepareWindow();
     },
     [prepareWindow],
@@ -300,30 +278,6 @@ export const LandmarkPopupProvider = forwardRef<
       return;
     }
 
-    /*
-     * ★ 가장 중요한 수정
-     *
-     * 기존 코드에서는 여기서
-     *
-     * detachExternalWindow(true)
-     *
-     * 를 호출하여 실제 팝업을 닫았다.
-     *
-     * 그러면 키보드가 켜질 때
-     *
-     * 기존 창 닫힘
-     *      ↓
-     * requestAutoOpen
-     *      ↓
-     * 새로운 window.open()
-     *      ↓
-     * 팝업 다시 화면에 등장
-     *
-     * 문제가 발생한다.
-     *
-     * 이제 실제 Window는 닫지 않고 유지한다.
-     */
-
     if (transition.variant) {
       variantRef.current = transition.variant;
 
@@ -335,21 +289,13 @@ export const LandmarkPopupProvider = forwardRef<
       return;
     }
 
-    /*
-     * 현재 stage에서 랜드마크 UI가 필요 없는 경우에도
-     * 외부 window 자체는 유지한다.
-     *
-     * 따라서 최소화해놓은 창 역시 그대로 존재한다.
-     */
     variantRef.current = null;
 
     dispatch({
       type: 'close',
     });
 
-    // 절대 아래 코드 호출하지 않음.
-    //
-    // detachExternalWindow(true);
+    // 기존 외부 창 관리 코드는 유지한다.
   }, []);
 
   useEffect(() => {
@@ -357,8 +303,7 @@ export const LandmarkPopupProvider = forwardRef<
   }, [variant]);
 
   /*
-   * Provider 자체가 사라질 때만
-   * 랜드마크 외부 창을 완전히 정리한다.
+   * Provider 자체가 사라질 때 외부 창 정리
    */
   useEffect(() => {
     mountedRef.current = true;
@@ -367,12 +312,10 @@ export const LandmarkPopupProvider = forwardRef<
       mountedRef.current = false;
 
       const externalWindow = externalWindowRef.current;
-
       const pageHideListener = externalPageHideListenerRef.current;
 
       if (externalWindow && pageHideListener) {
         externalWindow.removeEventListener('pagehide', pageHideListener);
-
         externalWindow.removeEventListener('beforeunload', pageHideListener);
       }
 

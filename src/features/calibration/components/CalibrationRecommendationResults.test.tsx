@@ -12,29 +12,61 @@ vi.mock('../completionGaze/useCalibrationCompletionGaze', () => ({
 
 describe('calibration dashboard back button', () => {
   it('renders the back button below the shared comparison table only in calibration', () => {
-    const html = renderToStaticMarkup(createElement(CalibrationRecommendationResults, {
-      subscribeCompletionGaze: () => () => {}, onRetest: vi.fn(), onChangeInput: vi.fn(),
-    }));
+    const html = renderToStaticMarkup(
+      createElement(CalibrationRecommendationResults, {
+        data: recommendationDemo,
+        subscribeCompletionGaze: () => () => {},
+        onRetest: vi.fn(),
+        onChangeInput: vi.fn(),
+      }),
+    );
+
     expect(html).toContain('뒤로가기');
     expect(html.indexOf('뒤로가기')).toBeGreaterThan(html.indexOf('</table>'));
-    const standalone = renderToStaticMarkup(createElement(RecommendationResults, {
-      data: recommendationDemo, onRetest: vi.fn(), onChangeInput: vi.fn(), retestRef: null, changeInputRef: null,
-    }));
+
+    const standalone = renderToStaticMarkup(
+      createElement(RecommendationResults, {
+        data: recommendationDemo,
+        onRetest: vi.fn(),
+        onChangeInput: vi.fn(),
+        retestRef: null,
+        changeInputRef: null,
+      }),
+    );
+
     expect(standalone).not.toContain('뒤로가기');
   });
 
   it('reuses the result-return action for gaze selection without invoking retest', () => {
     const onChangeInput = vi.fn();
     const onRetest = vi.fn();
-    renderToStaticMarkup(createElement(CalibrationRecommendationResults, {
-      subscribeCompletionGaze: () => () => {}, onRetest, onChangeInput,
-    }));
-    const options = vi.mocked(useCalibrationCompletionGaze).mock.calls.at(-1)![0];
+
+    renderToStaticMarkup(
+      createElement(CalibrationRecommendationResults, {
+        data: recommendationDemo,
+        subscribeCompletionGaze: () => () => {},
+        onRetest,
+        onChangeInput,
+      }),
+    );
+
+    const options = vi
+      .mocked(useCalibrationCompletionGaze)
+      .mock.calls.at(-1)![0];
     const targets = options.getTargets();
-    const back = targets.find(target => target.id === 'calibration-dashboard-back')!;
-    const change = targets.find(target => target.id === 'calibration-dashboard-change-input')!;
+
+    const back = targets.find(
+      (target) => target.id === 'calibration-dashboard-back',
+    )!;
+
+    const change = targets.find(
+      (target) => target.id === 'calibration-dashboard-change-input',
+    )!;
+
     expect(back.onSelect).toBe(change.onSelect);
+
     back.onSelect();
+
     expect(onChangeInput).toHaveBeenCalledOnce();
     expect(onRetest).not.toHaveBeenCalled();
   });
