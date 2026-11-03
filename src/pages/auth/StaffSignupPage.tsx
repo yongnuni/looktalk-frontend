@@ -39,6 +39,7 @@ interface StaffSignupResponse {
 }
 
 const API_BASE_URL = 'http://localhost:8080';
+const TEMP_INVITE_CODE = '123456';
 
 const NETWORK_ERROR_MESSAGE =
   '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
@@ -211,6 +212,12 @@ export default function StaffSignupPage() {
       return;
     }
 
+    // 임시 초대 코드 확인
+    if (inviteCode.trim() !== TEMP_INVITE_CODE) {
+      setSignupMessage('초대 코드가 올바르지 않습니다.');
+      return;
+    }
+
     try {
       setIsSigningUp(true);
       setSignupMessage('');
@@ -224,7 +231,7 @@ export default function StaffSignupPage() {
           loginId: loginId.trim(),
           email: email.trim(),
           password,
-          inviteCode: inviteCode.trim(),
+          inviteCode: TEMP_INVITE_CODE,
         }),
       });
 

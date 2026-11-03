@@ -12,8 +12,12 @@ import { usePageScope } from '../../gazeInteraction/usePageScope';
 import { useGazeTarget } from '../../gazeInteraction/useGazeTarget';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
 import { mapInputMethodIdToBackend } from '../inputMethodMapping';
-import { recommendationDemo } from '../mock/recommendationDemo';
+import { getInputSessions } from '../../calibration/api/inputSessionApi';
+import { recommend } from '../utils/recommend';
+import type { MeasurementRow } from '../utils/recommend';
 import type { InputMethodId } from '../types/analysis';
+import type { RecommendationDashboardData } from '../types/recommendation';
+import type { InputSessionLogDto } from '../../../shared/types/backend';
 
 import RecommendationResults from './RecommendationResults';
 import InputMethodSelectionModal from './InputMethodSelectionModal';
@@ -27,6 +31,40 @@ type ModalKind =
   | 'change-success'
   | null;
 
+/* =========================================================
+   백엔드 측정 이력 데이터 변환
+========================================================= */
+
+function toMeasurementRows(rows: InputSessionLogDto[]): MeasurementRow[] {
+  return rows.flatMap((row) => {
+    if (
+      !row.calibrationId ||
+      row.typoRate === null ||
+      row.inputSpeed === null
+    ) {
+      return [];
+    }
+
+    if (
+      row.inputMethod !== 'EYE_TRACKING' &&
+      row.inputMethod !== 'BLINK' &&
+      row.inputMethod !== 'MOUTH'
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        calibrationId: row.calibrationId,
+        inputMethod: row.inputMethod,
+        inputSpeed: row.inputSpeed,
+        typoRate: row.typoRate,
+        sessionAt: row.sessionAt,
+      },
+    ];
+  });
+}
+
 export default function AnalysisDashboard() {
   const navigate = useNavigate();
   usePageScope('MAIN');
@@ -34,18 +72,51 @@ export default function AnalysisDashboard() {
   const [modalKind, setModalKind] = useState<ModalKind>(null);
 
   /* =========================================================
+     추천 결과 및 백엔드 측정 이력 조회
+  ========================================================= */
+
+  const [recommendationData, setRecommendationData] =
+    useState<RecommendationDashboardData>(() => recommend([]));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchRecommendation = async () => {
+      try {
+        const response = await getInputSessions('CALIBRATION_TEST', 30);
+
+        const history = toMeasurementRows(response);
+
+        const result = recommend(history);
+
+        if (!cancelled) {
+          setRecommendationData(result);
+        }
+      } catch (error) {
+        console.error('입력 방식 측정 이력 조회 실패:', error);
+
+        if (!cancelled) {
+          setRecommendationData(recommend([]));
+        }
+      }
+    };
+
+    void fetchRecommendation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* =========================================================
      분석 항목 이동
   ========================================================= */
 
-  // Front Step 17 §14/§17 BUG C/D/E — InputMethodSelectionModal의 선택이 실제 Backend
-  // UserSetting에 저장되도록 하는 상태. MeasurementResultModal(Calibration 흐름, 이미
-  // 정상 동작)과 동일하게 저장 성공 후에만 완료 모달로 넘어가고, 실패 시 에러를 보여주고
-  // 선택 모달에 머무른다(§30 error visibility).
+  // InputMethodSelectionModal의 선택이 실제 Backend UserSetting에 저장되도록 한다.
   const { updateSettings } = useUserSettings();
   const [isSavingInputMethod, setIsSavingInputMethod] = useState(false);
   const [inputMethodError, setInputMethodError] = useState<string | null>(null);
 
-  // Preserve the existing settings API; demo recommendations never change user settings.
   const handleSelectInputMethod = async (inputMethodId: InputMethodId) => {
     if (isSavingInputMethod) return;
 
@@ -53,12 +124,16 @@ export default function AnalysisDashboard() {
     setInputMethodError(null);
 
     try {
-      await updateSettings({ currentInputMethod: mapInputMethodIdToBackend(inputMethodId) });
+      await updateSettings({
+        currentInputMethod: mapInputMethodIdToBackend(inputMethodId),
+      });
 
       setModalKind('change-success');
     } catch (error) {
       console.error('입력 방식 저장 실패:', error);
-      setInputMethodError('입력 방식을 저장하지 못했습니다. 다시 시도해 주세요.');
+      setInputMethodError(
+        '입력 방식을 저장하지 못했습니다. 다시 시도해 주세요.',
+      );
     } finally {
       setIsSavingInputMethod(false);
     }
@@ -66,21 +141,43 @@ export default function AnalysisDashboard() {
 
   const closeModal = () => setModalKind(null);
 
-  // Front Step 15 §30/§34 — 모달이 열려 있는 동안 MODAL scope로 전환해 뒤쪽 화면이 gaze로
-  // 선택되지 않게 한다. 이 페이지의 로컬 Emergency countdown/complete mock(gaze 미지원
-  // KNOWN_LIMITATION이었다)은 origin/develop이 도입한 공용 <EmergencyButton />(실제 API
-  // 연동 + gaze 지원)으로 완전히 대체됐다 — 관련 state/effect/모달을 전부 제거한다.
+  // 모달이 열려 있는 동안 MODAL scope로 전환한다.
   useEffect(() => {
     setActiveScope(modalKind === null ? 'MAIN' : 'MODAL');
   }, [modalKind, setActiveScope]);
 
-  const settingsTargetRef = useGazeTarget({ id: 'analysis-settings', scope: 'MAIN', onSelect: () => navigate('/mypage') });
-  const hospitalChatTargetRef = useGazeTarget({ id: 'analysis-chat-hospital', scope: 'MAIN', onSelect: () => navigate('/chat/hospital') });
-  const friendChatTargetRef = useGazeTarget({ id: 'analysis-chat-friend', scope: 'MAIN', onSelect: () => navigate('/chat/friend') });
+  const settingsTargetRef = useGazeTarget({
+    id: 'analysis-settings',
+    scope: 'MAIN',
+    onSelect: () => navigate('/mypage'),
+  });
+
+  const hospitalChatTargetRef = useGazeTarget({
+    id: 'analysis-chat-hospital',
+    scope: 'MAIN',
+    onSelect: () => navigate('/chat/hospital'),
+  });
+
+  const friendChatTargetRef = useGazeTarget({
+    id: 'analysis-chat-friend',
+    scope: 'MAIN',
+    onSelect: () => navigate('/chat/friend'),
+  });
+
   const openRetest = () => setModalKind('retest-intro');
   const openInputChoice = () => setModalKind('input-choice');
-  const retestCardTargetRef = useGazeTarget({ id: 'analysis-retest-card', scope: 'MAIN', onSelect: openRetest });
-  const changeInputTargetRef = useGazeTarget({ id: 'analysis-change-input', scope: 'MAIN', onSelect: openInputChoice });
+
+  const retestCardTargetRef = useGazeTarget({
+    id: 'analysis-retest-card',
+    scope: 'MAIN',
+    onSelect: openRetest,
+  });
+
+  const changeInputTargetRef = useGazeTarget({
+    id: 'analysis-change-input',
+    scope: 'MAIN',
+    onSelect: openInputChoice,
+  });
 
   const inputChoiceChangeTargetRef = useGazeTarget({
     id: 'analysis-modal-input-choice-change',
@@ -88,24 +185,28 @@ export default function AnalysisDashboard() {
     enabled: modalKind === 'input-choice',
     onSelect: () => setModalKind('input-selection'),
   });
+
   const inputChoiceCancelTargetRef = useGazeTarget({
     id: 'analysis-modal-input-choice-cancel',
     scope: 'MODAL',
     enabled: modalKind === 'input-choice',
     onSelect: closeModal,
   });
+
   const retestStartTargetRef = useGazeTarget({
     id: 'analysis-modal-retest-start',
     scope: 'MODAL',
     enabled: modalKind === 'retest-intro',
     onSelect: () => navigate('/calibration?mode=retest&source=analysis'),
   });
+
   const retestCancelTargetRef = useGazeTarget({
     id: 'analysis-modal-retest-cancel',
     scope: 'MODAL',
     enabled: modalKind === 'retest-intro',
     onSelect: closeModal,
   });
+
   const changeSuccessConfirmTargetRef = useGazeTarget({
     id: 'analysis-modal-change-success-confirm',
     scope: 'MODAL',
@@ -145,10 +246,22 @@ export default function AnalysisDashboard() {
             >
               <img src={Setting} alt="" />
             </button>
-            <button ref={hospitalChatTargetRef} className="analysis-header-button" onClick={() => navigate('/chat/hospital')} type="button">
+
+            <button
+              ref={hospitalChatTargetRef}
+              className="analysis-header-button"
+              onClick={() => navigate('/chat/hospital')}
+              type="button"
+            >
               병원 채팅으로 이동
             </button>
-            <button ref={friendChatTargetRef} className="analysis-header-button" onClick={() => navigate('/chat/friend')} type="button">
+
+            <button
+              ref={friendChatTargetRef}
+              className="analysis-header-button"
+              onClick={() => navigate('/chat/friend')}
+              type="button"
+            >
               친구 채팅으로 이동
             </button>
           </div>
@@ -162,7 +275,7 @@ export default function AnalysisDashboard() {
         </header>
 
         <RecommendationResults
-          data={recommendationDemo}
+          data={recommendationData}
           onRetest={openRetest}
           retestRef={retestCardTargetRef}
           onChangeInput={openInputChoice}
@@ -176,8 +289,18 @@ export default function AnalysisDashboard() {
 
       <BaseModal
         actions={[
-          { label: '변경하기', onClick: () => setModalKind('input-selection'), tone: 'positive', gazeTargetRef: inputChoiceChangeTargetRef },
-          { label: '취소', onClick: closeModal, tone: 'neutral', gazeTargetRef: inputChoiceCancelTargetRef },
+          {
+            label: '변경하기',
+            onClick: () => setModalKind('input-selection'),
+            tone: 'positive',
+            gazeTargetRef: inputChoiceChangeTargetRef,
+          },
+          {
+            label: '취소',
+            onClick: closeModal,
+            tone: 'neutral',
+            gazeTargetRef: inputChoiceCancelTargetRef,
+          },
         ]}
         isOpen={modalKind === 'input-choice'}
         onClose={closeModal}
@@ -197,13 +320,16 @@ export default function AnalysisDashboard() {
         actions={[
           {
             label: '검사 시작',
-
             onClick: () => navigate('/calibration?mode=retest&source=analysis'),
-
             tone: 'positive',
             gazeTargetRef: retestStartTargetRef,
           },
-          { label: '취소', onClick: closeModal, tone: 'neutral', gazeTargetRef: retestCancelTargetRef },
+          {
+            label: '취소',
+            onClick: closeModal,
+            tone: 'neutral',
+            gazeTargetRef: retestCancelTargetRef,
+          },
         ]}
         isOpen={modalKind === 'retest-intro'}
         onClose={closeModal}
@@ -224,7 +350,14 @@ export default function AnalysisDashboard() {
       ===================================================== */}
 
       <BaseModal
-        actions={[{ label: '확인', onClick: closeModal, tone: 'neutral', gazeTargetRef: changeSuccessConfirmTargetRef }]}
+        actions={[
+          {
+            label: '확인',
+            onClick: closeModal,
+            tone: 'neutral',
+            gazeTargetRef: changeSuccessConfirmTargetRef,
+          },
+        ]}
         isOpen={modalKind === 'change-success'}
         onClose={closeModal}
       >
@@ -247,7 +380,9 @@ export default function AnalysisDashboard() {
           setInputMethodError(null);
           setModalKind('retest-intro');
         }}
-        onSelect={(inputMethodId) => void handleSelectInputMethod(inputMethodId)}
+        onSelect={(inputMethodId) =>
+          void handleSelectInputMethod(inputMethodId)
+        }
       />
     </main>
   );
