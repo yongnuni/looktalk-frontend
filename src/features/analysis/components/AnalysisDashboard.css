@@ -272,3 +272,7 @@
   .recommendation-card__actions { width: 100%; margin-left: 0; }
   .recommendation-card__actions button { flex: 1 1 180px; min-width: 0; padding: 14px 18px; font-size: 20px; }
 }
+
+/* 누적 이력 기반 추천(LightGBM) 로딩·오류·데이터 없음 안내 */
+.analysis-recommendation-status { width: calc(100% - 2 * clamp(20px, 2vw, 40px)); max-width: 1600px; margin: clamp(16px, 2vh, 28px) auto 0; padding: 14px 20px; border-radius: 16px; background: #edf4ff; color: #1f3b63; font-size: 18px; font-weight: 600; box-sizing: border-box; }
+.analysis-recommendation-status[role="alert"] { background: #fff4e5; color: #8a4b00; }

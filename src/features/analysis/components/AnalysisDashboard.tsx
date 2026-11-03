@@ -13,11 +13,12 @@ import { useGazeTarget } from '../../gazeInteraction/useGazeTarget';
 import { useUserSettings } from '../../userSetting/hooks/useUserSettings';
 import { mapInputMethodIdToBackend } from '../inputMethodMapping';
 import { getInputSessions } from '../../calibration/api/inputSessionApi';
-import { recommend } from '../utils/recommend';
-import type { MeasurementRow } from '../utils/recommend';
+import {
+  createEmptyRecommendationDashboard,
+  loadAnalysisRecommendation,
+  type AnalysisRecommendationState,
+} from '../../recommendation/historyRecommendation';
 import type { InputMethodId } from '../types/analysis';
-import type { RecommendationDashboardData } from '../types/recommendation';
-import type { InputSessionLogDto } from '../../../shared/types/backend';
 
 import RecommendationResults from './RecommendationResults';
 import InputMethodSelectionModal from './InputMethodSelectionModal';
@@ -32,38 +33,23 @@ type ModalKind =
   | null;
 
 /* =========================================================
-   백엔드 측정 이력 데이터 변환
+   누적 측정 이력 기반 LightGBM 추천 (캘리브레이션 직후 추천과 별개)
 ========================================================= */
 
-function toMeasurementRows(rows: InputSessionLogDto[]): MeasurementRow[] {
-  return rows.flatMap((row) => {
-    if (
-      !row.calibrationId ||
-      row.typoRate === null ||
-      row.inputSpeed === null
-    ) {
-      return [];
-    }
+// 모델은 최근 최대 10회(calibrationId 기준) 측정을 사용한다. 측정마다 최대 3행이고
+// 생략된 방식이 있으면 행 수가 줄어들므로 백엔드 최대 허용값(100)으로 조회한다.
+const HISTORY_FETCH_SIZE = 100;
 
-    if (
-      row.inputMethod !== 'EYE_TRACKING' &&
-      row.inputMethod !== 'BLINK' &&
-      row.inputMethod !== 'MOUTH'
-    ) {
-      return [];
-    }
+const EMPTY_RECOMMENDATION = createEmptyRecommendationDashboard();
 
-    return [
-      {
-        calibrationId: row.calibrationId,
-        inputMethod: row.inputMethod,
-        inputSpeed: row.inputSpeed,
-        typoRate: row.typoRate,
-        sessionAt: row.sessionAt,
-      },
-    ];
-  });
-}
+const RECOMMENDATION_STATUS_MESSAGE: Partial<
+  Record<AnalysisRecommendationState['status'], string>
+> = {
+  loading: '누적 측정 이력을 분석하고 있습니다…',
+  empty: '아직 저장된 측정 이력이 없습니다. 다시 검사하기로 측정을 진행해 주세요.',
+  'api-error': '측정 이력을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  'model-error': '추천 모델을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+};
 
 export default function AnalysisDashboard() {
   const navigate = useNavigate();
@@ -75,38 +61,33 @@ export default function AnalysisDashboard() {
      추천 결과 및 백엔드 측정 이력 조회
   ========================================================= */
 
-  const [recommendationData, setRecommendationData] =
-    useState<RecommendationDashboardData>(() => recommend([]));
+  const [recommendationState, setRecommendationState] =
+    useState<AnalysisRecommendationState>({ status: 'loading' });
 
   useEffect(() => {
+    // 언마운트(또는 StrictMode 재실행) 이후 도착한 이전 요청 결과는 반영하지 않는다.
     let cancelled = false;
 
-    const fetchRecommendation = async () => {
-      try {
-        const response = await getInputSessions('CALIBRATION_TEST', 30);
-
-        const history = toMeasurementRows(response);
-
-        const result = recommend(history);
-
-        if (!cancelled) {
-          setRecommendationData(result);
-        }
-      } catch (error) {
-        console.error('입력 방식 측정 이력 조회 실패:', error);
-
-        if (!cancelled) {
-          setRecommendationData(recommend([]));
-        }
+    void loadAnalysisRecommendation({
+      fetchRows: () => getInputSessions('CALIBRATION_TEST', HISTORY_FETCH_SIZE),
+    }).then((nextState) => {
+      if (!cancelled) {
+        setRecommendationState(nextState);
       }
-    };
-
-    void fetchRecommendation();
+    });
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const recommendationData =
+    recommendationState.status === 'ready'
+      ? recommendationState.data
+      : EMPTY_RECOMMENDATION;
+
+  const recommendationStatusMessage =
+    RECOMMENDATION_STATUS_MESSAGE[recommendationState.status];
 
   /* =========================================================
      분석 항목 이동
@@ -273,6 +254,15 @@ export default function AnalysisDashboard() {
 
           <EmergencyButton />
         </header>
+
+        {recommendationStatusMessage && (
+          <p
+            className="analysis-recommendation-status"
+            role={recommendationState.status.endsWith('error') ? 'alert' : 'status'}
+          >
+            {recommendationStatusMessage}
+          </p>
+        )}
 
         <RecommendationResults
           data={recommendationData}
