@@ -46,7 +46,8 @@ const RECOMMENDATION_STATUS_MESSAGE: Partial<
   Record<AnalysisRecommendationState['status'], string>
 > = {
   loading: '누적 측정 이력을 분석하고 있습니다…',
-  empty: '아직 저장된 측정 이력이 없습니다. 다시 검사하기로 측정을 진행해 주세요.',
+  empty:
+    '아직 저장된 측정 이력이 없습니다. 다시 검사하기로 측정을 진행해 주세요.',
   'api-error': '측정 이력을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
   'model-error': '추천 모델을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
 };
@@ -258,7 +259,9 @@ export default function AnalysisDashboard() {
         {recommendationStatusMessage && (
           <p
             className="analysis-recommendation-status"
-            role={recommendationState.status.endsWith('error') ? 'alert' : 'status'}
+            role={
+              recommendationState.status.endsWith('error') ? 'alert' : 'status'
+            }
           >
             {recommendationStatusMessage}
           </p>
