@@ -1,0 +1,22 @@
+[33mcommit 0363b2c8fc9bc1b7a04a665461dade4b1892c7ec[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32myejin[m[33m, [m[1;31morigin/develop[m[33m)[m
+Merge: dd57332 e55aff5
+Author: CHW0n <chw9285@gmail.com>
+Date:   Wed Nov 4 03:37:19 2026 +0900
+
+    Merge pull request #36 from yongnuni/feature/lightgbm-recommendation
+    
+    feat: integrate LightGBM recommendation with analysis dashboard
+
+ .../analysis/components/AnalysisDashboard.css      |   4 [32m+[m
+ .../analysis/components/AnalysisDashboard.tsx      |  98 [32m+++[m[31m---[m
+ src/features/analysis/utils/recommend.test.ts      |  33 [32m++[m
+ src/features/recommendation/engine/features.ts     |  34 [32m++[m
+ .../recommendation/engine/parity_fixtures.json     | 366 [32m+++++++++++++++++++++[m
+ src/features/recommendation/engine/predict.ts      |  39 [32m+++[m
+ .../recommendation/engine/recommend.test.ts        |  78 [32m+++++[m
+ src/features/recommendation/engine/recommend.ts    |  75 [32m+++++[m
+ src/features/recommendation/engine/types.ts        |  20 [32m++[m
+ .../recommendation/historyRecommendation.test.ts   | 219 [32m++++++++++++[m
+ .../recommendation/historyRecommendation.ts        | 268 [32m+++++++++++++++[m
+ .../recommendation/models/looktalk_lgbm.json       |   1 [32m+[m
+ 12 files changed, 1181 insertions(+), 54 deletions(-)
